@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   # Serviciul pentru Baza de Date
@@ -9,7 +8,8 @@ services:
       - "1433:1433" # pentru 'dotnet ef'
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_SA_PASSWORD: "ninelcatel" 
+      # Use a strong SA password (min 8 chars, upper, lower, digit, special)
+      MSSQL_SA_PASSWORD: "NinelCatel1!"
     volumes:
       - mssql_data:/var/opt/mssql # Persistă datele
 
@@ -22,10 +22,12 @@ services:
     ports:
       - "8080:8080" # Expune portul aplicației
     environment:
-      # Aici suprascriem ConnectionString-ul la runtime
-      ConnectionStrings__DefaultConnection: "Server=database,1433;Database=SocialAppDB;User=sa;Password=ninelcatel;TrustServerCertificate=True"
+      # Docker env overrides ConnectionStrings:DefaultConnection
+      ConnectionStrings__DefaultConnection: "Server=database,1433;Database=SocialAppDB;User=sa;Password=NinelCatel1!;TrustServerCertificate=True"
+      # let app know it's running in a container so it can skip HTTPS redirect
+      DOTNET_RUNNING_IN_CONTAINER: "true"
     depends_on:
       - database
 
 volumes:
-  mssql_data: 
+  mssql_data:
