@@ -1,0 +1,24 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "unibucGram", "unibucGram.csproj", "{9619871C-0158-4C84-9DA5-5BF2B5321C96}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9619871C-0158-4C84-9DA5-5BF2B5321C96}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9619871C-0158-4C84-9DA5-5BF2B5321C96}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9619871C-0158-4C84-9DA5-5BF2B5321C96}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9619871C-0158-4C84-9DA5-5BF2B5321C96}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0BB2B789-A0FA-4E4D-84F0-2322673D79EE}
+	EndGlobalSection
+EndGlobal

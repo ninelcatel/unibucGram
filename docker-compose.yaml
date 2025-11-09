@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  # Serviciul pentru Baza de Date
+  database:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: socialapp-db
+    ports:
+      - "1433:1433" # pentru 'dotnet ef'
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "ninelcatel" 
+    volumes:
+      - mssql_data:/var/opt/mssql # Persistă datele
+
+  # Serviciul pentru Web
+  webapp:
+    container_name: socialapp-web
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080" # Expune portul aplicației
+    environment:
+      # Aici suprascriem ConnectionString-ul la runtime
+      ConnectionStrings__DefaultConnection: "Server=database,1433;Database=SocialAppDB;User=sa;Password=ninelcatel;TrustServerCertificate=True"
+    depends_on:
+      - database
+
+volumes:
+  mssql_data: 
