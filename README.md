@@ -1,18 +1,17 @@
 # Docker 
 
-
 - The project is configured to use the SQL Server container as the database when run with Docker Compose.
 - EF Core migrations are applied automatically by the web container at startup (the project includes a retry loop). 
 
 Dependencies (Linux and Windows 11)
 
 Required
-- Docker Engine (daemon) — used to run containers.
-- Docker Compose v2 (preferred) — `docker compose`
+- Docker Engine (daemon) : used to run containers.
+- Docker Compose v2 (preferred) :`docker compose`
 
 Optional (only if you build/run from host)
-- .NET 9 SDK — required only if you build or run the app from your host or generate EF migrations.
-- dotnet-ef global tool — only needed if you run `dotnet ef` from the host.
+- .NET 9 SDK : required only if you build or run the app from your host or generate EF migrations.
+- dotnet-ef global tool : only needed if you run `dotnet ef` from the host.
 
 Linux (Arch / Debian / RHEL)
 
@@ -56,7 +55,6 @@ sqlcmd -S localhost -U SA -P '<SA_PASSWORD>'
 	- Debian: follow Microsoft's packaging docs to add the MS repo and install `mssql-tools` and `unixodbc`.
 	- Arch Linux: there are AUR packages (search for `mssql-tools` / `mssql-tools-bin`).
 	- Windows: use SSMS or the sqlcmd client shipped with SQL Server tools, or run `sqlcmd` from WSL after installing `mssql-tools` there. Could use Visual Studio though.
-```
 
 Quick usage
 
