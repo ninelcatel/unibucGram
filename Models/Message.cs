@@ -14,6 +14,7 @@ namespace unibucGram.Models
         public string SenderId { get; set; } = null!; // FK
         public virtual User Sender { get; set; } = null!; // navigation
 
+        [StringLength(1000)]
         public string? Text { get; set; }
         public string? AttachmentUrl { get; set; }
         /*
