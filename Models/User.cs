@@ -35,7 +35,8 @@ namespace unibucGram.Models
         public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
         // eu spune sa putem lista de likes la posturile unui utilizator,adica deja e acolo,deci nu cred ca mai e nevoie aici,spune mi ce parere ai
         public virtual ICollection<Like> Likes { get; set; } = new List<Like>();
-        //daca lasam o singura lista de conversatii se provoaca ambiguitati,adica am vazut ca tu in conversatation ai fk la userA si userB si in momentu in care iei o conversatie cu un user,nu ai sti daca e UserA sau UserB
+        //daca lasam o singura lista de conversatii se provoaca ambiguitati,adica am vazut ca tu in conversatation ai fk la userA si userB si in momentu 
+        // in care iei o conversatie cu un user,nu ai sti daca e UserA sau UserB.asa ca daca vrem de exemplu conversatiile pe care le are userA luam ConversationsAsUserA
         public virtual ICollection<Conversation> ConversationsAsUserA { get; set; } = new List<Conversation>(); // conversatii unde user-ul este UserA
         public virtual ICollection<Conversation> ConversationsAsUserB { get; set; } = new List<Conversation>(); // conversatii unde user-ul este UserB
         public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
