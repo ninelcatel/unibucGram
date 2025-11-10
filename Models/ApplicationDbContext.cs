@@ -21,5 +21,4 @@ public class ApplicationDbContext : IdentityDbContext
 
     // DE INTREBAT LA LAB CUM SE STABILESC CONCRET RELATIILE IN APPDBCONTEXT 
     // sau daca stii tu fa-le tu si imi efxplici
-    
 }
