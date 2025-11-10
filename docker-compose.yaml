@@ -11,7 +11,7 @@ services:
       # Use a strong SA password (min 8 chars, upper, lower, digit, special)
       MSSQL_SA_PASSWORD: "NinelCatel1!"
     volumes:
-      - mssql_data:/var/opt/mssql # Persistă datele
+      - mssql_data:/var/opt/mssql 
 
   # Serviciul pentru Web
   webapp:
@@ -20,7 +20,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8080:8080" # Expune portul aplicației
+      - "8080:8080"
     environment:
       # Docker env overrides ConnectionStrings:DefaultConnection
       ConnectionStrings__DefaultConnection: "Server=database,1433;Database=SocialAppDB;User=sa;Password=NinelCatel1!;TrustServerCertificate=True"
