@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using unibucGram.Data;
+using unibucGram.Models; // eu pusesem appdbcontext.cs in models si de aia nu cred ca mergea, daca e cazu
+// schimbam inapoi in .data 
 using System.Threading;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -11,8 +12,17 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<ApplicationDbContext>();
+//as zice sa folosim direct User aici,oricum mosteneste IdentityUser
+builder.Services.AddDefaultIdentity<User>(options =>
+{
+    options.Password.RequiredLength = 6;
+    options.Password.RequireNonAlphanumeric = false;
+})
+.AddRoles<IdentityRole>() // Add this line if you intend to use roles
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
+
+builder.Services.AddRazorPages();  // ADD THIS LINE
 builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
@@ -60,16 +70,14 @@ if (!runningInContainer)
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
 
+app.MapRazorPages();  // This line should now work
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
-
-app.MapRazorPages()
-   .WithStaticAssets();
+    pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.Run();

@@ -25,9 +25,9 @@ namespace unibucGram.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         [Required]
-        public string UserId { get; set; } // foreign key catre user
-        
-        public virtual User User { get; set; } // navigation catre user
+        public string UserId { get; set; } = null!;     // foreign key catre user (cine a postat) , adaugat null! si user ? pt warnings din IDE
+
+        public virtual User? User { get; set; } // navigation catre user
 
         public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>(); // navigation catre comments
         public virtual ICollection<Like> Likes { get; set; } = new List<Like>(); // navigation catre likes
