@@ -12,8 +12,8 @@ using unibucGram.Models;
 namespace unibucGram.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20251111085032_DB_SETUP_WIP")]
-    partial class DB_SETUP_WIP
+    [Migration("20251111111840_initialDbSetup")]
+    partial class initialDbSetup
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -480,7 +480,7 @@ namespace unibucGram.Migrations
                     b.HasOne("unibucGram.Models.User", "User")
                         .WithMany("Comments")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Post");
@@ -499,7 +499,7 @@ namespace unibucGram.Migrations
                     b.HasOne("unibucGram.Models.User", "UserB")
                         .WithMany("ConversationsAsUserB")
                         .HasForeignKey("UserBId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("UserA");
@@ -512,7 +512,7 @@ namespace unibucGram.Migrations
                     b.HasOne("unibucGram.Models.User", "Followee")
                         .WithMany("Followers")
                         .HasForeignKey("FolloweeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("unibucGram.Models.User", "Follower")
@@ -537,7 +537,7 @@ namespace unibucGram.Migrations
                     b.HasOne("unibucGram.Models.User", "User")
                         .WithMany("Likes")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Post");

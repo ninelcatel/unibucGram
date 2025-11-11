@@ -477,7 +477,7 @@ namespace unibucGram.Migrations
                     b.HasOne("unibucGram.Models.User", "User")
                         .WithMany("Comments")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Post");
@@ -496,7 +496,7 @@ namespace unibucGram.Migrations
                     b.HasOne("unibucGram.Models.User", "UserB")
                         .WithMany("ConversationsAsUserB")
                         .HasForeignKey("UserBId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("UserA");
@@ -509,7 +509,7 @@ namespace unibucGram.Migrations
                     b.HasOne("unibucGram.Models.User", "Followee")
                         .WithMany("Followers")
                         .HasForeignKey("FolloweeId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("unibucGram.Models.User", "Follower")
@@ -534,7 +534,7 @@ namespace unibucGram.Migrations
                     b.HasOne("unibucGram.Models.User", "User")
                         .WithMany("Likes")
                         .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.Navigation("Post");

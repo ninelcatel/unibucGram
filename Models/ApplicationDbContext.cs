@@ -61,7 +61,13 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .HasOne(c => c.User)                    // Un Comment are un User
             .WithMany(u => u.Comments)              // Un User are mai multe Comments
             .HasForeignKey(c => c.UserId)           // FK este UserId din Comment
-            .OnDelete(DeleteBehavior.Cascade);      // Daca stergi User-ul, stergi si toate Comment-urile sale
+            .OnDelete(DeleteBehavior.Restrict);     // Daca stergi User-ul, NU se sterg comment-urile (previne multiple cascade paths)
+        // De ce Restrict in loc de Cascade?
+        // SQL Server detecteaza un ciclu: User -> Post -> Comment SI User -> Comment
+        // Daca User-ul este sters, Post-urile lui se sterg (Cascade), si apoi Comment-urile de pe acele Post-uri se sterg (Cascade prin Post)
+        // Deci deja avem o cale de la User la Comment prin Post
+        // Nu putem avea si Cascade direct de la User la Comment (ar fi doua cai)
+        // Restrict = nu poti sterge user-ul daca are comentarii directe (trebuie sterse manual sau prin stergerea Post-ului)
 
         builder.Entity<Comment>()
             .HasOne(c => c.Post)                    // Un Comment apartine unui Post
@@ -90,7 +96,13 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .HasOne(l => l.User)                    // Un Like are un User
             .WithMany(u => u.Likes)                 // Un User are mai multe Likes
             .HasForeignKey(l => l.UserId)           // FK este UserId din Like
-            .OnDelete(DeleteBehavior.Cascade);      // Daca stergi User-ul, stergi si toate Like-urile sale
+            .OnDelete(DeleteBehavior.Restrict);     // Daca stergi User-ul, NU se sterg like-urile (previne multiple cascade paths)
+        // De ce Restrict in loc de Cascade?
+        // SQL Server detecteaza un ciclu: User -> Post -> Like SI User -> Like
+        // Daca User-ul este sters, Post-urile lui se sterg (Cascade), si apoi Like-urile de pe acele Post-uri se sterg (Cascade prin Post)
+        // Deci deja avem o cale de la User la Like prin Post
+        // Nu putem avea si Cascade direct de la User la Like (ar fi doua cai)
+        // Restrict = nu poti sterge user-ul daca are like-uri directe (trebuie sterse manual sau prin stergerea Post-ului)
 
         // PASUL 3: Configuram relatia Like -> Post
         builder.Entity<Like>()
@@ -126,11 +138,16 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .HasOne(f => f.Followee)                // Un Follow are un Followee (cine este urmarit)
             .WithMany(u => u.Followers)             // Un User are mai multe Follow-uri unde este Followee
             .HasForeignKey(f => f.FolloweeId)       // FK este FolloweeId din Follow
-            .OnDelete(DeleteBehavior.Cascade);      // Daca stergi User-ul, stergi si toate Follow-urile unde este Followee
+            .OnDelete(DeleteBehavior.Restrict);     // Daca stergi User-ul, NU se sterg follow-urile (previne multiple cascade paths)
+        // De ce Restrict in loc de Cascade?
+        // SQL Server nu permite multiple cascade paths catre aceeasi tabela (AspNetUsers)
+        // Avem deja Cascade pe FollowerId, deci FolloweeId trebuie sa fie Restrict
+        // Restrict = nu poti sterge user-ul daca e urmarit de altii (arunca eroare)
+        // Trebuie sa stergi manual follow-urile sau sa schimbi logica de cleanup
 
         // PASUL 4: Adaugam constraint pentru a preveni auto-follow
         builder.Entity<Follow>()
-            .HasCheckConstraint("CK_Follow_NoSelfFollow", "[FollowerId] <> [FolloweeId]");
+            .ToTable(t => t.HasCheckConstraint("CK_Follow_NoSelfFollow", "[FollowerId] <> [FolloweeId]"));
         // De ce? Un user nu ar trebui sa se poata urmari pe el insusi
         // Check constraint = o validare la nivel de baza de date
         // Daca incerci sa inserezi (john, john), baza de date va arunca o eroare
@@ -155,7 +172,12 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .HasOne(c => c.UserB)                   // Un Conversation are un UserB
             .WithMany(u => u.ConversationsAsUserB)  // Un User are mai multe Conversation-uri unde este UserB
             .HasForeignKey(c => c.UserBId)          // FK este UserBId din Conversation
-            .OnDelete(DeleteBehavior.Cascade);      // Daca stergi User-ul, stergi si toate Conversation-urile unde este UserB
+            .OnDelete(DeleteBehavior.Restrict);     // Daca stergi User-ul, NU se sterg conversatiile (previne multiple cascade paths)
+        // De ce Restrict in loc de Cascade?
+        // SQL Server nu permite multiple cascade paths catre aceeasi tabela (AspNetUsers)
+        // Avem deja Cascade pe UserAId, deci UserBId trebuie sa fie Restrict
+        // Restrict = nu poti sterge user-ul daca e UserB in conversatii active (arunca eroare)
+        // Trebuie sa stergi manual conversatiile sau sa schimbi logica de cleanup
 
         // De ce doua liste separate? Pentru ca Conversation are DOUA FK-uri catre User
         // EF Core nu poate mapa automat o singura lista la doua FK-uri diferite
@@ -164,7 +186,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
 
         // PASUL 3: Adaugam constraint pentru a preveni conversatii cu sine
         builder.Entity<Conversation>()
-            .HasCheckConstraint("CK_Conversation_NoSelfConversation", "[UserAId] <> [UserBId]");
+            .ToTable(t => t.HasCheckConstraint("CK_Conversation_NoSelfConversation", "[UserAId] <> [UserBId]"));
         // De ce? Un user nu ar trebui sa poata avea conversatie cu el insusi
         // Check constraint = validare la nivel de baza de date
 
