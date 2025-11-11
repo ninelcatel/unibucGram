@@ -68,3 +68,21 @@ docker compose up --build
 docker compose up -d database
 docker compose up --build webapp
 ```
+
+- For creating migrations: 
+1. Recommended
+```sh
+docker compose up -d database
+
+// waiting for the database to initialize
+
+dotnet ef migrations add <migration_name>
+
+docker compose up --build webapp
+```
+2. Alternative
+```sh
+dotnet ef migrations add <migration_name> --no-build
+
+docker compose up --build
+```
