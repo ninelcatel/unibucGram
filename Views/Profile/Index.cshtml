@@ -41,7 +41,9 @@
                         <div class="card-body">
                             @if (!string.IsNullOrEmpty(post.ImageURL))
                             {
-                                <img src="@post.ImageURL" class="img-fluid mb-2" />
+                                <div class="post-image-container mb-2">
+                                        <div class="post-image" style="background-image: url('@post.ImageURL');"></div>
+                                </div>
                             }
                             @if (!string.IsNullOrEmpty(post.Content))
                             {
@@ -55,3 +57,26 @@
         }
     </div>
 </div>
+
+@section Scripts {
+<style>
+    .post-image-container {
+        position: relative;
+        width: 100%;
+        padding-top: 100%; 
+        overflow: hidden;
+    }
+
+    .post-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        right: 0;
+        background-size: contain; 
+        background-position: center;
+        background-repeat: no-repeat; 
+        background-color: #f8f9fa; 
+    }
+</style>
+}
