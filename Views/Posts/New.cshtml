@@ -1,0 +1,28 @@
+@model unibucGram.Models.Post
+
+@{
+    ViewData["Title"] = "New Post";
+}
+
+<h2>Create a new post</h2>
+
+<form asp-controller="Posts" asp-action="Create" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label asp-for="Content" class="form-label">Content</label>
+        <textarea asp-for="Content" class="form-control" rows="4"></textarea>
+        <span asp-validation-for="Content" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label class="form-label">Image</label>
+        <input type="file" name="image" class="form-control" accept="image/*" />
+    </div>
+
+    <button type="submit" class="btn btn-primary">Post</button>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

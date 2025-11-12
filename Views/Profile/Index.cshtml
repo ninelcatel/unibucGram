@@ -25,26 +25,30 @@
     <hr />
 
     <h4>Posts</h4>
-    <div>
+    <div class="row">
         @if (!posts.Any())
         {
-            <p class="text-muted">You have no posts yet.</p>
+            <div class="col">
+                <p class="text-muted">You have no posts yet.</p>
+            </div>
         }
         else
         {
             foreach (var post in posts)
             {
-                <div class="card mb-3">
-                    <div class="card-body">
-                        @if (!string.IsNullOrEmpty(post.ImageURL))
-                        {
-                            <img src="@post.ImageURL" class="img-fluid mb-2" />
-                        }
-                        @if (!string.IsNullOrEmpty(post.Content))
-                        {
-                            <p>@post.Content</p>
-                        }
-                        <div class="text-muted small">@post.CreatedAt.ToLocalTime().ToString("g") • Likes: @post.Likes.Count • Comments: @post.Comments.Count</div>
+                <div class="col-md-4 mb-3">
+                    <div class="card">
+                        <div class="card-body">
+                            @if (!string.IsNullOrEmpty(post.ImageURL))
+                            {
+                                <img src="@post.ImageURL" class="img-fluid mb-2" />
+                            }
+                            @if (!string.IsNullOrEmpty(post.Content))
+                            {
+                                <p>@post.Content</p>
+                            }
+                            <div class="text-muted small">@post.CreatedAt.ToLocalTime().ToString("g") • Likes: @post.Likes.Count • Comments: @post.Comments.Count</div>
+                        </div>
                     </div>
                 </div>
             }

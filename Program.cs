@@ -73,6 +73,10 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+// Serve static files from wwwroot (uploads, css, js)
+app.UseStaticFiles();
+
+// Register static web assets (Razor class libraries)
 app.MapStaticAssets();
 
 app.MapRazorPages();  // This line should now work

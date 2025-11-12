@@ -29,6 +29,11 @@ services:
       - DOTNET_RUNNING_IN_CONTAINER=true
     depends_on:
       - database
+    volumes:
+      # persist only uploads so we don't hide built static assets inside the image
+      - ./wwwroot/uploads:/app/wwwroot/uploads
+      # persist data protection keys so antiforgery tokens remain valid across restarts
+      - ./dataprotection-keys:/root/.aspnet/DataProtection-Keys
 
 volumes:
   mssql_data:
