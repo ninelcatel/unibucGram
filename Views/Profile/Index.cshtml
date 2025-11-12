@@ -1,0 +1,53 @@
+@model unibucGram.Models.User
+
+@{
+    ViewData["Title"] = "Profile";
+    var posts = ViewBag.Posts as List<unibucGram.Models.Post> ?? new List<unibucGram.Models.Post>();
+    var followers = (int)(ViewBag.FollowersCount ?? 0);
+    var following = (int)(ViewBag.FollowingCount ?? 0);
+}
+
+<div class="container mt-4">
+    <div class="d-flex align-items-center mb-3">
+        <img src="@(Model.PfpURL ?? "/lib/bootstrap/dist/img/bootstrap-logo.svg")" alt="avatar" width="80" height="80" class="rounded-circle me-3" />
+        <div>
+            <h3>@(Model.FirstName) @(Model.LastName)</h3>
+            <div class="text-muted">@Model.UserName</div>
+            @if (!string.IsNullOrWhiteSpace(Model.Bio)) { <p class="mt-2">@Model.Bio</p> }
+            <div class="mt-2">
+                <strong>@posts.Count</strong> posts
+                <strong class="ms-3">@followers</strong> followers
+                <strong class="ms-3">@following</strong> following
+            </div>
+        </div>
+    </div>
+
+    <hr />
+
+    <h4>Posts</h4>
+    <div>
+        @if (!posts.Any())
+        {
+            <p class="text-muted">You have no posts yet.</p>
+        }
+        else
+        {
+            foreach (var post in posts)
+            {
+                <div class="card mb-3">
+                    <div class="card-body">
+                        @if (!string.IsNullOrEmpty(post.ImageURL))
+                        {
+                            <img src="@post.ImageURL" class="img-fluid mb-2" />
+                        }
+                        @if (!string.IsNullOrEmpty(post.Content))
+                        {
+                            <p>@post.Content</p>
+                        }
+                        <div class="text-muted small">@post.CreatedAt.ToLocalTime().ToString("g") • Likes: @post.Likes.Count • Comments: @post.Comments.Count</div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
