@@ -1,10 +1,14 @@
-// filepath: Areas/Identity/Pages/Account/Manage/Index.cshtml.cs
 using System;
 using System.ComponentModel.DataAnnotations;
+using System.IO;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 using unibucGram.Models;
 
 namespace unibucGram.Areas.Identity.Pages.Account.Manage
@@ -13,13 +17,16 @@ namespace unibucGram.Areas.Identity.Pages.Account.Manage
     {
         private readonly UserManager<User> _userManager;
         private readonly SignInManager<User> _signInManager;
+        private readonly IWebHostEnvironment _webHostEnvironment;
 
         public IndexModel(
             UserManager<User> userManager,
-            SignInManager<User> signInManager)
+            SignInManager<User> signInManager,
+            IWebHostEnvironment webHostEnvironment)
         {
             _userManager = userManager;
             _signInManager = signInManager;
+            _webHostEnvironment = webHostEnvironment;
         }
 
         public string Username { get; set; } = string.Empty;
@@ -57,6 +64,13 @@ namespace unibucGram.Areas.Identity.Pages.Account.Manage
             [Phone]
             [Display(Name = "Phone number")]
             public string? PhoneNumber { get; set; }
+
+            [Display(Name = "Profile Picture")]
+            public IFormFile? ProfilePicture { get; set; }
+
+            public string? PfpURL { get; set; }
+
+            public string? ProfilePictureBase64 { get; set; }
         }
 
         private async Task LoadAsync(User user)
@@ -73,7 +87,8 @@ namespace unibucGram.Areas.Identity.Pages.Account.Manage
                 DateOfBirth = user.DateOfBirth,
                 Bio = user.Bio,
                 IsPrivate = user.isPrivate,
-                PhoneNumber = phoneNumber
+                PhoneNumber = phoneNumber,
+                PfpURL = user.PfpURL ?? "/uploads/default_pfp.svg"
             };
         }
 
@@ -110,11 +125,55 @@ namespace unibucGram.Areas.Identity.Pages.Account.Manage
             user.Bio = Input.Bio;
             user.isPrivate = Input.IsPrivate;
 
+            if (!string.IsNullOrEmpty(Input.ProfilePictureBase64))
+            {
+                var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads");
+                Directory.CreateDirectory(uploadsFolder);
+
+                var fileName = Guid.NewGuid().ToString() + ".jpg";
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                // The ProfilePictureBase64 is a Data URL like "data:image/jpeg;base64,..."
+                // We need to extract the actual base64 content.
+                var base64Data = Input.ProfilePictureBase64.Split(',')[1];
+                byte[] imageBytes = Convert.FromBase64String(base64Data);
+
+                await System.IO.File.WriteAllBytesAsync(filePath, imageBytes);
+
+                user.PfpURL = "/uploads/" + fileName;
+            }
+            else if (Input.ProfilePicture != null && Input.ProfilePicture.Length > 0)
+            {
+                // Fallback for when cropper is not used or fails
+                var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads");
+                Directory.CreateDirectory(uploadsFolder);
+
+                var fileName = Guid.NewGuid().ToString() + ".jpg";
+                var filePath = Path.Combine(uploadsFolder, fileName);
+
+                using (var image = Image.Load(Input.ProfilePicture.OpenReadStream()))
+                {
+                    image.Mutate(x => x.Resize(new ResizeOptions
+                    {
+                        Size = new Size(300, 300),
+                        Mode = ResizeMode.Crop
+                    }));
+                    await image.SaveAsJpegAsync(filePath);
+                }
+
+                user.PfpURL = "/uploads/" + fileName;
+            }
+
             var updateResult = await _userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)
             {
                 StatusMessage = "Unexpected error when trying to update profile.";
-                return RedirectToPage();
+                foreach (var error in updateResult.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+                await LoadAsync(user);
+                return Page();
             }
 
             // Update phone number

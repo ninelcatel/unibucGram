@@ -9,7 +9,7 @@
 
 <div class="container mt-4">
     <div class="d-flex align-items-center mb-3">
-        <img src="@(Model.PfpURL ?? "/lib/bootstrap/dist/img/bootstrap-logo.svg")" alt="avatar" width="80" height="80" class="rounded-circle me-3" />
+        <img src="@(string.IsNullOrWhiteSpace(Model.PfpURL) ? "/uploads/default_pfp.svg" : Model.PfpURL)" alt="avatar" width="80" height="80" class="rounded-circle me-3" />
         <div>
             <h3>@(Model.FirstName) @(Model.LastName)</h3>
             <div class="text-muted">@Model.UserName</div>

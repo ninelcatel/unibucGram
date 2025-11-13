@@ -98,7 +98,8 @@ namespace unibucGram.Areas.Identity.Pages.Account
                     LastName = Input.LastName,
                     DateOfBirth = Input.DateOfBirth,
                     Bio = Input.Bio,
-                    CreatedAt = DateTime.UtcNow
+                    CreatedAt = DateTime.UtcNow,
+                    PfpURL = "/uploads/default_pfp.svg"
                 };
 
                 var result = await _userManager.CreateAsync(user, Input.Password);

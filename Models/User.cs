@@ -24,7 +24,7 @@ namespace unibucGram.Models
         [StringLength(200)]
         public string? Bio { get; set; } = string.Empty; // e optionala bio
 
-        public string? PfpURL { get; set; } = string.Empty; // putem adauga un url pt basic pfp dar inca nu stiu cum ,vom vedea
+        public string? PfpURL { get; set; } = "/uploads/default_pfp.svg"; // putem adauga un url pt basic pfp dar inca nu stiu cum ,vom vedea
 
         // lazy loading navigations
         public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
