@@ -1,0 +1,23 @@
+@model IEnumerable<unibucGram.Models.User>
+
+@if (!Model?.Any() ?? true)
+{
+    <div class="px-2 py-1 text-muted">No results</div>
+}
+else
+{
+    <ul class="list-group list-group-flush">
+    @foreach (var u in Model)
+    {
+        <li class="list-group-item">
+            <div class="d-flex align-items-center">
+                <img src="@(string.IsNullOrEmpty(u.PfpURL) ? "/img/avatar-placeholder.png" : u.PfpURL)" alt="avatar" width="36" height="36" class="rounded-circle me-2" />
+                <div>
+                    <div>@(u.FirstName + " " + u.LastName)</div>
+                    <small class="text-muted">@u.UserName</small>
+                </div>
+            </div>
+        </li>
+    }
+    </ul>
+}
