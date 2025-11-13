@@ -1,10 +1,63 @@
-﻿@{
-    ViewData["Title"] = "Home Page";
+﻿@using Microsoft.AspNetCore.Identity
+@using unibucGram.Models
+@inject SignInManager<User> SignInManager
+@inject UserManager<User> UserManager
+
+@{
+    ViewData["Title"] = "Home";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<div class="text-center py-5">
+    <div class="container">
+        @if (SignInManager.IsSignedIn(User))
+        {
+            var currentUser = await UserManager.GetUserAsync(User);
+            <h1 class="display-4 mb-4 text-purple">Welcome back, @currentUser?.FirstName!</h1>
+            <p class="lead mb-4">Share your moments with the unibucGram community</p>
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                <a asp-controller="Posts" asp-action="New" class="btn btn-primary btn-lg px-4 gap-3">Create Post</a>
+                <a asp-controller="Profile" asp-action="Index" class="btn btn-outline-secondary btn-lg px-4">My Profile</a>
+            </div>
+        }
+        else
+        {
+            <h1 class="display-4 mb-4 text-purple">Welcome to unibucGram</h1>
+            <p class="lead mb-4">Connect, share, and discover amazing moments</p>
+            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary btn-lg px-4 gap-3">Get Started</a>
+                <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-secondary btn-lg px-4">Sign In</a>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="container mt-5">
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card h-100 text-center p-4">
+                <div class="card-body">
+                    <h3 class="text-purple mb-3">Share</h3>
+                    <p class="text-muted">Post photos and updates with your followers</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 text-center p-4">
+                <div class="card-body">
+                    <h3 class="text-purple mb-3">Connect</h3>
+                    <p class="text-muted">Follow friends and discover new people</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card h-100 text-center p-4">
+                <div class="card-body">
+                    <h3 class="text-purple mb-3">Discover</h3>
+                    <p class="text-muted">Explore amazing content from the community</p>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 
