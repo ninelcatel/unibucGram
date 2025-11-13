@@ -1,4 +1,5 @@
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -58,6 +59,38 @@ namespace unibucGram.Controllers
         public IActionResult Error()
         {
             return View();
+        }
+
+        [AllowAnonymous]
+        [HttpGet("Show/{name}")]
+        public async Task<IActionResult> Show(string name) // username
+        {
+            if (string.IsNullOrEmpty(name))
+                return RedirectToAction("Index", "Home");
+
+            var user = await _db.Users
+                .FirstOrDefaultAsync(u => u.UserName == name);
+
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var followersCount = await _db.Follows.CountAsync(f => f.FolloweeId == user.Id);
+            var followingCount = await _db.Follows.CountAsync(f => f.FollowerId == user.Id);
+
+            var posts = await _db.Posts
+                .Where(p => p.UserId == user.Id)
+                .OrderByDescending(p => p.CreatedAt)
+                .Include(p => p.Likes)
+                .Include(p => p.Comments)
+                .ToListAsync();
+
+            ViewBag.Posts = posts;
+            ViewBag.FollowersCount = followersCount;
+            ViewBag.FollowingCount = followingCount;
+
+            return View("Index", user);
         }
     }
 }
