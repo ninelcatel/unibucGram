@@ -56,7 +56,10 @@ sqlcmd -S localhost -U SA -P '<SA_PASSWORD>'
 	- Arch Linux: there are AUR packages (search for `mssql-tools` / `mssql-tools-bin`).
 	- Windows: use SSMS or the sqlcmd client shipped with SQL Server tools, or run `sqlcmd` from WSL after installing `mssql-tools` there. Could use Visual Studio though.
 
-Quick usage
+- If using VSCode editor, SQL Server extension is highly recommended and a better experience than sqlcmd
+
+
+WebApp Quick usage
 
 1. Start both services (recommended):
 ```sh
