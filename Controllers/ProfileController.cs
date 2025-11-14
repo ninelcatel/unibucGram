@@ -51,7 +51,7 @@ namespace unibucGram.Controllers
             ViewBag.Posts = posts;
             ViewBag.FollowersCount = followersCount;
             ViewBag.FollowingCount = followingCount;
-
+            ViewBag.isOwnProfile = true;
             return View(currentUser);
         }
 
@@ -89,8 +89,20 @@ namespace unibucGram.Controllers
             ViewBag.Posts = posts;
             ViewBag.FollowersCount = followersCount;
             ViewBag.FollowingCount = followingCount;
-
+            ViewBag.IsOwnProfile = User.Identity != null && User.Identity.IsAuthenticated && user.Id == _userManager.GetUserId(User);
+            if (User.Identity != null && User.Identity.IsAuthenticated && user.Id != _userManager.GetUserId(User) && ViewBag.IsOwnProfile == false)
+            {
+                var currentUserId = _userManager.GetUserId(User);
+                var isFollowedByCurrentUser = await _db.Follows
+                    .AnyAsync(f => f.FollowerId == currentUserId && f.FolloweeId == user.Id);
+                ViewBag.IsFollowedByCurrentUser = isFollowedByCurrentUser;
+            }
             return View("Index", user);
+        }
+        [HttpGet("Edit")]
+        public IActionResult Edit()
+        {
+            return Redirect("/Identity/Account/Manage");
         }
     }
 }

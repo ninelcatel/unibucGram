@@ -9,7 +9,10 @@
 
 <div class="text-center py-5">
     <div class="container">
-        @if (SignInManager.IsSignedIn(User))
+        @if (SignInManager.IsSignedIn(User) 
+        && User.Identity != null 
+        && User.Identity.IsAuthenticated
+        )
         {
             var currentUser = await UserManager.GetUserAsync(User);
             <h1 class="display-4 mb-4 text-purple">Welcome back, @currentUser?.FirstName!</h1>

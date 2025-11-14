@@ -5,15 +5,26 @@
     var posts = ViewBag.Posts as List<unibucGram.Models.Post> ?? new List<unibucGram.Models.Post>();
     var followers = (int)(ViewBag.FollowersCount ?? 0);
     var following = (int)(ViewBag.FollowingCount ?? 0);
+    var isOwnProfile = (bool)(ViewBag.IsOwnProfile ?? false);
 }
 
 <div class="container mt-4">
     <div class="d-flex align-items-center mb-3">
-        <img src="@(string.IsNullOrWhiteSpace(Model.PfpURL) ? "/uploads/default_pfp.svg" : Model.PfpURL)" alt="avatar" width="80" height="80" class="rounded-circle me-3" />
+        <img src="@(string.IsNullOrWhiteSpace(Model.PfpURL) ? "/uploads/default_pfp.svg" : Model.PfpURL)" alt="avatar" width="80" height="80" class="rounded-circle me-3 align-items-center" />
         <div>
             <h3>@(Model.FirstName) @(Model.LastName)</h3>
             <div class="text-muted">@Model.UserName</div>
             @if (!string.IsNullOrWhiteSpace(Model.Bio)) { <p class="mt-2">@Model.Bio</p> }
+            @if (!isOwnProfile)
+            {   var isFollowedByCurrentUser = ViewBag.IsFollowedByCurrentUser as bool? ?? false;
+                <a asp-controller="Profile" asp-action="FollowToggle" asp-route-id="@Model.Id" class="btn btn-follow btn-sm mt-2">
+                    @(isFollowedByCurrentUser ? "Unfollow" : "Follow")
+                </a>
+            }
+            else
+            {
+                <a asp-controller="Profile" asp-action="Edit" class="btn btn-sm btn-outline-secondary mt-2">Edit Profile</a>
+            }
             <div class="mt-2">
                 <strong>@posts.Count</strong> posts
                 <strong class="ms-3">@followers</strong> followers
