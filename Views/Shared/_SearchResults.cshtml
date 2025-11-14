@@ -11,7 +11,7 @@ else
     {
         <li class="list-group-item">
             <a class="text-decoration-none d-flex align-items-center" asp-controller="Profile" asp-action="Show" asp-route-name="@u.UserName" style="cursor:pointer;">
-                <img src="@(string.IsNullOrEmpty(u.PfpURL) ? "/upload/default_pfp.jpg" : u.PfpURL)" alt="avatar" width="36" height="36" class="rounded-circle me-2" />
+                <img src="@(string.IsNullOrEmpty(u.PfpURL) ? "/img/avatar-placeholder.png" : u.PfpURL)" alt="avatar" width="36" height="36" class="rounded-circle me-2" />
                 <div>
                     <div>@(u.FirstName + " " + u.LastName)</div>
                     <small class="text-muted">@u.UserName</small>
