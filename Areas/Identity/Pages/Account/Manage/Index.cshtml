@@ -6,25 +6,6 @@
 
 <link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css" rel="stylesheet">
 
-<style>
-    .profile-picture-preview {
-        width: 150px;
-        height: 150px;
-        border-radius: 50%;
-        object-fit: cover;
-        margin: 0 auto 20px;
-        display: block;
-    }
-
-    #cropper-image {
-        max-width: 100%;
-    }
-
-    .modal-lg {
-        max-width: 800px;
-    }
-</style>
-
 <div class="container">
     <div class="row justify-content-start">
         <div class="col-md-6">
@@ -34,12 +15,22 @@
             <form id="profile-form" method="post" enctype="multipart/form-data">
                 <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
 
-                <img src="@(Model.Input.PfpURL ?? "/uploads/default_pfp.svg")" alt="Profile Picture" class="profile-picture-preview" id="profile-picture-preview">
+                <img src="@Url.Content(string.IsNullOrWhiteSpace(Model.Input?.PfpURL) 
+                    ? "~/uploads/default_pfp.jpg" 
+                    : Model.Input.PfpURL)" 
+                    alt="Profile Picture" class="profile-picture-preview" id="profile-picture-preview" />
+
+                @if (!string.IsNullOrWhiteSpace(Model.Input?.PfpURL) && Model.Input.PfpURL != "/uploads/default_pfp.jpg")
+                {
+                    <button type="button" class="btn btn-secondary mb-3" id="remove-pfp-btn">
+                        Remove Profile Picture
+                    </button>
+                }
 
                 <div class="mb-3">
                     <label for="profile-picture-input" class="form-label">Profile Picture</label>
                     <input type="file" id="profile-picture-input" name="ProfilePictureFile" class="form-control" accept="image/*">
-                    <input type="hidden" asp-for="Input.PfpURL" />
+                    <input type="hidden" asp-for="Input.PfpURL" id="pfp-url-input" />
                 </div>
 
                 <div class="form-floating mb-3">
@@ -120,6 +111,28 @@
     <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function () {
+            // Remove profile picture handler - just resets to default
+            const removePfpBtn = document.getElementById('remove-pfp-btn');
+            if (removePfpBtn) {
+                removePfpBtn.addEventListener('click', () => {
+                    const preview = document.getElementById('profile-picture-preview');
+                    const pfpUrlInput = document.getElementById('pfp-url-input');
+                    
+                    // Set preview to default image
+                    preview.src = '/uploads/default_pfp.jpg';
+                    
+                    // Update hidden input to default
+                    pfpUrlInput.value = '/uploads/default_pfp.jpg';
+                    
+                    // Hide the remove button
+                    removePfpBtn.style.display = 'none';
+                    
+                    // Clear file input
+                    document.getElementById('profile-picture-input').value = '';
+                });
+            }
+
+            // Cropper logic
             const imageInput = document.getElementById('profile-picture-input');
             const preview = document.getElementById('profile-picture-preview');
             const modal = new bootstrap.Modal(document.getElementById('cropper-modal'));
@@ -157,7 +170,6 @@
             document.getElementById('cropper-modal').addEventListener('hidden.bs.modal', () => {
                 cropper.destroy();
                 cropper = null;
-                // Reset file input if user closes modal without cropping
                 imageInput.value = '';
             });
 
@@ -177,7 +189,6 @@
                         dataTransfer.items.add(file);
                         imageInput.files = dataTransfer.files;
                         
-                        // Set a hidden field with the base64 data to be sent to the server
                         const base64Input = document.createElement('input');
                         base64Input.type = 'hidden';
                         base64Input.name = 'Input.ProfilePictureBase64';

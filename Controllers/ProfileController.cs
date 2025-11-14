@@ -22,9 +22,9 @@ namespace unibucGram.Controllers
             _logger = logger;
         }
 
-    [HttpGet("")]
-    [HttpGet("Index")]
-    public IActionResult Index()
+        [HttpGet("")]
+        [HttpGet("Index")]
+        public async Task<IActionResult> Index()
         {
             var userId = _userManager.GetUserId(User);
             if (string.IsNullOrEmpty(userId))
@@ -32,21 +32,21 @@ namespace unibucGram.Controllers
                 return Redirect("/Identity/Account/Login");
             }
 
-            var currentUser = _db.Users.Find(userId);
+            var currentUser = await _db.Users.FindAsync(userId);
             if (currentUser == null)
             {
                 return Redirect("/Identity/Account/Login");
             }
 
-            var followersCount = _db.Follows.Count(f => f.FolloweeId == userId);
-            var followingCount = _db.Follows.Count(f => f.FollowerId == userId);
+            var followersCount = await _db.Follows.CountAsync(f => f.FolloweeId == userId);
+            var followingCount = await _db.Follows.CountAsync(f => f.FollowerId == userId);
 
-            var posts = _db.Posts
+            var posts = await _db.Posts
                 .Where(p => p.UserId == userId)
                 .OrderByDescending(p => p.CreatedAt)
                 .Include(p => p.Likes)
                 .Include(p => p.Comments)
-                .ToList();
+                .ToListAsync();
 
             ViewBag.Posts = posts;
             ViewBag.FollowersCount = followersCount;

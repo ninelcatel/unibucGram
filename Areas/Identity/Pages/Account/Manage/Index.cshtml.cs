@@ -88,7 +88,7 @@ namespace unibucGram.Areas.Identity.Pages.Account.Manage
                 Bio = user.Bio,
                 IsPrivate = user.isPrivate,
                 PhoneNumber = phoneNumber,
-                PfpURL = user.PfpURL ?? "/uploads/default_pfp.svg"
+                PfpURL = user.PfpURL ?? "/uploads/default_pfp.jpg"
             };
         }
 
@@ -125,7 +125,22 @@ namespace unibucGram.Areas.Identity.Pages.Account.Manage
             user.Bio = Input.Bio;
             user.isPrivate = Input.IsPrivate;
 
-            if (!string.IsNullOrEmpty(Input.ProfilePictureBase64))
+            // Check if user wants to remove profile picture (set to default)
+            if (Input.PfpURL == "/uploads/default_pfp.jpg" && user.PfpURL != "/uploads/default_pfp.jpg")
+            {
+                // Delete old file if it exists
+                if (!string.IsNullOrWhiteSpace(user.PfpURL))
+                {
+                    var oldFilePath = Path.Combine(_webHostEnvironment.WebRootPath, user.PfpURL.TrimStart('/'));
+                    if (System.IO.File.Exists(oldFilePath))
+                    {
+                        System.IO.File.Delete(oldFilePath);
+                    }
+                }
+                user.PfpURL = "/uploads/default_pfp.jpg";
+            }
+            // Check if user uploaded a new profile picture via base64
+            else if (!string.IsNullOrEmpty(Input.ProfilePictureBase64))
             {
                 var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads");
                 Directory.CreateDirectory(uploadsFolder);
@@ -133,18 +148,26 @@ namespace unibucGram.Areas.Identity.Pages.Account.Manage
                 var fileName = Guid.NewGuid().ToString() + ".jpg";
                 var filePath = Path.Combine(uploadsFolder, fileName);
 
-                // The ProfilePictureBase64 is a Data URL like "data:image/jpeg;base64,..."
-                // We need to extract the actual base64 content.
                 var base64Data = Input.ProfilePictureBase64.Split(',')[1];
                 byte[] imageBytes = Convert.FromBase64String(base64Data);
 
                 await System.IO.File.WriteAllBytesAsync(filePath, imageBytes);
-
+                
+                // Delete old file if it exists and is not default
+                if (!string.IsNullOrWhiteSpace(user.PfpURL) && user.PfpURL != "/uploads/default_pfp.jpg")
+                {
+                    var oldFilePath = Path.Combine(_webHostEnvironment.WebRootPath, user.PfpURL.TrimStart('/'));
+                    if (System.IO.File.Exists(oldFilePath))
+                    {
+                        System.IO.File.Delete(oldFilePath);
+                    }
+                }
+                
                 user.PfpURL = "/uploads/" + fileName;
             }
+            // Check if user uploaded via file input directly
             else if (Input.ProfilePicture != null && Input.ProfilePicture.Length > 0)
             {
-                // Fallback for when cropper is not used or fails
                 var uploadsFolder = Path.Combine(_webHostEnvironment.WebRootPath, "uploads");
                 Directory.CreateDirectory(uploadsFolder);
 
@@ -161,9 +184,20 @@ namespace unibucGram.Areas.Identity.Pages.Account.Manage
                     await image.SaveAsJpegAsync(filePath);
                 }
 
+                // Delete old file if it exists and is not default
+                if (!string.IsNullOrWhiteSpace(user.PfpURL) && user.PfpURL != "/uploads/default_pfp.jpg")
+                {
+                    var oldFilePath = Path.Combine(_webHostEnvironment.WebRootPath, user.PfpURL.TrimStart('/'));
+                    if (System.IO.File.Exists(oldFilePath))
+                    {
+                        System.IO.File.Delete(oldFilePath);
+                    }
+                }
+
                 user.PfpURL = "/uploads/" + fileName;
             }
 
+            // Update user via UserManager
             var updateResult = await _userManager.UpdateAsync(user);
             if (!updateResult.Succeeded)
             {

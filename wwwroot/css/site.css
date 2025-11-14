@@ -280,6 +280,24 @@ h1 {
   }
 }
 
+/* Image cropping modal in Areas/Identity/Pages/Account/Manage/Index */
+ .profile-picture-preview {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin: 0 auto 20px;
+        display: block;
+    }
+
+    #cropper-image {
+        max-width: 100%;
+    }
+
+    .modal-lg {
+        max-width: 800px;
+    }
+
 /* Utility classes */
 .text-purple {
   color: var(--primary-purple);
