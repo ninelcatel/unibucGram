@@ -21,7 +21,7 @@
                          class="rounded-circle border border-3 border-purple" />
                 </div>
                 <div class="col">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-3">
+                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4">
                         <div>
                             <h3 class="mb-1">@Model.FirstName @Model.LastName</h3>
                             <p class="text-muted mb-0">@@@Model.UserName</p>
@@ -94,41 +94,43 @@
             }
             else
             {
-                <div class="row row-cols-2 row-cols-md-3 row-cols-lg-4 g-2">
+                <div class="row row-cols-3 g-3">
                     @foreach (var post in posts)
                     {
                         <div class="col">
-                            <div class="card h-100 border-0 shadow-sm">
-                                @if (!string.IsNullOrEmpty(post.ImageURL))
-                                {
-                                    <div class="post-image-container">
-                                        <div class="post-image" style="background-image: url('@post.ImageURL');"></div>
-                                    </div>
-                                }
-                                <div class="card-body p-2">
-                                    @if (!string.IsNullOrEmpty(post.Content))
+                            <a asp-controller="Posts" asp-action="Post" asp-route-id="@post.Id" class="text-decoration-none">
+                                <div class="card h-100 border-0 shadow-sm">
+                                    @if (!string.IsNullOrEmpty(post.ImageURL))
                                     {
-                                        <p class="card-text small text-truncate mb-2" title="@post.Content">@post.Content</p>
+                                        <div class="post-image-container">
+                                            <div class="post-image" style="background-image: url('@post.ImageURL');"></div>
+                                        </div>
                                     }
-                                    <div class="d-flex justify-content-between align-items-center">
-                                        <small class="text-muted" style="font-size: 0.7rem;">@post.CreatedAt.ToLocalTime().ToString("M/d/yy")</small>
-                                        <div>
-                                            <span class="badge bg-light text-dark" style="font-size: 0.65rem;">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-heart-fill" viewBox="0 0 16 16">
-                                                    <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314"/>
-                                                </svg>
-                                                @post.Likes.Count
-                                            </span>
-                                            <span class="badge bg-light text-dark ms-1" style="font-size: 0.65rem;">
-                                                <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-chat-fill" viewBox="0 0 16 16">
-                                                    <path d="M8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6-.097 1.016-.417 2.13-.771 2.966-.079.186.074.394.273.362 2.256-.37 3.597-.938 4.18-1.234A9 9 0 0 0 8 15"/>
-                                                </svg>
-                                                @post.Comments.Count
-                                            </span>
+                                    <div class="card-body p-2">
+                                        @if (!string.IsNullOrEmpty(post.Content))
+                                        {
+                                            <p class="card-text small text-truncate mb-2" title="@post.Content">@post.Content</p>
+                                        }
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted" style="font-size: 0.7rem;">@post.CreatedAt.ToLocalTime().ToString("M/d/yy")</small>
+                                            <div>
+                                                <span class="badge bg-light text-dark" style="font-size: 0.65rem;">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-heart-fill" viewBox="0 0 16 16">
+                                                        <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314"/>
+                                                    </svg>
+                                                    @post.Likes.Count
+                                                </span>
+                                                <span class="badge bg-light text-dark ms-1" style="font-size: 0.65rem;">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-chat-fill" viewBox="0 0 16 16">
+                                                        <path d="M8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6-.097 1.016-.417 2.13-.771 2.966-.079.186.074.394.273.362 2.256-.37 3.597-.938 4.18-1.234A9 9 0 0 0 8 15"/>
+                                                    </svg>
+                                                    @post.Comments.Count
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
+                            </a>
                         </div>
                     }
                 </div>
@@ -154,7 +156,7 @@
         left: 0;
         bottom: 0;
         right: 0;
-        background-size: cover; 
+        background-size: contain; 
         background-position: center;
         background-repeat: no-repeat; 
     }

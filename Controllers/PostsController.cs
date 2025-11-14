@@ -131,5 +131,37 @@ namespace unibucGram.Controllers
 
             return LocalRedirect(returnUrl);
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int postId)
+        {
+            var userId = _userManager.GetUserId(User);
+            var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId);
+
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            if (post.UserId != userId)
+            {
+                return Forbid();
+            }
+
+            if (!string.IsNullOrEmpty(post.ImageURL))
+            {
+                var imagePath = Path.Combine(_env.WebRootPath, post.ImageURL.TrimStart('/'));
+                if (System.IO.File.Exists(imagePath))
+                {
+                    System.IO.File.Delete(imagePath);
+                }
+            }
+
+            _db.Posts.Remove(post);
+            await _db.SaveChangesAsync();
+
+            return RedirectToAction("Index", "Profile");
+        }
     }
 }
