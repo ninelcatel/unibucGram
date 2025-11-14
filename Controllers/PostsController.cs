@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using unibucGram.Models;
 
 namespace unibucGram.Controllers
@@ -86,6 +87,49 @@ namespace unibucGram.Controllers
             _db.SaveChanges();
 
             return RedirectToAction("Index", "Home");
+        }
+
+        [HttpGet]
+        public IActionResult Post(int id)
+        {
+            var post = _db.Posts
+                .Include(p => p.User)
+                .Include(p => p.Likes)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.User)
+                .FirstOrDefault(p => p.Id == id);
+
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            return View(post);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ToggleLike(int postId, string returnUrl)
+        {
+            var userId = _userManager.GetUserId(User);
+
+            if (userId != null)
+            {
+                var existingLike = await _db.Likes
+                    .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
+
+                if (existingLike == null)
+                {
+                    _db.Likes.Add(new Like { PostId = postId, UserId = userId });
+                }
+                else
+                {
+                    _db.Likes.Remove(existingLike);
+                }
+                await _db.SaveChangesAsync();
+            }
+
+            return LocalRedirect(returnUrl);
         }
     }
 }
