@@ -9,11 +9,25 @@
 
 <div class="container mt-4">
     <div class="d-flex align-items-center mb-3">
-        <img src="@(string.IsNullOrWhiteSpace(Model.PfpURL) ? "/uploads/default_pfp.svg" : Model.PfpURL)" alt="avatar" width="80" height="80" class="rounded-circle me-3" />
+        <img src="@(string.IsNullOrWhiteSpace(Model.PfpURL) ? "/uploads/default_pfp.jpg" : Model.PfpURL)" alt="avatar" width="80" height="80" class="rounded-circle me-3 align-items-center" />
         <div>
             <h3>@(Model.FirstName) @(Model.LastName)</h3>
             <div class="text-muted">@Model.UserName</div>
             @if (!string.IsNullOrWhiteSpace(Model.Bio)) { <p class="mt-2">@Model.Bio</p> }
+            @if (!isOwnProfile)
+            {   
+                var isFollowedByCurrentUser = ViewBag.IsFollowedByCurrentUser as bool? ?? false;
+                <form method="post" asp-controller="Profile" asp-action="FollowToggle" asp-route-userId="@Model.Id" style="display:inline;">
+              
+                    <button type="submit" class="btn btn-follow btn-sm mt-2">
+                        @(isFollowedByCurrentUser ? "Unfollow" : "Follow")
+                    </button>
+                </form>
+            }
+            else
+            {
+                <a asp-controller="Profile" asp-action="Edit" class="btn btn-sm btn-outline-secondary mt-2">Edit Profile</a>
+            }
             <div class="mt-2">
                 <strong>@posts.Count</strong> posts
                 <strong class="ms-3">@followers</strong> followers
@@ -37,14 +51,24 @@
             foreach (var post in posts)
             {
                 <div class="col-md-4 mb-3">
-                    <a href="@Url.Action("Post", "Posts", new { id = post.Id })">
-                        <div class="post-image-container">
-                            <div class="post-image" style="background-image: url('@post.ImageURL');"></div>
+                    <div class="card">
+                        <div class="card-body">
+                            @if (!string.IsNullOrEmpty(post.ImageURL))
+                            {
+                                <div class="post-image-container mb-2">
+                                        <div class="post-image" style="background-image: url('@post.ImageURL');"></div>
+                                </div>
+                            }
+                            @if (!string.IsNullOrEmpty(post.Content))
+                            {
+                                <p>@post.Content</p>
+                            }
+                            <div class="text-muted small">@post.CreatedAt.ToLocalTime().ToString("g") • Likes: @post.Likes.Count • Comments: @post.Comments.Count</div>
                         </div>
-                    </a>
+                    </div>
                 </div>
             }
-        }
+        </div>
     </div>
 </div>
 
@@ -55,6 +79,8 @@
         width: 100%;
         padding-top: 100%; 
         overflow: hidden;
+        background: #f8f9fa;
+        border-radius: 8px 8px 0 0;
     }
 
     .post-image {
@@ -63,10 +89,22 @@
         left: 0;
         bottom: 0;
         right: 0;
-        background-size: contain; 
+        background-size: cover; 
         background-position: center;
         background-repeat: no-repeat; 
-        background-color: #f8f9fa; 
+    }
+
+    .border-purple {
+        border-color: var(--primary-purple) !important;
+    }
+
+    .card {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(111, 66, 193, 0.15) !important;
     }
 </style>
 }
