@@ -7,60 +7,89 @@
     ViewData["Title"] = "Home";
 }
 
-<div class="text-center py-5">
-    <div class="container">
-        @if (SignInManager.IsSignedIn(User) 
-        && User.Identity != null 
-        && User.Identity.IsAuthenticated
-        )
-        {
-            var currentUser = await UserManager.GetUserAsync(User);
-            <h1 class="display-4 mb-4 text-purple">Welcome back, @currentUser?.FirstName!</h1>
-            <p class="lead mb-4">Share your moments with the unibucGram community</p>
-            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-                <a asp-controller="Posts" asp-action="New" class="btn btn-primary btn-lg px-4 gap-3">Create Post</a>
-                <a asp-controller="Profile" asp-action="Index" class="btn btn-outline-secondary btn-lg px-4">My Profile</a>
-            </div>
-        }
-        else
-        {
-            <h1 class="display-4 mb-4 text-purple">Welcome to unibucGram</h1>
-            <p class="lead mb-4">Connect, share, and discover amazing moments</p>
-            <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-                <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary btn-lg px-4 gap-3">Get Started</a>
-                <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-secondary btn-lg px-4">Sign In</a>
-            </div>
-        }
-    </div>
-</div>
+<div class="home-layout">
+    <!-- Left Sidebar - Suggested (10%) -->
+    <aside class="sidebar sidebar-left" id="suggested-sidebar">
+        <button class="sidebar-toggle" onclick="toggleSidebar('suggested-sidebar')" title="Toggle Suggested">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-chevron-left toggle-icon" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
+            </svg>
+        </button>
+        <div class="sidebar-content">
+            <h5 class="text-purple mb-3">Suggested</h5>
+            <p class="text-muted small">Suggested users will appear here</p>
+        </div>
+    </aside>
 
-<div class="container mt-5">
-    <div class="row g-4">
-        <div class="col-md-4">
-            <div class="card h-100 text-center p-4">
-                <div class="card-body">
-                    <h3 class="text-purple mb-3">Share</h3>
-                    <p class="text-muted">Post photos and updates with your followers</p>
-                </div>
+    <!-- Main Content (70%) -->
+    <main class="main-content">
+        <div class="text-center py-5">
+            <div class="container">
+                @if (SignInManager.IsSignedIn(User) 
+                && User.Identity != null 
+                && User.Identity.IsAuthenticated)
+                {
+                    var currentUser = await UserManager.GetUserAsync(User);
+                    <h1 class="display-4 mb-4 text-purple">Welcome back, @currentUser?.FirstName!</h1>
+                    <p class="lead mb-4">Share your moments with the unibucGram community</p>
+                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                        <a asp-controller="Posts" asp-action="New" class="btn btn-primary btn-lg px-4 gap-3">Create Post</a>
+                        <a asp-controller="Profile" asp-action="Show" asp-route-name="@currentUser?.UserName" class="btn btn-outline-secondary btn-lg px-4">My Profile</a>
+                    </div>
+                }
+                else
+                {
+                    <h1 class="display-4 mb-4 text-purple">Welcome to unibucGram</h1>
+                    <p class="lead mb-4">Connect, share, and discover amazing moments</p>
+                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
+                        <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary btn-lg px-4 gap-3">Get Started</a>
+                        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-secondary btn-lg px-4">Sign In</a>
+                    </div>
+                }
             </div>
         </div>
-        <div class="col-md-4">
-            <div class="card h-100 text-center p-4">
-                <div class="card-body">
-                    <h3 class="text-purple mb-3">Connect</h3>
-                    <p class="text-muted">Follow friends and discover new people</p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4">
-            <div class="card h-100 text-center p-4">
-                <div class="card-body">
-                    <h3 class="text-purple mb-3">Discover</h3>
-                    <p class="text-muted">Explore amazing content from the community</p>
-                </div>
-            </div>
-        </div>
-    </div>
-</div>
 
+        <div class="container mt-5">
+            <div class="row g-4">
+                <div class="col-md-4">
+                    <div class="card h-100 text-center p-4">
+                        <div class="card-body">
+                            <h3 class="text-purple mb-3">Share</h3>
+                            <p class="text-muted">Post photos and updates with your followers</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 text-center p-4">
+                        <div class="card-body">
+                            <h3 class="text-purple mb-3">Connect</h3>
+                            <p class="text-muted">Follow friends and discover new people</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card h-100 text-center p-4">
+                        <div class="card-body">
+                            <h3 class="text-purple mb-3">Discover</h3>
+                            <p class="text-muted">Explore amazing content from the community</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Right Sidebar - Conversations (20%) -->
+    <aside class="sidebar sidebar-right" id="conversations-sidebar">
+        <button class="sidebar-toggle" onclick="toggleSidebar('conversations-sidebar')" title="Toggle Conversations">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-chevron-right toggle-icon" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
+            </svg>
+        </button>
+        <div class="sidebar-content">
+            <h5 class="text-purple mb-3">Conversations</h5>
+            <p class="text-muted small">Your messages will appear here</p>
+        </div>
+    </aside>
+</div>
 

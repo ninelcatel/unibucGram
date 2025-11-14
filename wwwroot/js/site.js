@@ -2,6 +2,12 @@
 // for details on configuring this project to bundle and minify static web assets.
 
 // Write your JavaScript code.
+function toggleSidebar(sidebarId) {
+    const sidebar = document.getElementById(sidebarId);
+    if (sidebar) {
+        sidebar.classList.toggle('collapsed');
+    }
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     const input = document.querySelector('#searchInput');
