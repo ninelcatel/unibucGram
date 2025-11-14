@@ -1,41 +1,14 @@
 @using Microsoft.AspNetCore.Identity
-
-
 @model unibucGram.Models.Post
-
-
 @inject UserManager<unibucGram.Models.User> UserManager
-
-
- 
-
-
 @{
-
-
     ViewData["Title"] = "Post by " + Model.User.UserName;
-
-
 }
-
-
-
-
-
 <div class="container mt-4">
-
-
     <div class="row">
-
-
         <div class="col-md-6 offset-md-3">
-
-
             <div class="card" id="post-@Model.Id">
-
-
                 <div class="card-header d-flex justify-content-between align-items-center">
-
                     <div>
                         <img src="@(string.IsNullOrWhiteSpace(Model.User.PfpURL) ? "/uploads/default_pfp.jpg" : Model.User.PfpURL)"
                             alt="avatar" width="32" height="32" class="rounded-circle me-2" />
@@ -44,7 +17,7 @@
                     @if (Model.UserId == UserManager.GetUserId(User))
                     {
                         <div>
-                            <form asp-controller="Posts" asp-action="Delete" method="post" onsubmit="return confirm('Are you sure you want to delete this post?');">
+                            <form asp-controller="Posts" asp-action="Delete" method="post" onsubmit="return confirm('Are you sure you want to delete this post?');" class="d-inline">
                                 <input type="hidden" name="postId" value="@Model.Id" />
                                 <button type="submit" class="btn btn-link text-danger p-0" title="Delete Post">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-trash3-fill" viewBox="0 0 16 16">
@@ -52,219 +25,150 @@
                                     </svg>
                                 </button>
                             </form>
+                            <a asp-controller="Posts" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-link text-primary p-0 ms-2" title="Edit Post">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+                                    <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+                                    <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5z"/>
+                                </svg>
+                            </a>
                         </div>
                     }
                 </div>
-
-
                 @if (!string.IsNullOrEmpty(Model.ImageURL))
-
-
                 {
-
-
                     <img src="@Model.ImageURL" class="card-img-top" alt="Post Image">
-
-
                 }
 
-
                 <div class="card-body">
-
-
                     <div class="d-flex align-items-center gap-3">
-
-
                         <form asp-controller="Posts" asp-action="ToggleLike" method="post" class="d-flex align-items-center gap-1">
-
-
                             <input type="hidden" name="postId" value="@Model.Id" />
-
-
                             <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString#post-@Model.Id" />
-
-
-                            <button type="submit" class="btn btn-link text-dark p-0">
-
-
-                                <i class="bi @(Model.Likes.Any(l => l.UserId == UserManager.GetUserId(User)) ? "bi-heart-fill text-danger" : "bi-heart") fs-4"></i>
-
-
+                            <button type="submit" class="btn btn-link text-dark p-0" style="line-height: 1;">
+                                @if (Model.Likes.Any(l => l.UserId == UserManager.GetUserId(User)))
+                                {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-heart-fill text-danger" viewBox="0 0 16 16">
+                                        <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314"/>
+                                    </svg>
+                                }
+                                else
+                                {
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-heart" viewBox="0 0 16 16">
+                                        <path d="m8 2.748-.717-.737C5.6.281 2.514.878 1.4 3.053c-.523 1.023-.641 2.5.314 4.385.92 1.815 2.834 3.989 6.286 6.357 3.452-2.368 5.365-4.542 6.286-6.357.955-1.886.838-3.362.314-4.385C13.486.878 10.4.28 8.717 2.01zM8 15C-7.333 4.868 3.279-3.04 7.824 1.143q.09.083.176.171a3 3 0 0 1 .176-.17C12.72-3.042 23.333 4.867 8 15"/>
+                                    </svg>
+                                }
                             </button>
-
-
                             <span>@Model.Likes.Count</span>
-
-
                         </form>
 
 
-                        <button id="comment-icon" class="btn btn-link text-dark p-0 ms-2"><i class="bi bi-chat fs-4"></i></button>
-
-
+                        <button id="comment-icon" class="btn btn-link text-dark p-0 ms-2" style="line-height: 1;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-chat" viewBox="0 0 16 16">
+                                <path d="M2.678 11.894a1 1 0 0 1 .287.801 11 11 0 0 1-.398 2c1.395-.323 2.247-.697 2.634-.893a1 1 0 0 1 .71-.074A8 8 0 0 0 8 14c3.996 0 7-2.807 7-6s-3.004-6-7-6-7 2.807-7 6c0 1.468.617 2.83 1.678 3.894m-.493 3.905a22 22 0 0 1-.713.129c-.2.032-.352-.176-.273-.362a10 10 0 0 0 .244-.637l.003-.01c.248-.72.45-1.548.524-2.319C.743 11.37 0 9.76 0 8c0-3.866 3.582-7 8-7s8 3.134 8 7-3.582 7-8 7a9 9 0 0 1-2.347-.305"/>
+                            </svg>
+                        </button>
                         <span>@Model.Comments.Count</span>
-
-
                     </div>
 
 
                     <div class="mt-2">
-
-
                         <strong>@Model.User.UserName</strong> @Model.Content
-
-
                     </div>
-
 
                     <div class="text-muted small mt-1">
-
-
                         @Model.CreatedAt.ToLocalTime().ToString("g")
-
-
                     </div>
 
-
                     <hr>
-
-
                     <div id="add-comment-section" style="display: none;">
-
-
                         <form asp-controller="Comments" asp-action="New" method="post">
-
-
                             <input type="hidden" name="PostId" value="@Model.Id" />
-
-
                             <div class="input-group">
-
-
                                 <input type="text" name="Content" class="form-control" placeholder="add comment" />
-
-
                                 <button type="submit" class="btn btn-outline-primary">
-
-
                                     <i class="bi bi-arrow-up-circle"></i>
-
-
                                 </button>
-
-
                             </div>
-
-
                         </form>
-
-
                     </div>
-
-
                     <hr>
-
-
                     <div id="comments-section" style="display: none;">
-
-
                         <h5>Comments</h5>
-
-
                         @if (Model.Comments.Any())
-
-
                         {
-
-
                             foreach (var comment in Model.Comments)
-
-
                             {
-
-
-                                <div class="mb-2">
-
-
-                                    <strong>@comment.User.UserName</strong>: @comment.Content
-
-
-                                    <br>
-
-
-                                    <small class="text-muted">@comment.CreatedAt.ToLocalTime().ToString("g")</small>
-
-
+                                <div class="mb-2" id="comment-container-@comment.Id">
+                                    <div class="d-flex justify-content-between align-items-start" id="comment-display-@comment.Id">
+                                        <div>
+                                        <strong>@comment.User.UserName</strong>: @comment.Content
+                                            <br>
+                                            <small class="text-muted">@comment.CreatedAt.ToLocalTime().ToString("g")</small>
+                                        </div>
+                                        @if (comment.UserId == UserManager.GetUserId(User))
+                                        {
+                                            <div class="d-flex">
+                                                <button class="btn btn-link text-primary p-0 edit-comment-btn" data-comment-id="@comment.Id" title="Edit Comment">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-fill" viewBox="0 0 16 16"><path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z" /></svg>
+                                                </button>
+                                                <form asp-controller="Comments" asp-action="Delete" method="post" onsubmit="return confirm('Are you sure you want to delete this comment?');" class="ms-2">
+                                                    <input type="hidden" name="commentId" value="@comment.Id" />
+                                                    <button type="submit" class="btn btn-link text-danger p-0" title="Delete Comment">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash3-fill" viewBox="0 0 16 16"><path d="M11 1.5v1h3.5a.5.5 0 0 1 0 1h-.538l-.853 10.66A2 2 0 0 1 11.115 16h-6.23a2 2 0 0 1-1.994-1.84L2.038 3.5H1.5a.5.5 0 0 1 0-1H5v-1A1.5 1.5 0 0 1 6.5 0h3A1.5 1.5 0 0 1 11 1.5m-5 0v1h4v-1a.5.5 0 0 0-.5-.5h-3a.5.5 0 0 0-.5.5M4.5 5.029l.5 8.5a.5.5 0 1 0 .998-.06l-.5-8.5a.5.5 0 1 0-.998.06m3 0l-.5 8.5a.5.5 0 1 0 .998.06l.5-8.5a.5.5 0 1 0-.998.06m2.5-.029l-.5 8.5a.5.5 0 1 0 .998.06l.5-8.5a.5.5 0 1 0-.998.06" /></svg>
+                                                    </button>
+                                                </form>
+                                            </div>
+                                        }
+                                    </div>
+                                    @if (comment.UserId == UserManager.GetUserId(User))
+                                    {
+                                        <form asp-controller="Comments" asp-action="Edit" method="post" id="comment-edit-form-@comment.Id" style="display: none;" class="w-100 mt-1">
+                                            <input type="hidden" name="commentId" value="@comment.Id" />
+                                            <div class="input-group">
+                                                <input type="text" name="content" class="form-control" value="@comment.Content" />
+                                                <button type="submit" class="btn btn-sm btn-primary">Save</button>
+                                                <button type="button" class="btn btn-sm btn-secondary cancel-edit-btn" data-comment-id="@comment.Id">Cancel</button>
+                                            </div>
+                                        </form>
+                                    }
                                 </div>
-
-
                             }
-
-
                         }
-
-
                         else
-
-
                         {
-
-
                             <p>No comments yet.</p>
-
-
                         }
-
-
                     </div>
-
-
                 </div>
-
-
             </div>
-
-
         </div>
-
-
     </div>
-
-
 </div>
 
-
-
-
-
 @section Scripts {
-
-
 <script>
-
-
     document.getElementById('comment-icon').addEventListener('click', function() {
-
-
         var addCommentSection = document.getElementById('add-comment-section');
-
-
         var commentsSection = document.getElementById('comments-section');
-
-
         var isHidden = commentsSection.style.display === 'none';
-
-
         addCommentSection.style.display = isHidden ? 'block' : 'none';
-
-
         commentsSection.style.display = isHidden ? 'block' : 'none';
-
-
     });
 
+    document.querySelectorAll('.edit-comment-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const commentId = this.dataset.commentId;
+            document.getElementById('comment-display-' + commentId).style.display = 'none';
+            document.getElementById('comment-edit-form-' + commentId).style.display = 'block';
+        });
+    });
 
+    document.querySelectorAll('.cancel-edit-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const commentId = this.dataset.commentId;
+            document.getElementById('comment-display-' + commentId).style.display = 'flex';
+            document.getElementById('comment-edit-form-' + commentId).style.display = 'none';
+        });
+    });
 </script>
-
-
 }

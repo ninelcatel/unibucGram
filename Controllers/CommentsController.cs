@@ -54,5 +54,63 @@ namespace unibucGram.Controllers
 
             return RedirectToAction("Post", "Posts", new { id = PostId });
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int commentId, string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                // Or return a specific error message
+                TempData["ErrorMessage"] = "Comment cannot be empty.";
+                // We need the post ID to redirect back, so we have to fetch the comment first anyway
+            }
+
+            var userId = _userManager.GetUserId(User);
+            var comment = await _db.Comments.FindAsync(commentId);
+
+            if (comment == null)
+            {
+                return NotFound();
+            }
+
+            if (comment.UserId != userId)
+            {
+                return Forbid();
+            }
+
+            comment.Content = content;
+            await _db.SaveChangesAsync();
+
+            // Redirect back to the post page
+            return RedirectToAction("Post", "Posts", new { id = comment.PostId });
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Delete(int commentId)
+        {
+            var userId = _userManager.GetUserId(User);
+            var comment = await _db.Comments.FindAsync(commentId);
+
+            if (comment == null)
+            {
+                return NotFound();
+            }
+
+            // Security check: Only the owner can delete the comment
+            if (comment.UserId != userId)
+            {
+                return Forbid();
+            }
+
+            var postId = comment.PostId; // Store PostId for redirection
+
+            _db.Comments.Remove(comment);
+            await _db.SaveChangesAsync();
+
+            // Redirect back to the post page
+            return RedirectToAction("Post", "Posts", new { id = postId });
+        }
     }
 }

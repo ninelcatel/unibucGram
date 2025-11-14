@@ -132,6 +132,67 @@ namespace unibucGram.Controllers
             return LocalRedirect(returnUrl);
         }
 
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var userId = _userManager.GetUserId(User);
+            var post = await _db.Posts.FindAsync(id);
+
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            // Security check: Only the owner can edit the post
+            if (post.UserId != userId)
+            {
+                return Forbid();
+            }
+
+            return View(post);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Content,UserId,CreatedAt,ImageURL")] Post postData)
+        {
+            if (id != postData.Id)
+            {
+                return NotFound();
+            }
+
+            var userId = _userManager.GetUserId(User);
+            var postToUpdate = await _db.Posts.FindAsync(id);
+
+            if (postToUpdate == null)
+            {
+                return NotFound();
+            }
+
+            // Security check: Ensure the post belongs to the current user
+            if (postToUpdate.UserId != userId)
+            {
+                return Forbid();
+            }
+
+            if (ModelState.IsValid)
+            {
+                // We only allow updating the content
+                postToUpdate.Content = postData.Content;
+
+                try
+                {
+                    await _db.SaveChangesAsync();
+                }
+                catch (DbUpdateConcurrencyException)
+                {
+                    throw; // Or handle concurrency error
+                }
+                return RedirectToAction(nameof(Post), new { id = postToUpdate.Id });
+            }
+            return View(postData);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int postId)
