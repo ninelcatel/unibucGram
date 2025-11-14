@@ -1,0 +1,259 @@
+@using Microsoft.AspNetCore.Identity
+
+
+@model unibucGram.Models.Post
+
+
+@inject UserManager<unibucGram.Models.User> UserManager
+
+
+ 
+
+
+@{
+
+
+    ViewData["Title"] = "Post by " + Model.User.UserName;
+
+
+}
+
+
+
+
+
+<div class="container mt-4">
+
+
+    <div class="row">
+
+
+        <div class="col-md-8 offset-md-2">
+
+
+            <div class="card" id="post-@Model.Id">
+
+
+                <div class="card-header">
+
+
+                    <img src="@(Model.User.PfpURL ?? "/uploads/default_pfp.svg")" alt="avatar" width="32" height="32" class="rounded-circle me-2" />
+
+
+                    <strong>@Model.User.UserName</strong>
+
+
+                </div>
+
+
+                @if (!string.IsNullOrEmpty(Model.ImageURL))
+
+
+                {
+
+
+                    <img src="@Model.ImageURL" class="card-img-top" alt="Post Image">
+
+
+                }
+
+
+                <div class="card-body">
+
+
+                    <div class="d-flex align-items-center gap-3">
+
+
+                        <form asp-controller="Posts" asp-action="ToggleLike" method="post" class="d-flex align-items-center gap-1">
+
+
+                            <input type="hidden" name="postId" value="@Model.Id" />
+
+
+                            <input type="hidden" name="returnUrl" value="@Context.Request.Path@Context.Request.QueryString#post-@Model.Id" />
+
+
+                            <button type="submit" class="btn btn-link text-dark p-0">
+
+
+                                <i class="bi @(Model.Likes.Any(l => l.UserId == UserManager.GetUserId(User)) ? "bi-heart-fill text-danger" : "bi-heart") fs-4"></i>
+
+
+                            </button>
+
+
+                            <span>@Model.Likes.Count</span>
+
+
+                        </form>
+
+
+                        <button id="comment-icon" class="btn btn-link text-dark p-0 ms-2"><i class="bi bi-chat fs-4"></i></button>
+
+
+                        <span>@Model.Comments.Count</span>
+
+
+                    </div>
+
+
+                    <div class="mt-2">
+
+
+                        <strong>@Model.User.UserName</strong> @Model.Content
+
+
+                    </div>
+
+
+                    <div class="text-muted small mt-1">
+
+
+                        @Model.CreatedAt.ToLocalTime().ToString("g")
+
+
+                    </div>
+
+
+                    <hr>
+
+
+                    <div id="add-comment-section" style="display: none;">
+
+
+                        <form asp-controller="Comments" asp-action="New" method="post">
+
+
+                            <input type="hidden" name="PostId" value="@Model.Id" />
+
+
+                            <div class="input-group">
+
+
+                                <input type="text" name="Content" class="form-control" placeholder="add comment" />
+
+
+                                <button type="submit" class="btn btn-outline-primary">
+
+
+                                    <i class="bi bi-arrow-up-circle"></i>
+
+
+                                </button>
+
+
+                            </div>
+
+
+                        </form>
+
+
+                    </div>
+
+
+                    <hr>
+
+
+                    <div id="comments-section" style="display: none;">
+
+
+                        <h5>Comments</h5>
+
+
+                        @if (Model.Comments.Any())
+
+
+                        {
+
+
+                            foreach (var comment in Model.Comments)
+
+
+                            {
+
+
+                                <div class="mb-2">
+
+
+                                    <strong>@comment.User.UserName</strong>: @comment.Content
+
+
+                                    <br>
+
+
+                                    <small class="text-muted">@comment.CreatedAt.ToLocalTime().ToString("g")</small>
+
+
+                                </div>
+
+
+                            }
+
+
+                        }
+
+
+                        else
+
+
+                        {
+
+
+                            <p>No comments yet.</p>
+
+
+                        }
+
+
+                    </div>
+
+
+                </div>
+
+
+            </div>
+
+
+        </div>
+
+
+    </div>
+
+
+</div>
+
+
+
+
+
+@section Scripts {
+
+
+<script>
+
+
+    document.getElementById('comment-icon').addEventListener('click', function() {
+
+
+        var addCommentSection = document.getElementById('add-comment-section');
+
+
+        var commentsSection = document.getElementById('comments-section');
+
+
+        var isHidden = commentsSection.style.display === 'none';
+
+
+        addCommentSection.style.display = isHidden ? 'block' : 'none';
+
+
+        commentsSection.style.display = isHidden ? 'block' : 'none';
+
+
+    });
+
+
+</script>
+
+
+}
