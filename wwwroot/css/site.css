@@ -32,8 +32,6 @@ body {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  padding: 0;
-  margin: 0;
 }
 
 /* Remove default body padding to allow full-width layout */
@@ -55,7 +53,8 @@ body > .container {
   min-height: calc(100vh - 56px);
   width: 100vw;
   position: relative;
-  margin: 0;
+  margin-left: calc(-50vw + 50%);
+  margin-right: calc(-50vw + 50%);
   padding: 0;
 }
 
@@ -225,36 +224,6 @@ body > .container {
   flex: 0 0 calc(90vw - 48px);
 }
 
-/* Responsive */
-@media (max-width: 992px) {
-  .sidebar-left,
-  .sidebar-right {
-    display: none;
-  }
-  
-  .main-content {
-    width: 100vw !important;
-    flex: 0 0 100vw !important;
-  }
-}
-
-@media (min-width: 993px) and (max-width: 1200px) {
-  .sidebar-left {
-    width: 8vw;
-    min-width: 8vw;
-  }
-  
-  .sidebar-right {
-    width: 18vw;
-    min-width: 18vw;
-  }
-  
-  .main-content {
-    width: 74vw;
-    flex: 0 0 74vw;
-  }
-}
-
 /* Navbar styling */
 .navbar {
   background: linear-gradient(90deg, var(--primary-purple) 0%, var(--light-purple) 100%) !important;
@@ -407,6 +376,41 @@ main {
   font-size: .8125rem;
 }
 
+/* Follow/Unfollow button consistency */
+.btn-primary,
+.btn-outline-primary {
+  transition: all 0.3s ease;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 0.5rem 1.25rem;
+}
+
+.btn-outline-primary {
+  color: var(--primary-purple);
+  border-color: var(--primary-purple);
+  background-color: transparent;
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--primary-purple);
+  color: white;
+  border-color: var(--primary-purple);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-outline-primary:active {
+  background-color: var(--dark-purple);
+  border-color: var(--dark-purple);
+}
+
+/* Small button variant */
+.btn-sm.btn-outline-primary,
+.btn-sm.btn-primary {
+  padding: 0.375rem 0.875rem;
+  font-size: 0.875rem;
+}
+
 /* Footer */
 #shared_footer {
   background: linear-gradient(90deg, var(--primary-purple) 0%, var(--light-purple) 100%);
@@ -483,13 +487,8 @@ main {
 
 /* Headings */
 h1, h2, h3, h4 {
-  color: var(--purple-dark);
+  color: var(--text-primary);
   font-weight: 600;
-  margin-bottom: var(--spacing-md);
-}
-
-h1 {
-  font-size: calc(var(--spacing-base) * var(--golden-ratio) * var(--golden-ratio));
 }
 
 /* Alerts */
@@ -509,29 +508,123 @@ h1 {
   color: #721c24;
 }
 
-/* Responsive layout with golden ratio */
-@media (min-width: 768px) {
-  .row.justify-content-center > .col-md-6,
-  .row.justify-content-center > .col-md-4 {
-    padding: 2rem;
-  }
-  
-  .form-container {
-    padding: calc(2rem * var(--golden-ratio));
-  }
+/* Image cropping modal */
+.profile-picture-preview {
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin: 0 auto 20px;
+  display: block;
 }
 
-@media (max-width: 767px) {
-  .navbar-nav {
-    padding: 1rem 0;
-  }
-  
-  .navbar-nav .nav-item {
-    margin: 0.25rem 0;
-  }
-  
-  .search-wrapper {
-    margin-top: 1rem;
-    max-width: 100%;
-  }
+#cropper-image {
+  max-width: 100%;
+}
+
+.modal-lg {
+  max-width: 800px;
+}
+
+/* Manage Navigation - Fixed sizing and purple active state */
+.manage-nav.card {
+  margin-bottom: 0;
+  padding: 0;
+  max-width: 220px;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+}
+
+.manage-nav .list-group-item {
+  padding: 0.6rem 0.9rem;
+  border: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.manage-nav .list-group-item svg {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+}
+
+/* Active state - use site's primary purple */
+.manage-nav .list-group-item.active {
+  background-color: var(--primary-purple);
+  color: #fff;
+  font-weight: 600;
+  border-color: var(--primary-purple);
+}
+
+.manage-nav .list-group-item.active svg {
+  color: #fff;
+  fill: #fff;
+}
+
+.manage-nav .list-group-item:hover:not(.active) {
+  background-color: rgba(111, 66, 193, 0.05);
+  color: var(--primary-purple);
+}
+
+#manage-avatar {
+  width: 110px;
+  height: 110px;
+  object-fit: cover;
+  border: 3px solid var(--accent-purple);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  flex-shrink: 0;
+}
+
+/* Responsive fallback */
+@media (max-width: 767.98px) {
+  #manage-avatar { width: 90px; height: 90px; }
+  .manage-nav.card { max-width: 100%; }
+}
+
+/* Purple checkbox styling - aligned */
+.form-check {
+  display: flex;
+  align-items: center;
+  padding-left: 0;
+}
+
+.form-check-input.purple-checkbox {
+  width: 1.25em;
+  height: 1.25em;
+  margin: 0;
+  border: 2px solid var(--primary-purple);
+  border-radius: 4px;
+  background-color: transparent;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.form-check-input.purple-checkbox:checked {
+  background-color: var(--primary-purple);
+  border-color: var(--primary-purple);
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10l3 3l6-6'/%3e%3c/svg%3e");
+  background-size: contain;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
+.form-check-input.purple-checkbox:focus {
+  border-color: var(--primary-purple);
+  box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25);
+}
+
+.form-check-input.purple-checkbox:hover:not(:checked) {
+  border-color: var(--light-purple);
+  background-color: rgba(111, 66, 193, 0.05);
+}
+
+.form-check-label {
+  margin-bottom: 0;
+  cursor: pointer;
 }
