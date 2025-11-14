@@ -10,16 +10,20 @@
 
 <div class="container mt-4">
     <div class="d-flex align-items-center mb-3">
-        <img src="@(string.IsNullOrWhiteSpace(Model.PfpURL) ? "/uploads/default_pfp.svg" : Model.PfpURL)" alt="avatar" width="80" height="80" class="rounded-circle me-3 align-items-center" />
+        <img src="@(string.IsNullOrWhiteSpace(Model.PfpURL) ? "/uploads/default_pfp.jpg" : Model.PfpURL)" alt="avatar" width="80" height="80" class="rounded-circle me-3 align-items-center" />
         <div>
             <h3>@(Model.FirstName) @(Model.LastName)</h3>
             <div class="text-muted">@Model.UserName</div>
             @if (!string.IsNullOrWhiteSpace(Model.Bio)) { <p class="mt-2">@Model.Bio</p> }
             @if (!isOwnProfile)
-            {   var isFollowedByCurrentUser = ViewBag.IsFollowedByCurrentUser as bool? ?? false;
-                <a asp-controller="Profile" asp-action="FollowToggle" asp-route-id="@Model.Id" class="btn btn-follow btn-sm mt-2">
-                    @(isFollowedByCurrentUser ? "Unfollow" : "Follow")
-                </a>
+            {   
+                var isFollowedByCurrentUser = ViewBag.IsFollowedByCurrentUser as bool? ?? false;
+                <form method="post" asp-controller="Profile" asp-action="FollowToggle" asp-route-userId="@Model.Id" style="display:inline;">
+              
+                    <button type="submit" class="btn btn-follow btn-sm mt-2">
+                        @(isFollowedByCurrentUser ? "Unfollow" : "Follow")
+                    </button>
+                </form>
             }
             else
             {
