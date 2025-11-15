@@ -107,29 +107,54 @@ namespace unibucGram.Controllers
             return View(post);
         }
 
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ToggleLike(int postId, string returnUrl)
+        [HttpGet]
+        public IActionResult PostPartial(int id)
         {
-            var userId = _userManager.GetUserId(User);
+            var post = _db.Posts
+                .Include(p => p.User)
+                .Include(p => p.Likes)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.User)
+                .FirstOrDefault(p => p.Id == id);
 
-            if (userId != null)
+            if (post == null)
             {
-                var existingLike = await _db.Likes
-                    .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
-
-                if (existingLike == null)
-                {
-                    _db.Likes.Add(new Like { PostId = postId, UserId = userId });
-                }
-                else
-                {
-                    _db.Likes.Remove(existingLike);
-                }
-                await _db.SaveChangesAsync();
+                return NotFound();
             }
 
-            return LocalRedirect(returnUrl);
+            // We will render this post using the _PostFeed partial, inside an array
+            return PartialView("~/Views/Shared/_PostFeed.cshtml", new List<Post> { post });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ToggleLike(int postId, string? returnUrl)
+        {
+            var userId = _userManager.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var existingLike = await _db.Likes
+                .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
+
+            if (existingLike == null)
+            {
+                _db.Likes.Add(new Like { PostId = postId, UserId = userId });
+            }
+            else
+            {
+                _db.Likes.Remove(existingLike);
+            }
+            await _db.SaveChangesAsync();
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                var likesCount = await _db.Likes.CountAsync(l => l.PostId == postId);
+                return Json(new { success = true, likesCount = likesCount, liked = existingLike == null });
+            }
+
+            return !string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl) ? LocalRedirect(returnUrl) : RedirectToAction("Index", "Home");
         }
 
         [HttpGet]

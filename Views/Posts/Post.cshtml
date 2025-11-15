@@ -2,7 +2,7 @@
 @model unibucGram.Models.Post
 @inject UserManager<unibucGram.Models.User> UserManager
 @{
-    ViewData["Title"] = "Post by " + Model.User.UserName;
+    ViewData["Title"] = "Post by " + (Model.User?.UserName ?? "Unknown User");
 }
 <div class="container mt-4">
     <div class="row">
@@ -10,9 +10,9 @@
             <div class="card" id="post-@Model.Id">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <div>
-                        <img src="@(string.IsNullOrWhiteSpace(Model.User.PfpURL) ? "/uploads/default_pfp.jpg" : Model.User.PfpURL)"
+                        <img src="@(Model.User == null || string.IsNullOrWhiteSpace(Model.User.PfpURL) ? "/uploads/default_pfp.jpg" : Model.User.PfpURL)"
                             alt="avatar" width="32" height="32" class="rounded-circle me-2" />
-                        <strong>@Model.User.UserName</strong>
+                        <strong>@(Model.User?.UserName ?? "Unknown User")</strong>
                     </div>
                     @if (Model.UserId == UserManager.GetUserId(User))
                     {
@@ -72,7 +72,7 @@
 
 
                     <div class="mt-2">
-                        <strong>@Model.User.UserName</strong> @Model.Content
+                        <strong>@(Model.User?.UserName ?? "Unknown User")</strong> @Model.Content
                     </div>
 
                     <div class="text-muted small mt-1">

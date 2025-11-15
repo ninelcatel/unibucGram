@@ -1,0 +1,58 @@
+@model IEnumerable<unibucGram.Models.Post>
+@inject Microsoft.AspNetCore.Identity.UserManager<unibucGram.Models.User> UserManager
+
+@foreach (var post in Model)
+{
+    <div class="card post-card mb-4" id="post-@post.Id">
+        <div class="card-header d-flex justify-content-between align-items-center bg-white">
+            <a asp-controller="Profile" asp-action="Show" asp-route-name="@post.User.UserName" class="text-decoration-none text-dark d-flex align-items-center">
+                <img src="@(string.IsNullOrWhiteSpace(post.User.PfpURL) ? "/uploads/default_pfp.jpg" : post.User.PfpURL)"
+                     alt="avatar" width="32" height="32" class="rounded-circle me-2" />
+                <strong>@post.User.UserName</strong>
+            </a>
+            <small class="text-muted">@post.CreatedAt.ToLocalTime().ToString("g")</small>
+        </div>
+        @if (!string.IsNullOrEmpty(post.ImageURL))
+        {
+            <img src="@post.ImageURL" class="card-img-top" alt="Post Image">
+        }
+        <div class="card-body">
+            @if (!string.IsNullOrWhiteSpace(post.Content))
+            {
+                <p class="card-text">@post.Content</p>
+            }
+            <div class="d-flex align-items-center gap-3">
+                <div class="d-flex align-items-center gap-1">
+                    @{
+                        var isLiked = post.Likes.Any(l => l.UserId == UserManager.GetUserId(User));
+                    }
+                    <button class="btn btn-link text-dark p-0 like-button" data-post-id="@post.Id" style="line-height: 1;">
+                        <i class="bi @(isLiked ? "bi-heart-fill text-danger" : "bi-heart") fs-5"></i>
+                    </button>
+                    <span class="likes-count">@post.Likes.Count likes</span>
+                </div>
+                <div class="text-dark d-flex align-items-center gap-1" style="cursor: default;">
+                    <i class="bi bi-chat fs-5"></i> @post.Comments.Count comments
+                </div>
+            </div>
+        </div>
+        <div class="card-footer bg-white p-2">
+            <form class="add-comment-form d-flex gap-2" data-post-id="@post.Id">
+                <input type="text" name="commentText" class="form-control form-control-sm" placeholder="Add a comment..." required>
+                <button type="submit" class="btn btn-outline-primary btn-sm">Post</button>
+            </form>
+            <div class="comments-container mt-2" id="comments-for-@post.Id">
+                @foreach(var comment in post.Comments.OrderBy(c => c.CreatedAt))
+                {
+                    @if (comment.User != null)
+                    {
+                        <div class="small">
+                            <a asp-controller="Profile" asp-action="Show" asp-route-name="@comment.User.UserName" class="fw-bold text-dark text-decoration-none">@comment.User.UserName</a>
+                            <span>@comment.Content</span>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+}

@@ -98,8 +98,8 @@
                     @foreach (var post in posts)
                     {
                         <div class="col">
-                            <a asp-controller="Posts" asp-action="Post" asp-route-id="@post.Id" class="text-decoration-none">
-                                <div class="card h-100 border-0 shadow-sm">
+                            <a href="#" class="text-decoration-none post-thumbnail" data-bs-toggle="modal" data-bs-target="#postModal" data-post-id="@post.Id">
+                                <div class="card h-100 border-0 shadow-sm" >
                                     @if (!string.IsNullOrEmpty(post.ImageURL))
                                     {
                                         <div class="post-image-container">
@@ -139,6 +139,21 @@
     </div>
 </div>
 
+<!-- Post Modal -->
+<div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="postModalLabel">Post Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="postModalBody">
+        <!-- Post content will be loaded here via AJAX -->
+      </div>
+    </div>
+  </div>
+</div>
+
 @section Scripts {
 <style>
     .post-image-container {
@@ -174,4 +189,28 @@
         box-shadow: 0 4px 12px rgba(111, 66, 193, 0.15) !important;
     }
 </style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const postModal = document.getElementById('postModal');
+        postModal.addEventListener('show.bs.modal', function (event) {
+            const button = event.relatedTarget;
+            const postId = button.getAttribute('data-post-id');
+            const modalBody = document.getElementById('postModalBody');
+            
+            // Show a loading spinner
+            modalBody.innerHTML = '<div class="d-flex justify-content-center"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+            // Fetch post content
+            fetch(`/Posts/PostPartial/${postId}`)
+                .then(response => response.text())
+                .then(html => {
+                    modalBody.innerHTML = html;
+                })
+                .catch(err => {
+                    modalBody.innerHTML = '<p class="text-danger">Failed to load post. Please try again.</p>';
+                });
+        });
+    });
+</script>
 }

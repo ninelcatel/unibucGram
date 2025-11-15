@@ -1,85 +1,53 @@
 ﻿@using Microsoft.AspNetCore.Identity
 @using unibucGram.Models
 @inject SignInManager<User> SignInManager
-@inject UserManager<User> UserManager
 
 @{
     ViewData["Title"] = "Home";
-    var isSignedIn = SignInManager.IsSignedIn(User) && User.Identity != null && User.Identity.IsAuthenticated;
+    var isSignedIn = SignInManager.IsSignedIn(User);
+    var currentUser = ViewBag.CurrentUser as User;
 }
 
 @if (isSignedIn)
 {
     <div class="home-layout">
-        <!-- Left Sidebar - Suggested (10%) -->
+        <!-- Left Sidebar - Suggested -->
         <aside class="sidebar sidebar-left" id="suggested-sidebar">
-            <button class="sidebar-toggle" onclick="toggleSidebar('suggested-sidebar')" title="Toggle Suggested">
+            <button class="sidebar-toggle" data-sidebar-id="suggested-sidebar" title="Toggle Suggested">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-chevron-left toggle-icon" viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
                 </svg>
             </button>
             <div class="sidebar-content">
                 <h5 class="text-purple mb-3">Suggested</h5>
-                <p class="text-muted small">Suggested users will appear here</p>
+                <p class="text-muted small">Suggested users will appear here.</p>
             </div>
         </aside>
 
-        <!-- Main Content (70%) -->
+        <!-- Main Content (Feed) -->
         <main class="main-content">
-            <div class="text-center py-5">
-                <div class="container">
-                    @{
-                        var currentUser = await UserManager.GetUserAsync(User);
-                    }
-                    <h1 class="display-4 mb-4 text-purple">Welcome back, @currentUser?.FirstName!</h1>
-                    <p class="lead mb-4">Share your moments with the unibucGram community</p>
-                    <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-                        <a asp-controller="Posts" asp-action="New" class="btn btn-primary btn-lg px-4 gap-3">Create Post</a>
-                        <a asp-controller="Profile" asp-action="Show" asp-route-name="@currentUser?.UserName" class="btn btn-outline-secondary btn-lg px-4">My Profile</a>
-                    </div>
+            <div class="container-fluid" style="max-width: 550px; margin: 0 auto;">
+                <div id="feed-container">
+                    <partial name="_PostFeed" model="Model" />
                 </div>
-            </div>
-
-            <div class="container mt-5">
-                <div class="row g-4">
-                    <div class="col-md-4">
-                        <div class="card h-100 text-center p-4">
-                            <div class="card-body">
-                                <h3 class="text-purple mb-3">Share</h3>
-                                <p class="text-muted">Post photos and updates with your followers</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card h-100 text-center p-4">
-                            <div class="card-body">
-                                <h3 class="text-purple mb-3">Connect</h3>
-                                <p class="text-muted">Follow friends and discover new people</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card h-100 text-center p-4">
-                            <div class="card-body">
-                                <h3 class="text-purple mb-3">Discover</h3>
-                                <p class="text-muted">Explore amazing content from the community</p>
-                            </div>
-                        </div>
+                <div id="loading" class="text-center my-4" style="display: none;">
+                    <div class="spinner-border text-purple" role="status">
+                        <span class="visually-hidden">Loading...</span>
                     </div>
                 </div>
             </div>
         </main>
 
-        <!-- Right Sidebar - Conversations (20%) -->
+        <!-- Right Sidebar - Conversations -->
         <aside class="sidebar sidebar-right" id="conversations-sidebar">
-            <button class="sidebar-toggle" onclick="toggleSidebar('conversations-sidebar')" title="Toggle Conversations">
+            <button class="sidebar-toggle" data-sidebar-id="conversations-sidebar" title="Toggle Conversations">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-chevron-right toggle-icon" viewBox="0 0 16 16">
                     <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
                 </svg>
             </button>
             <div class="sidebar-content">
                 <h5 class="text-purple mb-3">Conversations</h5>
-                <p class="text-muted small">Your messages will appear here</p>
+                <p class="text-muted small">Your messages will appear here.</p>
             </div>
         </aside>
     </div>
@@ -129,3 +97,214 @@ else
     </div>
 }
 
+@section Scripts {
+    <style>
+        .home-layout {
+            display: grid;
+            grid-template-columns: 4fr 4fr 4fr;
+            height: calc(100vh - 56px); 
+            gap: 1rem;
+        }
+
+        .sidebar {
+            background-color: #f8f9fa;
+            padding: 20px;
+            overflow-y: auto;
+            border-left: 1px solid #dee2e6;
+            border-right: 1px solid #dee2e6;
+            position: relative; 
+        }
+
+        .main-content {
+            overflow-y: auto;
+            padding-top: 20px;
+        }
+
+        .sidebar-toggle {
+            background: none;
+            border: none;
+            color: #6f42c1; /
+            padding: 5px;
+            cursor: pointer;
+            position: absolute;
+            top: 50%; 
+            transform: translateY(-50%); 
+        }
+
+        .sidebar-toggle:hover {
+            color: #6f42c1; /* Forțăm culoarea mov și la hover */
+            opacity: 0.85; /* Adăugăm un mic efect vizual la hover, fără a schimba culoarea */
+        }
+
+        .sidebar-left .sidebar-toggle {
+            right: 5px;
+        }
+        .sidebar-right .sidebar-toggle {
+            left: 5px;
+        }
+
+       
+        @@media (max-width: 992px) {
+            .home-layout {
+                grid-template-columns: 1fr;
+            }
+            .sidebar {
+                display: none; 
+            }
+            .main-content {
+                padding-left: 15px;
+                padding-right: 15px;
+            }
+        }
+
+    
+        .sidebar.collapsed .sidebar-content {
+            display: none;
+        }
+
+        .sidebar.collapsed {
+            padding: 0;
+            display: flex;
+            justify-content: center; 
+            align-items: center;    
+        }
+
+        .sidebar.collapsed .sidebar-toggle {
+            position: static; 
+            transform: none;  
+        }
+
+        .post-card {
+            border: 1px solid #e9ecef;
+            border-radius: 12px;
+            transition: box-shadow 0.2s ease-in-out;
+        }
+        .post-card:hover {
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.1);
+        }
+        .post-card .card-img-top {
+            border-top-left-radius: 11px;
+            border-top-right-radius: 11px;
+            max-height: 400px; 
+            object-fit: contain;
+            background-color: #f8f9fa; 
+        }
+    </style>
+    <script>
+        function toggleSidebar(sidebarId) {
+            const sidebar = document.getElementById(sidebarId);
+            const layout = document.querySelector('.home-layout');
+            if (sidebar && layout) {
+                sidebar.classList.toggle('collapsed');
+
+                const leftCollapsed = document.getElementById('suggested-sidebar').classList.contains('collapsed');
+                const rightCollapsed = document.getElementById('conversations-sidebar').classList.contains('collapsed');
+
+                let leftWidth = leftCollapsed ? '65px' : '4fr';
+                let rightWidth = rightCollapsed ? '65px' : '4fr';
+
+                layout.style.gridTemplateColumns = `${leftWidth} 4fr ${rightWidth}`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.sidebar-toggle').forEach(button => {
+                button.addEventListener('click', function() {
+                    const sidebarId = this.dataset.sidebarId;
+                    toggleSidebar(sidebarId);
+                });
+            });
+        });
+
+        let page = 1;
+        let isLoading = false;
+        const loadingIndicator = document.getElementById('loading');
+        const mainContent = document.querySelector('.main-content');
+        const feedContainer = document.getElementById('feed-container');
+
+        
+        mainContent.onscroll = () => {
+            if (isLoading) return;
+
+            
+            if (mainContent.scrollHeight - mainContent.scrollTop <= mainContent.clientHeight + 100) {
+                isLoading = true;
+                loadingIndicator.style.display = 'block';
+
+                fetch(`/Home/LoadMorePosts?page=${page}`)
+                    .then(response => response.text())
+                    .then(data => {
+                        if (data && data.trim().length > 0) {
+                            feedContainer.insertAdjacentHTML('beforeend', data);
+                            page++;
+                        }
+                        loadingIndicator.style.display = 'none';
+                        isLoading = false;
+                    }).catch(() => { isLoading = false; loadingIndicator.style.display = 'none'; });
+            }
+        };
+
+        document.addEventListener('click', function (e) {
+            if (e.target.closest('.like-button')) {
+                const button = e.target.closest('.like-button');
+                const postId = button.dataset.postId;
+
+                fetch('/Posts/ToggleLike', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest' 
+                    },
+                    body: `postId=${postId}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        const icon = button.querySelector('i');
+                        const likesCountSpan = button.nextElementSibling;
+
+                        likesCountSpan.textContent = `${data.likesCount} likes`;
+                        if (data.liked) {
+                            icon.classList.remove('bi-heart');
+                            icon.classList.add('bi-heart-fill', 'text-danger');
+                        } else {
+                            icon.classList.remove('bi-heart-fill', 'text-danger');
+                            icon.classList.add('bi-heart');
+                        }
+                    }
+                })
+                .catch(error => console.error('Error toggling like:', error));
+            }
+        });
+
+        document.addEventListener('submit', function(e) {
+            if (e.target.matches('.add-comment-form')) {
+                e.preventDefault(); 
+                const form = e.target;
+                const postId = form.dataset.postId;
+                const input = form.querySelector('input[name="commentText"]');
+                const content = input.value;
+
+                if (!content.trim()) return; 
+
+                fetch('/Comments/Add', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: `postId=${postId}&content=${encodeURIComponent(content)}`
+                })
+                .then(response => response.text())
+                .then(html => {
+                    const commentsContainer = document.getElementById(`comments-for-${postId}`);
+                    if (commentsContainer) {
+                        commentsContainer.insertAdjacentHTML('beforeend', html);
+                    }
+                    input.value = ''; 
+                })
+                .catch(error => console.error('Error adding comment:', error));
+            }
+        });
+    </script>
+}

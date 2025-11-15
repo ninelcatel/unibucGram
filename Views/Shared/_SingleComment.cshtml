@@ -1,0 +1,8 @@
+@model unibucGram.Models.Comment
+
+<div class="small">
+    <a asp-controller="Profile" asp-action="Show" asp-route-name="@Model.User.UserName" class="fw-bold text-dark text-decoration-none">
+        @Model.User.UserName
+    </a>
+    <span>@Model.Content</span>
+</div>

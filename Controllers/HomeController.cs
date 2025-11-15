@@ -1,26 +1,84 @@
 using System.Diagnostics;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using unibucGram.Models;
 
 namespace unibucGram.Controllers;
 
 public class HomeController : Controller
 {
-    private readonly ILogger<HomeController> _logger;
+    private readonly ApplicationDbContext _context;
+    private readonly UserManager<User> _userManager;
+    private readonly SignInManager<User> _signInManager;
 
-    public HomeController(ILogger<HomeController> logger)
+    public HomeController(ApplicationDbContext context, UserManager<User> userManager, SignInManager<User> signInManager)
     {
-        _logger = logger;
+        _context = context;
+        _userManager = userManager;
+        _signInManager = signInManager;
     }
 
-    public IActionResult Index()
+    public async Task<IActionResult> Index()
     {
-        return View();
+        if (_signInManager.IsSignedIn(User))
+        {
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null)
+            {
+                return View(new List<Post>());
+            }
+
+            var followingIds = await _context.Follows
+                .Where(f => f.FollowerId == currentUser.Id)
+                .Select(f => f.FolloweeId)
+                .ToListAsync();
+
+            var posts = await _context.Posts
+                .Where(p => followingIds.Contains(p.UserId))
+                .Include(p => p.User)
+                .Include(p => p.Likes)
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.User)
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(10) 
+                .ToListAsync();
+
+            ViewBag.CurrentUser = currentUser;
+            return View(posts);
+        }
+
+        return View(new List<Post>());
     }
 
-    public IActionResult Privacy()
+    [HttpGet]
+    public async Task<IActionResult> LoadMorePosts(int page = 1)
     {
-        return View();
+        var currentUser = await _userManager.GetUserAsync(User);
+        if (currentUser == null || !_signInManager.IsSignedIn(User))
+        {
+            return BadRequest();
+        }
+
+        var followingIds = await _context.Follows
+            .Where(f => f.FollowerId == currentUser.Id)
+            .Select(f => f.FolloweeId)
+            .ToListAsync();
+
+        var posts = await _context.Posts
+            .Where(p => followingIds.Contains(p.UserId))
+            .Include(p => p.User)
+            .Include(p => p.Likes)
+            .Include(p => p.Comments)
+            .ThenInclude(c => c.User)
+            .OrderByDescending(p => p.CreatedAt)
+            .Skip(page * 10) 
+            .Take(10)      
+            .ToListAsync();
+
+        return PartialView("_PostFeed", posts);
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

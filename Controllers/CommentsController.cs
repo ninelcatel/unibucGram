@@ -56,14 +56,43 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
+        public async Task<IActionResult> Add(int postId, string content)
+        {
+            if (string.IsNullOrWhiteSpace(content))
+            {
+                return BadRequest(new { message = "Comment cannot be empty." });
+            }
+
+            var userId = _userManager.GetUserId(User);
+            if (userId == null)
+            {
+                return Unauthorized();
+            }
+
+            var comment = new Comment
+            {
+                Content = content,
+                PostId = postId,
+                UserId = userId,
+                CreatedAt = System.DateTime.UtcNow
+            };
+
+            _db.Comments.Add(comment);
+            await _db.SaveChangesAsync();
+
+            comment.User = await _userManager.FindByIdAsync(userId);
+
+            return PartialView("_SingleComment", comment);
+        }
+
+        [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int commentId, string content)
         {
             if (string.IsNullOrWhiteSpace(content))
             {
-                // Or return a specific error message
                 TempData["ErrorMessage"] = "Comment cannot be empty.";
-                // We need the post ID to redirect back, so we have to fetch the comment first anyway
+                
             }
 
             var userId = _userManager.GetUserId(User);
