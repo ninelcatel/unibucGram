@@ -45,12 +45,7 @@
                 @foreach(var comment in post.Comments.OrderBy(c => c.CreatedAt))
                 {
                     @if (comment.User != null)
-                    {
-                        <div class="small">
-                            <a asp-controller="Profile" asp-action="Show" asp-route-name="@comment.User.UserName" class="fw-bold text-dark text-decoration-none">@comment.User.UserName</a>
-                            <span>@comment.Content</span>
-                        </div>
-                    }
+                    {<partial name="_CommentPartial" model="comment" />}
                 }
             </div>
         </div>

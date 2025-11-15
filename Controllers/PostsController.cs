@@ -122,8 +122,7 @@ namespace unibucGram.Controllers
                 return NotFound();
             }
 
-            // We will render this post using the _PostFeed partial, inside an array
-            return PartialView("~/Views/Shared/_PostFeed.cshtml", new List<Post> { post });
+            return PartialView("~/Views/Shared/_PostModalContent.cshtml", post);
         }
 
         [HttpPost]
