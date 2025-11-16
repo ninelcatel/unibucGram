@@ -48,8 +48,10 @@ body > .container {
 
 /* Home Layout - Three Column Full Width */
 .home-layout {
-  display: flex;
-  flex-direction: row;
+  display: grid; /* Changed from flex to grid */
+  grid-template-columns: 2fr 8fr 2fr; /* Adjusted for better proportions */
+  height: calc(100vh - 56px); /* Added for grid layout */
+  gap: 1rem; /* Added for grid layout */
   min-height: calc(100vh - 56px);
   width: 100vw;
   position: relative;
@@ -57,6 +59,21 @@ body > .container {
   margin-right: calc(-50vw + 50%);
   padding: 0;
 }
+
+.home-layout.left-collapsed {
+  grid-template-columns: 65px 8fr 2fr;
+}
+
+.home-layout.right-collapsed {
+  grid-template-columns: 2fr 8fr 65px;
+}
+
+.home-layout.left-collapsed.right-collapsed {
+  grid-template-columns: 65px 1fr 65px;
+}
+
+.home-layout.left-collapsed:not(.right-collapsed) { grid-template-columns: 65px 8fr 2fr; }
+.home-layout:not(.left-collapsed).right-collapsed { grid-template-columns: 2fr 8fr 65px; }
 
 /* Sidebars - Fixed percentages with smooth transitions */
 .sidebar {
@@ -70,19 +87,17 @@ body > .container {
   height: calc(100vh - 56px);
   overflow-y: auto;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  border-left: 1px solid #dee2e6; /* Added from Home/Index.cshtml */
+  border-right: 1px solid #dee2e6; /* Added from Home/Index.cshtml */
 }
 
 .sidebar-left {
-  width: 10vw;
-  min-width: 10vw;
   border-right: 2px solid rgba(111, 66, 193, 0.1);
   order: 1;
   border-radius: 0 12px 12px 0;
 }
 
 .sidebar-right {
-  width: 20vw;
-  min-width: 20vw;
   border-left: 2px solid rgba(111, 66, 193, 0.1);
   order: 3;
   border-radius: 12px 0 0 12px;
@@ -150,11 +165,13 @@ body > .container {
 }
 
 .sidebar-left.collapsed .sidebar-toggle {
+  left: auto; /* Reset the original 'left' property */
   right: 2px;
 }
 
 .sidebar-right.collapsed .sidebar-toggle {
-  left: 2px;
+  right: auto; /* Ensure 'right' is not set */
+  left: 2px; /* Set the 'left' property */
 }
 
 .sidebar-toggle:hover {
@@ -176,11 +193,11 @@ body > .container {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
-.sidebar-left.collapsed .toggle-icon {
+.home-layout.left-collapsed .sidebar-left .toggle-icon {
   transform: rotate(180deg);
 }
 
-.sidebar-right.collapsed .toggle-icon {
+.home-layout.right-collapsed .sidebar-right .toggle-icon {
   transform: rotate(180deg);
 }
 
@@ -192,36 +209,12 @@ body > .container {
 
 /* Main Content - 70% width with smooth transition */
 .main-content {
-  width: 70vw;
-  flex: 0 0 70vw;
   overflow-y: auto;
   padding: 0;
   order: 2;
   height: calc(100vh - 56px);
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              flex-basis 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); /* Adjusted transition */
   background: #ffffff;
-}
-
-/* Adjust when sidebars collapse - smooth width transitions */
-.sidebar-left.collapsed ~ .main-content {
-  width: calc(70vw + 10vw - 48px);
-  flex: 0 0 calc(70vw + 10vw - 48px);
-}
-
-.home-layout:has(.sidebar-left.collapsed):has(.sidebar-right.collapsed) .main-content {
-  width: calc(100vw - 96px);
-  flex: 0 0 calc(100vw - 96px);
-}
-
-.home-layout:has(.sidebar-left.collapsed):not(:has(.sidebar-right.collapsed)) .main-content {
-  width: calc(80vw - 48px);
-  flex: 0 0 calc(80vw - 48px);
-}
-
-.home-layout:not(:has(.sidebar-left.collapsed)):has(.sidebar-right.collapsed) .main-content {
-  width: calc(90vw - 48px);
-  flex: 0 0 calc(90vw - 48px);
 }
 
 /* Navbar styling */
@@ -627,4 +620,30 @@ h1, h2, h3, h4 {
 .form-check-label {
   margin-bottom: 0;
   cursor: pointer;
+}
+
+/* Post Image Container styles from Profile/Index.cshtml */
+.post-image-container {
+    position: relative;
+    width: 100%;
+    padding-top: 100%;
+    overflow: hidden;
+    background: #f8f9fa;
+    border-radius: 8px 8px 0 0;
+}
+
+.post-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    right: 0;
+    background-size: contain;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+
+.border-purple {
+    border-color: var(--primary-purple) !important;
 }
