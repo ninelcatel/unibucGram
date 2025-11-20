@@ -337,8 +337,23 @@ main {
   position: relative;
   max-width: 360px;
 }
+.search-wrapper_chat {
+  position: relative;
+  max-width: 360px;
+  border-radius: 12px;
+  border: 2px solid var(--primary-purple)
+}
 
 #searchInput {
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-radius: 12px;
+  color: var(--text-primary);
+  padding: 0.75rem 1rem;
+  transition: all 0.3s ease;
+}
+
+#searchInput_chat {
   background: rgba(255, 255, 255, 0.95);
   border: 2px solid rgba(255, 255, 255, 0.3);
   border-radius: 12px;
@@ -352,6 +367,16 @@ main {
 }
 
 #searchInput:focus {
+  background: white;
+  border-color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+#searchInput_chat::placeholder {
+  color: var(--text-secondary);
+}
+
+#searchInput_chat:focus {
   background: white;
   border-color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);

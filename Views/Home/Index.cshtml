@@ -56,10 +56,18 @@
             </button>
 
             <div class="sidebar-label">MESSAGES</div>
-
+            
             <div class="sidebar-content">
+
+
                 <h5 class="fw-bold mb-4 text-purple text-center">Conversations</h5>
                 <!-- Content goes here -->
+
+                <div class="search-wrapper_chat" style="max-width:100%;">
+                        <input type="text" id="searchInput_chat" class="form-control me-2" placeholder="Search users..." aria-label="Search" />
+                        <div id="searchResults_chat" class="search-results bg-white border rounded-2 shadow-sm" aria-hidden="true"></div>
+                    </div>
+
                 <div class="p-3 text-center text-muted bg-light rounded">
                     <i class="bi bi-chat-dots fs-4 d-block mb-2"></i>
                     <small>No active conversations</small>
@@ -68,6 +76,9 @@
         </aside>
 
     </div>
+
+    <script src="~/js/site.js" asp-append-version="true"></script>
+    
 }
 else
 {

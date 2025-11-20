@@ -28,6 +28,33 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const input_chatSideBar = document.querySelector('#searchInput_chat');
+    const results_chatSideBar = document.querySelector('#searchResults_chat');
+    if (!input_chatSideBar || !results_chatSideBar) return;
+
+    input_chatSideBar.addEventListener('input', async () => {
+        const q = input_chatSideBar.value.trim();
+        if (!q) { results_chatSideBar.innerHTML = ''; results_chatSideBar.style.display = 'none'; return; }
+
+        try {
+            const res = await fetch(`/Search/Live?q=${encodeURIComponent(q)}`);
+            if (!res.ok) {
+                const text = await res.text();
+                console.error('Search error', res.status, text);
+                results_chatSideBar.innerHTML = '';
+                results_chatSideBar.style.display = 'none';
+                return;
+            }
+            results_chatSideBar.innerHTML = await res.text();
+            results_chatSideBar.style.display = 'block';
+        } catch (err) {
+            console.error('Search fetch failed:', err);
+            results_chatSideBar.innerHTML = '';
+            results_chatSideBar.style.display = 'none';
+        }
+    });
+    
+
     // hide results when clicking outside
     document.addEventListener('click', (e) => {
         if (e.target !== input && !results.contains(e.target)) {
