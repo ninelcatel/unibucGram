@@ -51,21 +51,22 @@ body > .container {
   display: grid; /* Changed from flex to grid */
   grid-template-columns: 2fr 8fr 2fr; /* Adjusted for better proportions */
   height: calc(100vh - 56px); /* Added for grid layout */
-  gap: 1rem; /* Added for grid layout */
+  gap: 0; /* Remove gap for seamless layout */
   min-height: calc(100vh - 56px);
   width: 100vw;
   position: relative;
   margin-left: calc(-50vw + 50%);
   margin-right: calc(-50vw + 50%);
   padding: 0;
+  transition: grid-template-columns 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .home-layout.left-collapsed {
-  grid-template-columns: 65px 8fr 2fr;
+  grid-template-columns: 65px 1fr 2fr;
 }
 
 .home-layout.right-collapsed {
-  grid-template-columns: 2fr 8fr 65px;
+  grid-template-columns: 2fr 1fr 65px;
 }
 
 .home-layout.left-collapsed.right-collapsed {
@@ -79,16 +80,14 @@ body > .container {
 .sidebar {
   position: relative;
   background: linear-gradient(180deg, #ffffff 0%, #f8f9fa 100%);
-  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              min-width 0.4s cubic-bezier(0.4, 0, 0.2, 1),
-              box-shadow 0.3s ease;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   overflow: hidden;
   flex-shrink: 0;
   height: calc(100vh - 56px);
   overflow-y: auto;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border-left: 1px solid #dee2e6; /* Added from Home/Index.cshtml */
-  border-right: 1px solid #dee2e6; /* Added from Home/Index.cshtml */
+  border-left: 1px solid #dee2e6;
+  border-right: 1px solid #dee2e6;
 }
 
 .sidebar-left {
@@ -108,8 +107,18 @@ body > .container {
 }
 
 .sidebar.collapsed {
-  width: 48px !important;
-  min-width: 48px !important;
+  min-width: 65px !important;
+}
+
+.sidebar-content {
+  padding: 1.618rem;
+  opacity: 1;
+  transition: opacity 0.3s ease 0.1s,
+              visibility 0.3s ease 0.1s,
+              transform 0.3s cubic-bezier(0.4, 0, 0.2, 1) 0.1s;
+  visibility: visible;
+  white-space: normal;
+  transform: translateX(0);
 }
 
 .sidebar.collapsed .sidebar-content {
@@ -117,17 +126,9 @@ body > .container {
   pointer-events: none;
   visibility: hidden;
   transform: translateX(-20px);
-}
-
-.sidebar-content {
-  padding: 1.618rem;
-  opacity: 1;
-  transition: opacity 0.4s ease,
-              visibility 0.4s ease,
-              transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-  visibility: visible;
-  white-space: normal;
-  transform: translateX(0);
+  transition: opacity 0.2s ease,
+              visibility 0.2s ease,
+              transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Sidebar Toggle Button - Modern Design */
@@ -152,12 +153,13 @@ body > .container {
 }
 
 .sidebar-left .sidebar-toggle {
-  left: calc(100% - 44px); /* hate css BS */
-  border-radius: 16px 0 0 16px;
+  right: -22px; /* Half of button width to center on edge */
+  border-radius: 0 16px 16px 0;
 }
 
 .sidebar-right .sidebar-toggle {
-  border-radius: 0 16px 16px 0;
+  left: -22px; /* Half of button width to center on edge */
+  border-radius: 16px 0 0 16px;
 }
 
 .sidebar.collapsed .sidebar-toggle {
@@ -165,13 +167,11 @@ body > .container {
 }
 
 .sidebar-left.collapsed .sidebar-toggle {
-  left: auto; /* Reset the original 'left' property */
-  right: 2px;
+  right: -22px; /* Keep consistent positioning */
 }
 
 .sidebar-right.collapsed .sidebar-toggle {
-  right: auto; /* Ensure 'right' is not set */
-  left: 2px; /* Set the 'left' property */
+  left: -22px; /* Keep consistent positioning */
 }
 
 .sidebar-toggle:hover {
@@ -193,12 +193,20 @@ body > .container {
   filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
 }
 
-.home-layout.left-collapsed .sidebar-left .toggle-icon {
+.sidebar-left .toggle-icon {
+  transform: rotate(0deg);
+}
+
+.sidebar-left.collapsed .toggle-icon {
   transform: rotate(180deg);
 }
 
-.home-layout.right-collapsed .sidebar-right .toggle-icon {
+.sidebar-right .toggle-icon {
   transform: rotate(180deg);
+}
+
+.sidebar-right.collapsed .toggle-icon {
+  transform: rotate(0deg);
 }
 
 /* Ensure button is clickable when collapsed */
@@ -207,14 +215,44 @@ body > .container {
   z-index: 1050;
 }
 
-/* Main Content - 70% width with smooth transition */
+/* Main Content - Responsive width with smooth transition */
 .main-content {
   overflow-y: auto;
-  padding: 0;
+  padding: 2rem 0 0 0; /* Increased top padding to prevent navbar overlap */
   order: 2;
   height: calc(100vh - 56px);
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); /* Adjusted transition */
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   background: #ffffff;
+  width: 100%; /* Changed from fixed width to 100% */
+}
+
+/* Adjust main content width when sidebars are collapsed */
+.home-layout.left-collapsed .main-content {
+  /* Grid handles this automatically now */
+}
+
+.home-layout.right-collapsed .main-content {
+  /* Grid handles this automatically now */
+}
+
+.home-layout.left-collapsed.right-collapsed .main-content {
+  /* Maximum width when both sidebars collapsed */
+}
+
+/* Add top margin to the feed container inside main content */
+.main-content .container-fluid {
+  padding-top: 1.5rem; /* Additional top padding for the feed */
+  transition: padding 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Post cards should have margin at the top of the feed */
+.post-card:first-child {
+  margin-top: 1rem;
+}
+
+/* All post cards with smooth transitions */
+.post-card {
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* Navbar styling */
