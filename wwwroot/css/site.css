@@ -555,3 +555,58 @@ h1, h2, h3, h4 {
 .border-purple {
     border-color: var(--primary-purple) !important;
 }
+
+/* Text-only post thumbnails */
+.text-only-card {
+  background: linear-gradient(135deg, #f5f0ff 0%, #e9e1f7 100%);
+  border: 1px dashed var(--primary-purple);
+}
+
+.text-only-preview {
+  min-height: 140px;
+  background: rgba(111,66,193,0.05);
+  border: 1px dashed rgba(111,66,193,0.3);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.text-only-icon {
+  opacity: 0.6;
+}
+
+.line-clamp-4 {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Modal styling for text-only posts */
+.text-only-modal {
+  background: linear-gradient(135deg, #faf7ff 0%, #efe9ff 100%);
+  border: 2px solid var(--accent-purple);
+  border-radius: 16px;
+  box-shadow: var(--shadow-lg);
+}
+
+.text-only-wrapper {
+  min-height: 480px;
+  display: flex;
+  flex-direction: column;
+}
+
+.text-only-content {
+  background: rgba(111,66,193,0.07);
+  padding: 1.25rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(111,66,193,0.15);
+}
+
+/* Enhance comment spacing inside text-only modal */
+.text-only-modal .comment-container {
+  background: #fff;
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 6px;
+  box-shadow: var(--shadow-sm);
+}

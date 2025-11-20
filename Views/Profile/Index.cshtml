@@ -97,13 +97,33 @@
                 <div class="row row-cols-3 g-3">
                     @foreach (var post in posts)
                     {
+                        var noImage = string.IsNullOrEmpty(post.ImageURL);
                         <div class="col">
-                            <a href="#" class="text-decoration-none post-thumbnail" data-bs-toggle="modal" data-bs-target="#postModal" data-post-id="@post.Id">
-                                <div class="card h-100 border-0 shadow-sm" >
+                            <a href="#" class="text-decoration-none post-thumbnail @(noImage ? "text-only-thumb" : "")"
+                               data-bs-toggle="modal"
+                               data-bs-target="#postModal"
+                               data-post-id="@post.Id">
+                                <div class="card h-100 border-0 shadow-sm @(noImage ? "text-only-card" : "")">
                                     @if (!string.IsNullOrEmpty(post.ImageURL))
                                     {
                                         <div class="post-image-container">
                                             <div class="post-image" style="background-image: url('@post.ImageURL');"></div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <div class="p-3 text-only-preview d-flex flex-column justify-content-center align-items-center h-100">
+                                            <div class="text-only-icon mb-2">
+                                                <i class="bi bi-chat-square-text fs-3 text-purple"></i>
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(post.Content))
+                                            {
+                                                <p class="small mb-0 text-center fw-semibold line-clamp-4">@post.Content</p>
+                                            }
+                                            else
+                                            {
+                                                <p class="small mb-0 fst-italic text-muted">No caption</p>
+                                            }
                                         </div>
                                     }
                                     <div class="card-body p-2">
@@ -115,16 +135,10 @@
                                             <small class="text-muted" style="font-size: 0.7rem;">@post.CreatedAt.ToLocalTime().ToString("M/d/yy")</small>
                                             <div>
                                                 <span class="badge bg-light text-dark" style="font-size: 0.65rem;">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-heart-fill" viewBox="0 0 16 16">
-                                                        <path fill-rule="evenodd" d="M8 1.314C12.438-3.248 23.534 4.735 8 15-7.534 4.736 3.562-3.248 8 1.314"/>
-                                                    </svg>
-                                                    @post.Likes.Count
+                                                    <i class="bi bi-heart-fill text-danger"></i> @post.Likes.Count
                                                 </span>
                                                 <span class="badge bg-light text-dark ms-1" style="font-size: 0.65rem;">
-                                                    <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" fill="currentColor" class="bi bi-chat-fill" viewBox="0 0 16 16">
-                                                        <path d="M8 15c4.418 0 8-3.134 8-7s-3.582-7-8-7-8 3.134-8 7c0 1.76.743 3.37 1.97 4.6-.097 1.016-.417 2.13-.771 2.966-.079.186.074.394.273.362 2.256-.37 3.597-.938 4.18-1.234A9 9 0 0 0 8 15"/>
-                                                    </svg>
-                                                    @post.Comments.Count
+                                                    <i class="bi bi-chat-fill"></i> @post.Comments.Count
                                                 </span>
                                             </div>
                                         </div>

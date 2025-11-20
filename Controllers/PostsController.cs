@@ -30,63 +30,76 @@ namespace unibucGram.Controllers
         [HttpGet]
         public IActionResult New()
         {
-            return View();
+            // This line prevents the blank red box on the "New Post" page.
+            ModelState.Clear();
+            return View(new Post());
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
         public IActionResult Create([Bind("Content")] Post post, IFormFile? image)
         {
-            // basic validation: require either content or image
+            // Adaugam o validare custom in ModelState
             if (string.IsNullOrWhiteSpace(post.Content) && (image == null || image.Length == 0))
             {
-                ModelState.AddModelError(string.Empty, "Trebuie să adaugi text sau o imagine.");
-                return View("New", post);
+                ModelState.AddModelError(string.Empty, "You must add either text or an image.");
             }
 
-            var userId = _userManager.GetUserId(User);
-            post.UserId = userId ?? string.Empty;
-            post.CreatedAt = DateTime.UtcNow;
+            // Eliminam campurile setate de server din validare
+            ModelState.Remove("UserId");
+            ModelState.Remove("User");
+            ModelState.Remove("CreatedAt");
 
-            if (image != null && image.Length > 0)
+            // Verificam atat validarile din model ([StringLength]) cat si cea custom
+            if (ModelState.IsValid)
             {
-                var uploads = Path.Combine(_env.WebRootPath ?? "wwwroot", "uploads");
-                Directory.CreateDirectory(uploads);
+                var userId = _userManager.GetUserId(User);
+                post.UserId = userId ?? string.Empty;
+                post.CreatedAt = DateTime.UtcNow;
 
-                // normalize to jpeg and resize to a max dimension (1080x1080)
-                var fileName = Guid.NewGuid().ToString() + ".jpg";
-                var filePath = Path.Combine(uploads, fileName);
-
-                using (var inStream = image.OpenReadStream())
+                if (image != null && image.Length > 0)
                 {
-                    // Load image (ImageSharp will detect format)
-                    using (var img = Image.Load(inStream))
+                    var uploads = Path.Combine(_env.WebRootPath ?? "wwwroot", "uploads");
+                    Directory.CreateDirectory(uploads);
+
+                    // normalize to jpeg and resize to a max dimension (1080x1080)
+                    var fileName = Guid.NewGuid().ToString() + ".jpg";
+                    var filePath = Path.Combine(uploads, fileName);
+
+                    using (var inStream = image.OpenReadStream())
                     {
-                        // Auto orient based on EXIF so phone images display correctly
-                        img.Mutate(x => x.AutoOrient());
-
-                        const int maxDim = 540;
-                        img.Mutate(x => x.Resize(new ResizeOptions
+                        // Load image (ImageSharp will detect format)
+                        using (var img = Image.Load(inStream))
                         {
-                            Size = new SixLabors.ImageSharp.Size(maxDim, maxDim),
-                            Mode = ResizeMode.Max
-                        }));
+                            // Auto orient based on EXIF so phone images display correctly
+                            img.Mutate(x => x.AutoOrient());
 
-                        var encoder = new JpegEncoder { Quality = 80 };
-                        using (var outStream = System.IO.File.Create(filePath))
-                        {
-                            img.Save(outStream, encoder);
+                            const int maxDim = 540;
+                            img.Mutate(x => x.Resize(new ResizeOptions
+                            {
+                                Size = new SixLabors.ImageSharp.Size(maxDim, maxDim),
+                                Mode = ResizeMode.Max
+                            }));
+
+                            var encoder = new JpegEncoder { Quality = 80 };
+                            using (var outStream = System.IO.File.Create(filePath))
+                            {
+                                img.Save(outStream, encoder);
+                            }
                         }
                     }
+
+                    post.ImageURL = "/uploads/" + fileName;
                 }
 
-                post.ImageURL = "/uploads/" + fileName;
+                _db.Posts.Add(post);
+                _db.SaveChanges();
+
+                return RedirectToAction("Index", "Home");
             }
 
-            _db.Posts.Add(post);
-            _db.SaveChanges();
-
-            return RedirectToAction("Index", "Home");
+            // Daca modelul nu e valid, ne intoarcem la formular cu erorile
+            return View("New", post);
         }
 
         [HttpGet]
@@ -172,49 +185,100 @@ namespace unibucGram.Controllers
             {
                 return Forbid();
             }
-
+            
+            // This line prevents the blank red box on the "Edit Post" page.
+            ModelState.Clear();
             return View(post);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Content,UserId,CreatedAt,ImageURL")] Post postData)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Content")] Post postData, IFormFile? newImage, bool removeImage = false)
         {
             if (id != postData.Id)
             {
                 return NotFound();
             }
 
-            var userId = _userManager.GetUserId(User);
-            var postToUpdate = await _db.Posts.FindAsync(id);
+            // Eliminam campurile setate de server din validare
+            ModelState.Remove("UserId");
+            ModelState.Remove("User");
+            ModelState.Remove("CreatedAt");
 
+            var postToUpdate = await _db.Posts.FindAsync(id);
             if (postToUpdate == null)
             {
                 return NotFound();
             }
 
-            // Security check: Ensure the post belongs to the current user
+            // Security check
+            var userId = _userManager.GetUserId(User);
             if (postToUpdate.UserId != userId)
             {
                 return Forbid();
             }
 
+            // --- LOGICA NOUA DE VALIDARE SI PROCESARE IMAGINE ---
+
+            // 1. Daca se doreste stergerea imaginii
+            if (removeImage && !string.IsNullOrEmpty(postToUpdate.ImageURL))
+            {
+                var oldImagePath = Path.Combine(_env.WebRootPath, postToUpdate.ImageURL.TrimStart('/'));
+                if (System.IO.File.Exists(oldImagePath))
+                {
+                    System.IO.File.Delete(oldImagePath);
+                }
+                postToUpdate.ImageURL = null;
+            }
+            // 2. Daca se incarca o imagine noua
+            else if (newImage != null && newImage.Length > 0)
+            {
+                // Stergem imaginea veche daca exista
+                if (!string.IsNullOrEmpty(postToUpdate.ImageURL))
+                {
+                    var oldImagePath = Path.Combine(_env.WebRootPath, postToUpdate.ImageURL.TrimStart('/'));
+                    if (System.IO.File.Exists(oldImagePath))
+                    {
+                        System.IO.File.Delete(oldImagePath);
+                    }
+                }
+
+                // Salvam imaginea noua
+                var uploads = Path.Combine(_env.WebRootPath, "uploads");
+                var fileName = Guid.NewGuid().ToString() + ".jpg";
+                var filePath = Path.Combine(uploads, fileName);
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await newImage.CopyToAsync(stream);
+                }
+                postToUpdate.ImageURL = "/uploads/" + fileName;
+            }
+
+            // 3. Validare finala: postarea nu poate fi complet goala
+            if (string.IsNullOrWhiteSpace(postData.Content) && string.IsNullOrEmpty(postToUpdate.ImageURL))
+            {
+                ModelState.AddModelError("Content", "Post cannot be empty. Please add a caption or an image.");
+            }
+
             if (ModelState.IsValid)
             {
-                // We only allow updating the content
                 postToUpdate.Content = postData.Content;
 
                 try
                 {
+                    _db.Update(postToUpdate);
                     await _db.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    throw; // Or handle concurrency error
+                    if (!PostExists(postToUpdate.Id)) { return NotFound(); }
+                    else { throw; }
                 }
                 return RedirectToAction(nameof(Post), new { id = postToUpdate.Id });
             }
-            return View(postData);
+
+            // Daca validarea esueaza, retrimitem modelul actualizat la view
+            return View(postToUpdate);
         }
 
         [HttpPost]
@@ -247,6 +311,11 @@ namespace unibucGram.Controllers
             await _db.SaveChangesAsync();
 
             return RedirectToAction("Index", "Profile");
+        }
+
+        private bool PostExists(int id)
+        {
+            return _db.Posts.Any(e => e.Id == id);
         }
     }
 }
