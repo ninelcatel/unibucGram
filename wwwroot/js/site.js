@@ -237,24 +237,19 @@ document.addEventListener('DOMContentLoaded', () => {
     initializePostModal();
 
     // =================================================================
-    // Sidebar Toggle Logic
+    // SIMPLE SIDEBAR TOGGLE LOGIC
     // =================================================================
-    function initializeSidebarToggles() {
+    function toggleSidebar(side) {
         const layout = document.querySelector('.home-layout');
-        if (!layout) return; // Only run on pages with the home layout
+        if (!layout) return;
 
-        document.querySelectorAll('.sidebar-toggle').forEach(button => {
-            button.addEventListener('click', function () {
-                const sidebarId = this.dataset.sidebarId;
-                const sidebar = document.getElementById(sidebarId);
-                if (sidebar) {
-                    sidebar.classList.toggle('collapsed');
-                    const side = sidebar.id.includes('left') ? 'left' : 'right';
-                    layout.classList.toggle(`${side}-collapsed`);
-                }
-            });
-        });
+        if (side === 'left') {
+            layout.classList.toggle('left-collapsed');
+        } else if (side === 'right') {
+            layout.classList.toggle('right-collapsed');
+        }
     }
 
-    initializeSidebarToggles();
+    // Ensure the function is available globally
+    window.toggleSidebar = toggleSidebar;
 });

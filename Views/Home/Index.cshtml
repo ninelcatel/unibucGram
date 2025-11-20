@@ -4,97 +4,80 @@
 
 @{
     ViewData["Title"] = "Home";
-    var isSignedIn = SignInManager.IsSignedIn(User);
-    var currentUser = ViewBag.CurrentUser as User;
 }
 
-@if (isSignedIn)
+@if (SignInManager.IsSignedIn(User))
 {
     <div class="home-layout">
-        <!-- Left Sidebar - Suggested -->
-        <aside class="sidebar sidebar-left" id="suggested-sidebar">
-            <button class="sidebar-toggle" data-sidebar-id="suggested-sidebar" title="Toggle Suggested">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-chevron-left toggle-icon" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>
-                </svg>
+        
+        <!-- 1. LEFT SIDEBAR (Suggested) -->
+        <aside class="sidebar sidebar-left" id="sidebar-left">
+            <button class="sidebar-toggle" onclick="toggleSidebar('left')" title="Toggle Menu">
+                <i class="bi bi-chevron-left toggle-icon"></i>
             </button>
+            
+            <div class="sidebar-label">SUGGESTED</div>
+
             <div class="sidebar-content">
-                <h5 class="text-purple mb-3">Suggested</h5>
-                <p class="text-muted small">Suggested users will appear here.</p>
+                <h5 class="fw-bold mb-4 text-purple text-center">Suggested</h5>
+                <!-- Content goes here -->
+                <div class="d-flex align-items-center mb-3">
+                    <div class="bg-light rounded-circle" style="width: 40px; height: 40px;"></div>
+                    <div class="ms-2">
+                        <div class="fw-bold small">student_1</div>
+                        <div class="text-muted small">New to unibucGram</div>
+                    </div>
+                </div>
+                 <div class="d-flex align-items-center mb-3">
+                    <div class="bg-light rounded-circle" style="width: 40px; height: 40px;"></div>
+                    <div class="ms-2">
+                        <div class="fw-bold small">prof_math</div>
+                        <div class="text-muted small">Followed by 3 others</div>
+                    </div>
+                </div>
             </div>
         </aside>
 
-        <!-- Main Content (Feed) -->
+        <!-- 2. CENTER CONTENT (Posts) -->
         <main class="main-content">
-            <div class="container-fluid" style="max-width: 550px; margin: 0 auto;">
-                <div id="feed-container">
-                    <partial name="_PostFeed" model="Model" />
-                </div>
-                <div id="loading" class="text-center my-4" style="display: none;">
-                    <!-- Content is injected by site.js -->
-                </div>
+            <div id="feed-container" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+                <partial name="_PostFeed" model="Model" />
+            </div>
+            
+            <div id="loading" class="text-center my-4" style="display: none;">
+                <div class="spinner-border text-purple" role="status"></div>
             </div>
         </main>
 
-        <!-- Right Sidebar - Conversations -->
-        <aside class="sidebar sidebar-right" id="conversations-sidebar">
-            <button class="sidebar-toggle" data-sidebar-id="conversations-sidebar" title="Toggle Conversations">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="bi bi-chevron-right toggle-icon" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>
-                </svg>
+        <!-- 3. RIGHT SIDEBAR (Conversations) -->
+        <aside class="sidebar sidebar-right" id="sidebar-right">
+            <button class="sidebar-toggle" onclick="toggleSidebar('right')" title="Toggle Chat">
+                <i class="bi bi-chevron-right toggle-icon"></i>
             </button>
+
+            <div class="sidebar-label">MESSAGES</div>
+
             <div class="sidebar-content">
-                <h5 class="text-purple mb-3">Conversations</h5>
-                <p class="text-muted small">Your messages will appear here.</p>
+                <h5 class="fw-bold mb-4 text-purple text-center">Conversations</h5>
+                <!-- Content goes here -->
+                <div class="p-3 text-center text-muted bg-light rounded">
+                    <i class="bi bi-chat-dots fs-4 d-block mb-2"></i>
+                    <small>No active conversations</small>
+                </div>
             </div>
         </aside>
+
     </div>
 }
 else
 {
-    <div class="container">
-        <main role="main" class="pb-3">
-            <div class="text-center py-5">
-                <h1 class="display-4 mb-4 text-purple">Welcome to unibucGram</h1>
-                <p class="lead mb-4">Connect, share, and discover amazing moments</p>
-                <div class="d-grid gap-2 d-sm-flex justify-content-sm-center">
-                    <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-primary btn-lg px-4 gap-3">Get Started</a>
-                    <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-secondary btn-lg px-4">Sign In</a>
-                </div>
-            </div>
-
-            <div class="container mt-5">
-                <div class="row g-4">
-                    <div class="col-md-4">
-                        <div class="card h-100 text-center p-4">
-                            <div class="card-body">
-                                <h3 class="text-purple mb-3">Share</h3>
-                                <p class="text-muted">Post photos and updates with your followers</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card h-100 text-center p-4">
-                            <div class="card-body">
-                                <h3 class="text-purple mb-3">Connect</h3>
-                                <p class="text-muted">Follow friends and discover new people</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card h-100 text-center p-4">
-                            <div class="card-body">
-                                <h3 class="text-purple mb-3">Discover</h3>
-                                <p class="text-muted">Explore amazing content from the community</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
+    <!-- Landing Page for Guests -->
+    <div class="container mt-5 text-center">
+        <h1 class="display-4 fw-bold text-purple mb-4">Welcome to unibucGram</h1>
+        <p class="lead mb-5">Connect with your university colleagues.</p>
+        <div class="d-flex justify-content-center gap-3">
+            <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-primary btn-lg px-5">Log In</a>
+            <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-outline-secondary btn-lg px-5">Register</a>
+        </div>
     </div>
-}
-
-@section Scripts {
-    <style></style>
 }
