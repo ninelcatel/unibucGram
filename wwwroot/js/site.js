@@ -30,14 +30,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const input_chatSideBar = document.querySelector('#searchInput_chat');
     const results_chatSideBar = document.querySelector('#searchResults_chat');
-    if (!input_chatSideBar || !results_chatSideBar) return;
-
+    const selectedMembersContainer = document.querySelector('#selectedMembers');
+    
     input_chatSideBar.addEventListener('input', async () => {
         const q = input_chatSideBar.value.trim();
         if (!q) { results_chatSideBar.innerHTML = ''; results_chatSideBar.style.display = 'none'; return; }
 
         try {
-            const res = await fetch(`/Search/Live?q=${encodeURIComponent(q)}`);
+            const res = await fetch(`/Search/LiveChat?q=${encodeURIComponent(q)}`);
             if (!res.ok) {
                 const text = await res.text();
                 console.error('Search error', res.status, text);
@@ -54,6 +54,47 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
+    const selectedUsers = new Set();
+
+    if (results_chatSideBar) {
+        results_chatSideBar.addEventListener('click', (e) => {
+            const listItem = e.target.closest('li');
+            if (!listItem) return;
+
+            // Get data from attributes we added in the partial view
+            const userId = listItem.dataset.userId;
+            const username = listItem.dataset.username;
+            const pfpSrc = listItem.dataset.pfp;
+
+            if (userId && !selectedUsers.has(userId)) {
+                selectedUsers.add(userId);
+
+                // 1. Create the Visual "Chip"
+                const chip = document.createElement('div');
+                chip.className = 'user-chip animate-pop';
+                chip.innerHTML = `
+                    <img src="${pfpSrc}" alt="" />
+                    <span>${username}</span>
+                    <button type="button" class="btn-close btn-close-white ms-2" aria-label="Remove" style="width: 0.5em; height: 0.5em;"></button>
+                    <!-- 2. Create Hidden Input for Form Submission -->
+                    <input type="hidden" name="SelectedUserIds" value="${userId}" />
+                `;
+
+                selectedMembersContainer.appendChild(chip);
+
+                // 3. Clear search to allow adding next user easily
+                input_chatSideBar.value = '';
+                results_chatSideBar.style.display = 'none';
+                input_chatSideBar.focus();
+
+                // 4. Remove Logic
+                chip.querySelector('.btn-close').addEventListener('click', () => {
+                    chip.remove(); // Removes the visual + the hidden input inside it
+                    selectedUsers.delete(userId);
+                });
+            }
+        });
+    }
 
     // hide results when clicking outside
     document.addEventListener('click', (e) => {

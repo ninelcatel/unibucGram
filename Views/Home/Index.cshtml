@@ -9,13 +9,13 @@
 @if (SignInManager.IsSignedIn(User))
 {
     <div class="home-layout">
-        
+
         <!-- 1. LEFT SIDEBAR (Suggested) -->
         <aside class="sidebar sidebar-left" id="sidebar-left">
             <button class="sidebar-toggle" onclick="toggleSidebar('left')" title="Toggle Menu">
                 <i class="bi bi-chevron-left toggle-icon"></i>
             </button>
-            
+
             <div class="sidebar-label">SUGGESTED</div>
 
             <div class="sidebar-content">
@@ -28,7 +28,7 @@
                         <div class="text-muted small">New to unibucGram</div>
                     </div>
                 </div>
-                 <div class="d-flex align-items-center mb-3">
+                <div class="d-flex align-items-center mb-3">
                     <div class="bg-light rounded-circle" style="width: 40px; height: 40px;"></div>
                     <div class="ms-2">
                         <div class="fw-bold small">prof_math</div>
@@ -43,7 +43,7 @@
             <div id="feed-container" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
                 <partial name="_PostFeed" model="Model" />
             </div>
-            
+
             <div id="loading" class="text-center my-4" style="display: none;">
                 <div class="spinner-border text-purple" role="status"></div>
             </div>
@@ -56,17 +56,14 @@
             </button>
 
             <div class="sidebar-label">MESSAGES</div>
-            
+
             <div class="sidebar-content">
-
-
                 <h5 class="fw-bold mb-4 text-purple text-center">Conversations</h5>
-                <!-- Content goes here -->
 
-                <div class="search-wrapper_chat" style="max-width:100%;">
-                        <input type="text" id="searchInput_chat" class="form-control me-2" placeholder="Search users..." aria-label="Search" />
-                        <div id="searchResults_chat" class="search-results bg-white border rounded-2 shadow-sm" aria-hidden="true"></div>
-                    </div>
+                <button class="btn btn-primary w-100 mb-3 d-flex align-items-center justify-content-center gap-2"
+                    data-bs-toggle="modal" data-bs-target="#createGroupModal">
+                    <i class="bi bi-plus-circle"></i> Create Group
+                </button>
 
                 <div class="p-3 text-center text-muted bg-light rounded">
                     <i class="bi bi-chat-dots fs-4 d-block mb-2"></i>
@@ -77,8 +74,45 @@
 
     </div>
 
+    <!-- modal for creating  a group -->
+    <div class="modal fade" id="createGroupModal" tabindex="-1" aria-labelledby="createGroupModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header border-bottom-0">
+                    <h5 class="modal-title fw-bold text-purple" id="createGroupModalLabel">Create New Group</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="createGroupForm" asp-action="CreateGroup" asp-controller="Chat" method="post">
+                        <div class="form-floating mb-3">
+                            <input type="text" class="form-control" id="groupName" placeholder="Group Name" required>
+                            <label for="groupName">Group Name</label>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label text-muted small fw-bold">SELECT MEMBERS</label>
+                            
+                            <div class="search-wrapper_chat mb-2" style="max-width:100%;">
+                                <input type="text" id="searchInput_chat" class="form-control border-0" 
+                                    placeholder="Search followers..." aria-label="Search" autocomplete="off" />
+                                <div id="searchResults_chat" class="search-results bg-white border rounded-2 shadow-sm"
+                                    aria-hidden="true"></div>
+                            </div>
+                            
+                            <!-- The container for the chips -->
+                            <div id="selectedMembers" class="mt-2"></div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-top-0">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary">Create Group</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="~/js/site.js" asp-append-version="true"></script>
-    
+
 }
 else
 {

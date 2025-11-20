@@ -635,3 +635,66 @@ h1, h2, h3, h4 {
   margin-bottom: 6px;
   box-shadow: var(--shadow-sm);
 }
+
+/* --- Blur Effect for Modals --- */
+
+/* When the body has 'modal-open', blur the header and the main layout */
+body.modal-open header,
+body.modal-open .home-layout {
+    filter: blur(5px);
+    transition: filter 0.3s ease;
+}
+
+/* Ensure the modal itself is NOT blurred */
+.modal {
+    filter: none !important;
+}
+
+/* Optional: Darken the backdrop slightly more for better contrast */
+.modal-backdrop.show {
+    opacity: 0.7; /* Default is 0.5 */
+    background-color: #2d2d2d;
+}
+
+/* User Selection Chips */
+#selectedMembers {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 38px; /* Prevent layout jump */
+}
+
+.user-chip {
+    display: inline-flex;
+    align-items: center;
+    background: var(--primary-purple);
+    color: white;
+    padding: 4px 8px 4px 4px;
+    border-radius: 50px;
+    font-size: 0.9rem;
+    box-shadow: var(--shadow-sm);
+    transition: all 0.2s ease;
+}
+
+.user-chip img {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    margin-right: 8px;
+    border: 1px solid rgba(255,255,255,0.5);
+}
+
+.user-chip:hover {
+    background: var(--dark-purple);
+    transform: translateY(-1px);
+}
+
+/* Animation for adding chips */
+@keyframes popIn {
+    0% { transform: scale(0.8); opacity: 0; }
+    100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-pop {
+    animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}

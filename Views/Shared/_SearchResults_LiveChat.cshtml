@@ -1,0 +1,28 @@
+@model IEnumerable<unibucGram.Models.User>
+
+@if (!Model?.Any() ?? true)
+{
+    <div class="px-2 py-1 text-muted">No results</div>
+}
+else
+{
+    <ul class="list-group list-group-flush">
+    @foreach (var u in Model)
+    {
+        <!-- ADDED data-user-id and data-username attributes here -->
+        <li class="list-group-item text-decoration-none d-flex align-items-center search-result-item" 
+            style="cursor:pointer;"
+            data-user-id="@u.Id"
+            data-username="@u.UserName"
+            data-pfp="@(string.IsNullOrEmpty(u.PfpURL) ? "/uploads/default_pfp.jpg" : u.PfpURL)">
+            
+            <img src="@(string.IsNullOrEmpty(u.PfpURL) ? "/uploads/default_pfp.jpg" : u.PfpURL)" alt="avatar" width="36" height="36" class="rounded-circle me-2" />
+            <div>
+                <div class="fw-bold">@(u.FirstName + " " + u.LastName)</div>
+                <small class="text-muted">@u.UserName</small>
+            </div>
+            
+        </li>
+    }
+    </ul>
+}
