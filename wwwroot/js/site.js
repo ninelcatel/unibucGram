@@ -93,6 +93,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     selectedUsers.delete(userId);
                 });
             }
+            else{
+                // User already selected, just clear input and results
+                input_chatSideBar.value = '';
+                results_chatSideBar.style.display = 'none';
+                input_chatSideBar.focus();   
+            }
         });
     }
 

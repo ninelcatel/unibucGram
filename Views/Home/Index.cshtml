@@ -83,9 +83,9 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <form id="createGroupForm" asp-action="CreateGroup" asp-controller="Chat" method="post">
+                    <form id="createGroupForm" asp-action="Create" asp-controller="Group" method="post">
                         <div class="form-floating mb-3">
-                            <input type="text" class="form-control" id="groupName" placeholder="Group Name" required>
+                            <input type="text" class="form-control" name="groupName" id="groupName" placeholder="Group Name" required>
                             <label for="groupName">Group Name</label>
                         </div>
                         <div class="mb-3">
@@ -105,13 +105,11 @@
                 </div>
                 <div class="modal-footer border-top-0">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-primary">Create Group</button>
+                    <button type="submit" form="createGroupForm" class="btn btn-primary">Create Group</button>
                 </div>
             </div>
         </div>
     </div>
-
-    <script src="~/js/site.js" asp-append-version="true"></script>
 
 }
 else
