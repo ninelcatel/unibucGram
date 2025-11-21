@@ -358,10 +358,27 @@ document.addEventListener('DOMContentLoaded', () => {
                     const item = document.createElement('a');
                     item.href = '#';
                     item.className = 'list-group-item list-group-item-action border-0 rounded mb-1 d-flex align-items-center p-2';
-                    item.innerHTML = `
+                    
+                    // --- NEW LOGIC START ---
+                    // Check for isDm (camelCase from JSON) or IsDm (PascalCase just in case)
+                    const isDirectMessage = g.isDm || g.IsDm || g.isDirectMessage;
+                    let iconHtml = '';
+
+                    if (isDirectMessage) {
+                        // It's a DM: Show User PFP
+                        const pfpUrl = g.pfp || '/uploads/default_pfp.jpg';
+                        iconHtml = `<img src="${pfpUrl}" class="rounded-circle me-3" width="40" height="40" style="object-fit:cover;">`;
+                    } else {
+                        // It's a Group: Show Group Icon
+                        iconHtml = `
                         <div class="bg-purple text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; flex-shrink:0;">
                             <i class="bi bi-people-fill"></i>
-                        </div>
+                        </div>`;
+                    }
+                    // --- NEW LOGIC END ---
+
+                    item.innerHTML = `
+                        ${iconHtml}
                         <div class="overflow-hidden">
                             <div class="fw-bold text-truncate">${g.name}</div>
                             <small class="text-muted text-truncate d-block">${g.lastMessage || 'No messages yet'}</small>
@@ -407,13 +424,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     const div = document.createElement('div');
                     div.className = `d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`;
                     
-                    const pfpHtml = isMe ? '' : `<img src="${msg.senderPfp || '/uploads/default_pfp.jpg'}" class="rounded-circle me-2 align-self-end" width="30" height="30">`;
+                    const pfpHtml = isMe ? '' : `<img src="${msg.senderPfp || '/uploads/default_pfp.jpg'}" class="rounded-circle me-2 align-self-end" width="30" height="30" style="object-fit:cover;">`;
                     
                     div.innerHTML = `
                         ${pfpHtml}
-                        <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}" style="max-width: 75%;">
-                            ${!isMe ? `<small class="text-muted mb-1" style="font-size:0.75rem;">${msg.senderName}</small>` : ''}
-                            <div class="p-2 rounded-3 ${isMe ? 'bg-purple text-white' : 'bg-white border shadow-sm'}" style="word-wrap: break-word;">
+                        <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}" style="max-width: 70%;">
+                            ${!isMe ? `<small class="text-muted mb-1 fw-semibold" style="font-size:0.75rem;">${msg.senderName}</small>` : ''}
+                            <div class="p-3 rounded-3 ${isMe ? 'msg-bubble-sent' : 'msg-bubble-received'}" style="word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
                                 ${msg.content}
                             </div>
                             <small class="text-muted mt-1" style="font-size: 0.7rem;">${msg.sentAt}</small>

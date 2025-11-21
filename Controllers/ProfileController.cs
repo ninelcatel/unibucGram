@@ -131,6 +131,31 @@ namespace unibucGram.Controllers
                     FolloweeId = userId
                 };
                 await _db.Follows.AddAsync(follow);
+                var group = await _db.Groups.Where(g => g.GroupMembers.Count == 2 && g.GroupMembers.Any(m => m.UserId == currentUserId) &&
+                            g.GroupMembers.Any(m => m.UserId == userId))
+                .FirstOrDefaultAsync();
+                if (group == null)
+                {
+                    var UserA = await _db.Users.Where(u => u.Id == currentUserId).FirstOrDefaultAsync();
+                    var UserB = await _db.Users.Where(u => u.Id == userId).FirstOrDefaultAsync();
+
+                    group = new Group
+                    {
+                        Name = $"{UserA.UserName}-{UserB.UserName}",
+                        CreatedAt = DateTime.UtcNow,
+                        IsDirectMessage = true
+                    };
+                    await _db.Groups.AddAsync(group);
+                    await _db.SaveChangesAsync();
+
+                    var members = new List<GroupMember>
+                    {
+                        new GroupMember {GroupId = group.Id, UserId = currentUserId},
+                        new GroupMember {GroupId = group.Id, UserId = userId}
+                    };
+                    await _db.GroupMembers.AddRangeAsync(members);
+                    
+                }
             }
             await _db.SaveChangesAsync();
             

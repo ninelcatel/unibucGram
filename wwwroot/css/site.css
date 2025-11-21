@@ -698,3 +698,40 @@ body.modal-open .home-layout {
 .animate-pop {
     animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
+
+/* Chat Message Bubbles */
+.msg-bubble-sent {
+    background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%) !important;
+    color: #ffffff !important;
+    border-bottom-right-radius: 4px !important;
+}
+
+.msg-bubble-received {
+    background: #ffffff !important;
+    color: #212529 !important;
+    border: 1px solid #e9ecef !important;
+    border-bottom-left-radius: 4px !important;
+}
+
+.msg-bubble-sent,
+.msg-bubble-received {
+    max-width: 100%;
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+/* Optional: Add animation when messages appear */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.d-flex.mb-3 {
+    animation: fadeInUp 0.3s ease-out;
+}

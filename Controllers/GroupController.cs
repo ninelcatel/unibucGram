@@ -93,12 +93,27 @@ namespace unibucGram.Controllers
                 .Select(gm => new {
                     gm.Group.Id,
                     gm.Group.Name,
-                    // Optional: Get last message preview
-                    LastMessage = gm.Group.Messages.OrderByDescending(m => m.SentAt).Select(m => m.Content).FirstOrDefault()
+                    gm.Group.IsDirectMessage,
+                    OtherUser = gm.Group.GroupMembers
+                        .Where(m => m.UserId != userId)
+                        .Select(m => new { m.User.UserName, m.User.PfpURL })
+                        .FirstOrDefault(),
+                    LastMessage = gm.Group.Messages
+                        .OrderByDescending(m => m.SentAt)
+                        .Select(m => m.Content)
+                        .FirstOrDefault()
                 })
                 .ToListAsync();
 
-            return Json(groups);
+            var result = groups.Select(g => new {
+                g.Id,
+                Name = g.IsDirectMessage ? g.OtherUser?.UserName : g.Name,
+                Pfp = g.IsDirectMessage ? g.OtherUser?.PfpURL : null,
+                IsDm = g.IsDirectMessage,
+                LastMessage = g.LastMessage
+            });
+
+            return Json(result);
         }
 
         [HttpGet]
