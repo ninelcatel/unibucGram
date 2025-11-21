@@ -22,16 +22,10 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<Conversation> Conversations { get; set; }
     public DbSet<Message> Messages { get; set; }
 
-    //in mare am vazut ca e nevoie de functia asta care sa ne configureze tabelele la crearea bazei de date
-    //in mare luam fiecare relatie si vedem de care e gen 1-M, M-M
-    //daca e 1-M in .HasOne spune cine e parintele,te folosesti de ceea ce ai definit in clasa acolo
-    //unde ai scris virtual
-    //apoi la .withMany spui ca parintele are mai multe obiecte si folosesti lista pe care
-    //ai definit-o in clasa parinte unde ai scris virtual
-    //in .HasForeignKey spui care e fk,te folosesti de campul definit in clasa
-    // .OnDelete e folosit la stergerea unei intrari,cred ca e optional,
-    //dar ne scuteste de multe verificari la stergere
-    //mai jos ai si explicatia de la agent,iti ia efectiv fiecare relatie in parte si o rezovla
+    // ADDED: Group Chat DbSets
+    public DbSet<Group> Groups { get; set; }
+    public DbSet<GroupMember> GroupMembers { get; set; }
+    public DbSet<GroupMessage> GroupMessages { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -217,5 +211,40 @@ public class ApplicationDbContext : IdentityDbContext<User>
         // Chiar daca un user isi sterge contul, mesajele trimise ar trebui sa ramana
         // Restrict = nu poti sterge user-ul daca are mesaje (arunca eroare)
         // Daca vrei sa permiti stergerea, poti schimba la Cascade, dar atunci se pierd mesajele
+
+        // ====================================================================
+        // 7. CONFIGURAREA RELATIEI GROUP (Chat)
+        // ====================================================================
+
+        // GROUP MEMBER
+        // Chiar daca avem Id (surogat), vrem ca un user sa fie in grup o singura data
+        builder.Entity<GroupMember>()
+            .HasIndex(gm => new { gm.GroupId, gm.UserId })
+            .IsUnique();
+
+        builder.Entity<GroupMember>()
+            .HasOne(gm => gm.Group)
+            .WithMany(g => g.GroupMembers)
+            .HasForeignKey(gm => gm.GroupId)
+            .OnDelete(DeleteBehavior.Cascade); // Stergem grupul -> stergem membrii
+
+        builder.Entity<GroupMember>()
+            .HasOne(gm => gm.User)
+            .WithMany(u => u.GroupMembers) 
+            .HasForeignKey(gm => gm.UserId)
+            .OnDelete(DeleteBehavior.Restrict); // Stergem userul -> NU stergem automat intrarea (evitam cicluri)
+
+        // GROUP MESSAGE
+        builder.Entity<GroupMessage>()
+            .HasOne(m => m.Group)
+            .WithMany(g => g.Messages)
+            .HasForeignKey(m => m.GroupId)
+            .OnDelete(DeleteBehavior.Cascade); // Stergem grupul -> stergem mesajele
+
+        builder.Entity<GroupMessage>()
+            .HasOne(m => m.User)
+            .WithMany(u => u.GroupMessages)
+            .HasForeignKey(m => m.UserId)
+            .OnDelete(DeleteBehavior.Restrict); // Stergem userul -> pastram mesajele (sau Restrict)
     }
 }

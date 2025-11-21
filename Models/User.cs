@@ -40,5 +40,7 @@ namespace unibucGram.Models
         public virtual ICollection<Conversation> ConversationsAsUserA { get; set; } = new List<Conversation>(); // conversatii unde user-ul este UserA
         public virtual ICollection<Conversation> ConversationsAsUserB { get; set; } = new List<Conversation>(); // conversatii unde user-ul este UserB
         public virtual ICollection<Message> Messages { get; set; } = new List<Message>();
+        public virtual ICollection<GroupMessage> GroupMessages { get; set; } = new List<GroupMessage>();
+        public virtual ICollection<GroupMember>  GroupMembers{ get; set; } = new List<GroupMember>();
     }  
 }
