@@ -8,7 +8,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using unibucGram.Models;
 using Microsoft.AspNetCore.Identity;
-using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration.UserSecrets;
 
 namespace unibucGram.Controllers
 {
@@ -31,20 +31,53 @@ namespace unibucGram.Controllers
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
         public IActionResult Error()
         {
-            return View("Error!");
+            return RedirectToAction("Index","Home");
         }
 
         [HttpPost]
-        public async Task<IActionResult> Create(string groupName, List<string> SelectedUserIds)
+        public async Task<IActionResult> Create(Group Group, List<string> SelectedUserIds)
         {
-            Console.WriteLine("Creating group with name: " + groupName);
-            foreach (var id in SelectedUserIds)
+            // Console.WriteLine("Creating group with name: " + groupName);
+            // foreach (var id in SelectedUserIds)
+            // {
+            //     Console.WriteLine("Member ID: " + id);
+            // }
+
+
+            try
             {
-                Console.WriteLine("Member ID: " + id);
+                await _context.Groups.AddAsync(Group);
+                await _context.SaveChangesAsync();
+
+                var currentUser = await _userManager.GetUserAsync(User);
+                if (currentUser == null) return RedirectToAction("Login", "Account");
+                var members = new List<GroupMember>();
+                members.Add(new GroupMember
+                {
+                    GroupId = Group.Id,
+                    UserId = currentUser.Id
+                });
+                if (SelectedUserIds != null)
+                {
+                    var distinctIds = SelectedUserIds.Distinct();
+                    foreach (var u in distinctIds)
+                    {
+                        members.Add(new GroupMember
+                        {
+                            GroupId = Group.Id,
+                            UserId = u,
+                        });
+                    }
+                }
+                await _context.GroupMembers.AddRangeAsync(members);
+                await _context.SaveChangesAsync();
+                return RedirectToAction("Index", "Home");    
+            } 
+            catch(Exception e)
+            {
+                Console.WriteLine(e);
+                return Error();
             }
-            
-            //TODO :: add into database (first create the models)
-            return RedirectToAction("Index", "Home");
         }
     }
 }
