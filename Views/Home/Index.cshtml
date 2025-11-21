@@ -65,9 +65,12 @@
                     <i class="bi bi-plus-circle"></i> Create Group
                 </button>
 
-                <div class="p-3 text-center text-muted bg-light rounded">
-                    <i class="bi bi-chat-dots fs-4 d-block mb-2"></i>
-                    <small>No active conversations</small>
+                <!-- UPDATED: Container for Groups List -->
+                <div id="userGroupsList" class="list-group list-group-flush">
+                    <!-- Groups will be loaded here by JavaScript -->
+                    <div class="text-center text-muted mt-3">
+                        <div class="spinner-border spinner-border-sm text-purple" role="status"></div>
+                    </div>
                 </div>
             </div>
         </aside>
@@ -106,6 +109,41 @@
                 <div class="modal-footer border-top-0">
                     <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" form="createGroupForm" class="btn btn-primary">Create Group</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW: Group Chat Modal -->
+    <div class="modal fade" id="groupChatModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0 shadow-lg" style="height: 80vh;">
+                
+                <!-- Header -->
+                <div class="modal-header bg-purple text-white border-bottom-0">
+                    <div class="d-flex align-items-center">
+                        <div class="bg-white text-purple rounded-circle d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <h5 class="modal-title fw-bold mb-0" id="chatModalTitle">Group Name</h5>
+                    </div>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+
+                <!-- Body (Messages) -->
+                <div class="modal-body bg-light" id="chatMessagesContainer" style="overflow-y: auto;">
+                    <!-- Messages injected here -->
+                </div>
+
+                <!-- Footer (Input) -->
+                <div class="modal-footer border-top-0 bg-white">
+                    <form id="chatForm" class="w-100 d-flex gap-2">
+                        <input type="hidden" id="currentGroupId" />
+                        <input type="text" id="chatInput" class="form-control rounded-pill" placeholder="Type a message..." autocomplete="off" />
+                        <button type="submit" class="btn btn-purple rounded-circle" style="width: 40px; height: 40px; padding: 0;">
+                            <i class="bi bi-send-fill"></i>
+                        </button>
+                    </form>
                 </div>
             </div>
         </div>

@@ -326,4 +326,128 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Ensure the function is available globally
     window.toggleSidebar = toggleSidebar;
+
+    // =================================================================
+    // GROUP CHAT LOGIC
+    // =================================================================
+    
+    const groupsListContainer = document.getElementById('userGroupsList');
+    const chatModal = document.getElementById('groupChatModal');
+    const chatMessagesContainer = document.getElementById('chatMessagesContainer');
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+    const currentGroupIdInput = document.getElementById('currentGroupId');
+    const chatModalTitle = document.getElementById('chatModalTitle');
+
+    // 1. Load Groups on Page Load
+    if (groupsListContainer) {
+        fetch('/Group/GetUserGroups')
+            .then(res => res.json())
+            .then(groups => {
+                groupsListContainer.innerHTML = '';
+                if (groups.length === 0) {
+                    groupsListContainer.innerHTML = `
+                        <div class="p-3 text-center text-muted bg-light rounded">
+                            <i class="bi bi-chat-dots fs-4 d-block mb-2"></i>
+                            <small>No active conversations</small>
+                        </div>`;
+                    return;
+                }
+
+                groups.forEach(g => {
+                    const item = document.createElement('a');
+                    item.href = '#';
+                    item.className = 'list-group-item list-group-item-action border-0 rounded mb-1 d-flex align-items-center p-2';
+                    item.innerHTML = `
+                        <div class="bg-purple text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; flex-shrink:0;">
+                            <i class="bi bi-people-fill"></i>
+                        </div>
+                        <div class="overflow-hidden">
+                            <div class="fw-bold text-truncate">${g.name}</div>
+                            <small class="text-muted text-truncate d-block">${g.lastMessage || 'No messages yet'}</small>
+                        </div>
+                    `;
+                    
+                    // Click opens modal
+                    item.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        openChatModal(g.id, g.name);
+                    });
+                    
+                    groupsListContainer.appendChild(item);
+                });
+            })
+            .catch(err => console.error('Failed to load groups', err));
+    }
+
+    // 2. Open Chat Modal & Load Messages
+    function openChatModal(groupId, groupName) {
+        currentGroupIdInput.value = groupId;
+        chatModalTitle.textContent = groupName;
+        chatMessagesContainer.innerHTML = '<div class="text-center mt-4"><div class="spinner-border text-purple" role="status"></div></div>';
+        
+        const bsModal = new bootstrap.Modal(chatModal);
+        bsModal.show();
+
+        loadMessages(groupId);
+    }
+
+    function loadMessages(groupId) {
+        fetch(`/Group/GetMessages/${groupId}`)
+            .then(res => res.json())
+            .then(messages => {
+                chatMessagesContainer.innerHTML = '';
+                if(messages.length === 0) {
+                    chatMessagesContainer.innerHTML = '<div class="text-center text-muted mt-5">Start the conversation!</div>';
+                    return;
+                }
+
+                messages.forEach(msg => {
+                    const isMe = msg.isMe;
+                    const div = document.createElement('div');
+                    div.className = `d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`;
+                    
+                    const pfpHtml = isMe ? '' : `<img src="${msg.senderPfp || '/uploads/default_pfp.jpg'}" class="rounded-circle me-2 align-self-end" width="30" height="30">`;
+                    
+                    div.innerHTML = `
+                        ${pfpHtml}
+                        <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}" style="max-width: 75%;">
+                            ${!isMe ? `<small class="text-muted mb-1" style="font-size:0.75rem;">${msg.senderName}</small>` : ''}
+                            <div class="p-2 rounded-3 ${isMe ? 'bg-purple text-white' : 'bg-white border shadow-sm'}" style="word-wrap: break-word;">
+                                ${msg.content}
+                            </div>
+                            <small class="text-muted mt-1" style="font-size: 0.7rem;">${msg.sentAt}</small>
+                        </div>
+                    `;
+                    chatMessagesContainer.appendChild(div);
+                });
+                
+                // Scroll to bottom
+                chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+            });
+    }
+
+    // 3. Send Message
+    if (chatForm) {
+        chatForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const content = chatInput.value.trim();
+            const groupId = currentGroupIdInput.value;
+
+            if (!content || !groupId) return;
+
+            fetch('/Group/SendMessage', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `groupId=${groupId}&content=${encodeURIComponent(content)}`
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    chatInput.value = '';
+                    loadMessages(groupId); // Reload to see new message
+                }
+            });
+        });
+    }
 });

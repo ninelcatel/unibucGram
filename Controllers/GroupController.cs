@@ -79,5 +79,70 @@ namespace unibucGram.Controllers
                 return Error();
             }
         }
+
+        
+
+        [HttpGet]
+        public async Task<IActionResult> GetUserGroups()
+        {
+            var userId = _userManager.GetUserId(User);
+            if (userId == null) return Unauthorized();
+
+            var groups = await _context.GroupMembers
+                .Where(gm => gm.UserId == userId)
+                .Select(gm => new {
+                    gm.Group.Id,
+                    gm.Group.Name,
+                    // Optional: Get last message preview
+                    LastMessage = gm.Group.Messages.OrderByDescending(m => m.SentAt).Select(m => m.Content).FirstOrDefault()
+                })
+                .ToListAsync();
+
+            return Json(groups);
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetMessages(int id)
+        {
+            var currentUserId = _userManager.GetUserId(User);
+            
+            var messages = await _context.GroupMessages
+                .Where(m => m.GroupId == id)
+                .Include(m => m.User)
+                .OrderBy(m => m.SentAt)
+                .Select(m => new {
+                    m.Id,
+                    m.Content,
+                    SenderName = m.User.UserName,
+                    SenderPfp = m.User.PfpURL,
+                    IsMe = m.UserId == currentUserId,
+                    SentAt = m.SentAt.ToString("HH:mm")
+                })
+                .ToListAsync();
+
+            return Json(messages);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SendMessage(int groupId, string content)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            if (string.IsNullOrWhiteSpace(content)) return BadRequest();
+
+            var msg = new GroupMessage
+            {
+                GroupId = groupId,
+                UserId = user.Id,
+                Content = content,
+                SentAt = DateTime.UtcNow
+            };
+
+            _context.GroupMessages.Add(msg);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
     }
 }
