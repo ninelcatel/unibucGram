@@ -424,7 +424,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     const div = document.createElement('div');
                     div.className = `d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`;
                     
-                    const pfpHtml = isMe ? '' : `<img src="${msg.senderPfp || '/uploads/default_pfp.jpg'}" class="rounded-circle me-2 align-self-end" width="30" height="30" style="object-fit:cover;">`;
+                    const pfpHtml = isMe ? '' : `<a style="cursor:pointer;" class="text-decoration-none" href="/Profile/Show/${encodeURIComponent(msg.senderName)}"><img src="${msg.senderPfp || '/uploads/default_pfp.jpg'}" class="rounded-circle me-2 align-self-end" width="30" height="30" style="object-fit:cover;"></a>`;
                     
                     div.innerHTML = `
                         ${pfpHtml}
