@@ -34,6 +34,20 @@
                         <input type="text" id="searchInput" class="form-control me-2" placeholder="Search users..." aria-label="Search" />
                         <div id="searchResults" class="search-results bg-white border rounded-2 shadow-sm" aria-hidden="true"></div>
                     </div>
+                    
+                    <!-- MOVED NOTIFICATION BELL HERE -->
+                    <ul class="navbar-nav">
+                        <li class="nav-item dropdown">
+                            <a class="nav-link position-relative" href="#" id="notifDropdown" data-bs-toggle="dropdown" role="button">
+                                <i class="bi bi-bell fs-5"></i>
+                                <span id="notifBadge" class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none"></span>
+                            </a>
+                            <div class="dropdown-menu dropdown-menu-end p-0 shadow" style="width:320px; max-height:400px; overflow:auto;" aria-labelledby="notifDropdown">
+                                <div id="notifList" class="list-group list-group-flush"></div>
+                                <button id="notifMarkAll" class="btn btn-sm w-100 btn-light border-top">Mark all read</button>
+                            </div>
+                        </li>
+                    </ul>
 
                     <partial name="_LoginPartial" />
                 </div>

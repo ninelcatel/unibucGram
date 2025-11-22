@@ -26,6 +26,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<Group> Groups { get; set; }
     public DbSet<GroupMember> GroupMembers { get; set; }
     public DbSet<GroupMessage> GroupMessages { get; set; }
+    public DbSet<Notification> Notifications { get; set; }
 
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -246,5 +247,18 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .WithMany(u => u.GroupMessages)
             .HasForeignKey(m => m.UserId)
             .OnDelete(DeleteBehavior.Restrict); // Stergem userul -> pastram mesajele (sau Restrict)
+
+        // NOTIFICATION
+        builder.Entity<Notification>()
+            .HasOne(n => n.User)
+            .WithMany()
+            .HasForeignKey(n => n.UserId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.Entity<Notification>()
+            .HasOne(n => n.ActorUser)
+            .WithMany()
+            .HasForeignKey(n => n.ActorUserId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -780,3 +780,62 @@ body.modal-open .home-layout {
   70% { background:linear-gradient(135deg,var(--primary-purple),var(--light-purple)); }
   100% { background:linear-gradient(135deg,var(--primary-purple),var(--light-purple)); color:#fff; box-shadow:var(--shadow-sm); }
 }
+
+/* =============================================== */
+/* Notification Dropdown Styling (Refined) */
+/* =============================================== */
+
+.dropdown-menu[aria-labelledby="notifDropdown"] {
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important; /* Softer, deeper shadow */
+    border: 1px solid #e9ecef;
+    padding: 0.25rem 0 !important; /* Add some vertical padding to the container */
+    margin-top: 0.5rem !important;
+}
+
+#notifList .list-group-item {
+    padding: 0.5rem 1rem; /* Consistent padding */
+    border: none; /* Remove separator lines for a cleaner look */
+    transition: background-color 0.15s ease-in-out;
+    border-radius: 0.25rem; /* Slightly rounded corners for each item on hover */
+    margin: 0 0.25rem;
+    width: calc(100% - 0.5rem);
+}
+
+/* Add a background color on hover, like the search results */
+#notifList .list-group-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Style the read button to appear on hover */
+#notifList .list-group-item .notif-read-btn {
+    opacity: 0;
+    transform: scale(0.8);
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+#notifList .list-group-item:hover .notif-read-btn {
+    opacity: 1;
+    transform: scale(1);
+}
+
+/* Style the footer button */
+#notifMarkAll {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #6c757d;
+    background-color: transparent;
+    border-top: 1px solid #e9ecef;
+    padding-top: 0.5rem;
+    margin-top: 0.25rem;
+    border-radius: 0;
+}
+
+#notifMarkAll:hover {
+    color: var(--primary-purple);
+    background-color: #f8f9fa;
+}
+
+.notification-text {
+    line-height: 1.3;
+}

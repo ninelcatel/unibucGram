@@ -111,7 +111,7 @@ namespace unibucGram.Controllers
         public async Task<IActionResult> FollowToggle(string userId)
         {
             var currentUserId = _userManager.GetUserId(User);
-            if (string.IsNullOrEmpty(currentUserId))
+            if (string.IsNullOrEmpty(currentUserId) || currentUserId == userId)
             {
                 return RedirectToAction("Index", "Home");
             }
@@ -121,55 +121,66 @@ namespace unibucGram.Controllers
 
             if (follow != null)
             {
+                // This is an UNFOLLOW action, so we just remove the follow.
                 _db.Follows.Remove(follow);
             }
             else
             {
+                // This is a FOLLOW action.
                 follow = new Follow
                 {
                     FollowerId = currentUserId,
                     FolloweeId = userId
                 };
                 await _db.Follows.AddAsync(follow);
-                var group = await _db.Groups.Where(g => g.GroupMembers.Count == 2 && g.GroupMembers.Any(m => m.UserId == currentUserId) &&
-                            g.GroupMembers.Any(m => m.UserId == userId))
-                .FirstOrDefaultAsync();
-                if (group == null)
+
+                // Create a 1:1 chat group if one doesn't exist
+                var groupExists = await _db.Groups.AnyAsync(g => g.IsDirectMessage && g.GroupMembers.Count == 2 && g.GroupMembers.Any(m => m.UserId == currentUserId) && g.GroupMembers.Any(m => m.UserId == userId));
+                if (!groupExists)
                 {
-                    var UserA = await _db.Users.Where(u => u.Id == currentUserId).FirstOrDefaultAsync();
-                    var UserB = await _db.Users.Where(u => u.Id == userId).FirstOrDefaultAsync();
-
-                    group = new Group
+                    var userA = await _db.Users.FindAsync(currentUserId);
+                    var userB = await _db.Users.FindAsync(userId);
+                    if (userA != null && userB != null)
                     {
-                        Name = $"{UserA.UserName}-{UserB.UserName}",
-                        CreatedAt = DateTime.UtcNow,
-                        IsDirectMessage = true
-                    };
-                    await _db.Groups.AddAsync(group);
-                    await _db.SaveChangesAsync();
+                        var group = new Group
+                        {
+                            Name = $"{userA.UserName}-{userB.UserName}",
+                            CreatedAt = DateTime.UtcNow,
+                            IsDirectMessage = true
+                        };
+                        await _db.Groups.AddAsync(group);
+                        await _db.SaveChangesAsync(); // Save group to get ID
 
-                    var members = new List<GroupMember>
+                        var members = new List<GroupMember>
+                        {
+                            new GroupMember { GroupId = group.Id, UserId = currentUserId },
+                            new GroupMember { GroupId = group.Id, UserId = userId }
+                        };
+                        await _db.GroupMembers.AddRangeAsync(members);
+                    }
+                }
+
+                // FIXED: Notification is now created ONLY on a new follow.
+                var targetedUser = await _db.Users.FirstOrDefaultAsync(u => u.Id == userId);
+                if (targetedUser != null)
+                {
+                    _db.Notifications.Add(new Notification
                     {
-                        new GroupMember {GroupId = group.Id, UserId = currentUserId},
-                        new GroupMember {GroupId = group.Id, UserId = userId}
-                    };
-                    await _db.GroupMembers.AddRangeAsync(members);
-                    
+                        UserId = userId,
+                        ActorUserId = currentUserId,
+                        Type = targetedUser.isPrivate ? NotificationType.FollowRequest : NotificationType.Follow
+                    });
                 }
             }
+
             await _db.SaveChangesAsync();
             
-            string? Username = await _db.Users
+            var username = await _db.Users
                 .Where(u => u.Id == userId)
                 .Select(u => u.UserName)
                 .FirstOrDefaultAsync();
             
-            if (Username == null)
-            {
-                return RedirectToAction("Index", "Home");
-            }
-            
-            return RedirectToAction("Show", new { name = Username });
+            return RedirectToAction("Show", new { name = username });
         }
     }
 }

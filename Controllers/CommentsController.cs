@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore; // Ensure this is present
 using System.Threading.Tasks;
 using unibucGram.Models;
 using System.Linq; // Necesar pentru a selecta erorile
@@ -22,36 +23,50 @@ namespace unibucGram.Controllers
         [HttpPost]
         public async Task<IActionResult> Add([FromForm] Comment comment)
         {
-            // Eliminam campurile setate manual din procesul de validare
             ModelState.Remove("UserId");
             ModelState.Remove("User");
             ModelState.Remove("Post");
             ModelState.Remove("CreatedAt");
 
-            // Verificam daca modelul respecta regulile ramase (ex: [Required] pe Content)
             if (ModelState.IsValid)
             {
                 var userId = _userManager.GetUserId(User);
-                if (userId == null)
-                {
-                    return Unauthorized();
-                }
+                if (userId == null) return Unauthorized();
 
-                // Setam proprietatile care nu vin din formular
                 comment.UserId = userId;
                 comment.CreatedAt = System.DateTime.UtcNow;
 
                 _db.Comments.Add(comment);
                 await _db.SaveChangesAsync();
 
-                // Incarcam datele userului pentru a le afisa in partial view
                 comment.User = await _userManager.FindByIdAsync(userId);
 
-                return PartialView("~/Views/Shared/_CommentPartial.cshtml", comment);
+                var post = await _db.Posts.FindAsync(comment.PostId);
+                if (post != null && post.UserId != userId)
+                {
+                    _db.Notifications.Add(new Notification {
+                        UserId = post.UserId,
+                        ActorUserId = userId,
+                        Type = NotificationType.Comment,
+                        PostId = post.Id,
+                        CommentId = comment.Id
+                    });
+                    await _db.SaveChangesAsync();
+                }
+
+                // If it's an AJAX call, return partial; else redirect to the post page
+                if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                {
+                    return PartialView("~/Views/Shared/_CommentPartial.cshtml", comment);
+                }
+                return RedirectToAction("Post", "Posts", new { id = comment.PostId });
             }
 
-            // Daca modelul nu e valid, returnam erorile pentru a fi procesate de AJAX
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
+            // For non-AJAX, send user back to the post page with a flash message if you prefer
+            if (Request.Headers["X-Requested-With"] != "XMLHttpRequest")
+                return RedirectToAction("Post", "Posts", new { id = comment.PostId });
+
             return BadRequest(new { message = string.Join(" ", errors) });
         }
 
@@ -98,26 +113,44 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        [IgnoreAntiforgeryToken] // CHANGED: Use this attribute for the AJAX endpoint
         public async Task<IActionResult> Delete(int id)
         {
             var userId = _userManager.GetUserId(User);
-            var comment = await _db.Comments.FindAsync(id);
+            if (userId == null)
+            {
+                // This returns a 401 Unauthorized, which is a "not ok" response.
+                return Unauthorized();
+            }
 
+            var comment = await _db.Comments.FindAsync(id);
+            
             if (comment == null)
             {
+                // This returns a 404 Not Found, also "not ok".
                 return NotFound(new { success = false, message = "Comment not found." });
             }
 
-            // Security check: Only the owner can delete the comment
-            if (comment.UserId != userId)
+            // Security Check: Allow deletion only if the user is the comment author OR the post author.
+            var post = await _db.Posts.FindAsync(comment.PostId);
+            if (comment.UserId != userId && (post == null || post.UserId != userId))
             {
-                return Forbid(); // Returns a 403 Forbidden status
+                // This returns a 403 Forbidden, also "not ok".
+                return Forbid();
             }
 
             _db.Comments.Remove(comment);
+            
+            // Clean up related notifications
+            var notifications = await _db.Notifications.Where(n => n.CommentId == id).ToListAsync();
+            if (notifications.Any())
+            {
+                _db.Notifications.RemoveRange(notifications);
+            }
+
             await _db.SaveChangesAsync();
 
+            // On success, return a 200 OK with the success payload.
             return Json(new { success = true });
         }
     }

@@ -100,7 +100,8 @@
                     {
                         var noImage = string.IsNullOrEmpty(post.ImageURL);
                         <div class="col">
-                            <a href="#" class="text-decoration-none post-thumbnail @(noImage ? "text-only-thumb" : "")"
+                            <a href="#" 
+                               class="text-decoration-none post-thumbnail @(noImage ? "text-only-thumb" : "")"
                                data-bs-toggle="modal"
                                data-bs-target="#postModal"
                                data-post-id="@post.Id">

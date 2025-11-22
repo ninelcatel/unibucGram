@@ -147,17 +147,38 @@ namespace unibucGram.Controllers
                 return Unauthorized();
             }
 
+            var post = await _db.Posts.FindAsync(postId);
+            if (post == null)
+            {
+                return NotFound();
+            }
+
             var existingLike = await _db.Likes
                 .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
 
             if (existingLike == null)
             {
+                // This is a LIKE action
                 _db.Likes.Add(new Like { PostId = postId, UserId = userId });
+
+                // Create a notification ONLY if someone else likes the post
+                if (post.UserId != userId)
+                {
+                    _db.Notifications.Add(new Notification
+                    {
+                        UserId = post.UserId,
+                        ActorUserId = userId,
+                        Type = NotificationType.Like,
+                        PostId = postId
+                    });
+                }
             }
             else
             {
+                // This is an UNLIKE action, so we just remove the like
                 _db.Likes.Remove(existingLike);
             }
+
             await _db.SaveChangesAsync();
 
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")

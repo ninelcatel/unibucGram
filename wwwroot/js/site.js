@@ -32,31 +32,34 @@ document.addEventListener('DOMContentLoaded', () => {
     const results_chatSideBar = document.querySelector('#searchResults_chat');
     const selectedMembersContainer = document.querySelector('#selectedMembers');
     
-    input_chatSideBar.addEventListener('input', async () => {
-        const q = input_chatSideBar.value.trim();
-        if (!q) { results_chatSideBar.innerHTML = ''; results_chatSideBar.style.display = 'none'; return; }
+    // ADD NULL CHECK HERE (CRITICAL FIX)
+    if (input_chatSideBar && results_chatSideBar) {
+        input_chatSideBar.addEventListener('input', async () => {
+            const q = input_chatSideBar.value.trim();
+            if (!q) { results_chatSideBar.innerHTML = ''; results_chatSideBar.style.display = 'none'; return; }
 
-        try {
-            const res = await fetch(`/Search/LiveChat?q=${encodeURIComponent(q)}`);
-            if (!res.ok) {
-                const text = await res.text();
-                console.error('Search error', res.status, text);
+            try {
+                const res = await fetch(`/Search/LiveChat?q=${encodeURIComponent(q)}`);
+                if (!res.ok) {
+                    const text = await res.text();
+                    console.error('Search error', res.status, text);
+                    results_chatSideBar.innerHTML = '';
+                    results_chatSideBar.style.display = 'none';
+                    return;
+                }
+                results_chatSideBar.innerHTML = await res.text();
+                results_chatSideBar.style.display = 'block';
+            } catch (err) {
+                console.error('Search fetch failed:', err);
                 results_chatSideBar.innerHTML = '';
                 results_chatSideBar.style.display = 'none';
-                return;
             }
-            results_chatSideBar.innerHTML = await res.text();
-            results_chatSideBar.style.display = 'block';
-        } catch (err) {
-            console.error('Search fetch failed:', err);
-            results_chatSideBar.innerHTML = '';
-            results_chatSideBar.style.display = 'none';
-        }
-    });
+        });
+    }
     
     const selectedUsers = new Set();
 
-    if (results_chatSideBar) {
+    if (results_chatSideBar && selectedMembersContainer) {
         results_chatSideBar.addEventListener('click', (e) => {
             const listItem = e.target.closest('li');
             if (!listItem) return;
@@ -129,18 +132,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'RequestVerificationToken': token
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: `postId=${postId}`
+                body: `postId=${postId}&__RequestVerificationToken=${encodeURIComponent(token)}`
             }).then(response => response.json()).then(data => {
                 if (data.success) {
-                    // Update all like buttons and counts for this post (for feed and modal)
                     document.querySelectorAll(`.like-button[data-post-id='${postId}']`).forEach(btn => {
                         const icon = btn.querySelector('i');
-                        icon.classList.toggle('bi-heart', !data.liked);
-                        icon.classList.toggle('bi-heart-fill', data.liked);
-                        icon.classList.toggle('text-danger', data.liked);
+                        if (data.liked) {
+                            icon.classList.remove('bi-heart');
+                            icon.classList.add('bi-heart-fill', 'text-danger');
+                        } else {
+                            icon.classList.remove('bi-heart-fill', 'text-danger');
+                            icon.classList.add('bi-heart');
+                        }
                     });
                     document.querySelectorAll(`#post-${postId} .likes-count, #post-modal-${postId} .likes-count`).forEach(span => {
                         span.textContent = `${data.likesCount} likes`;
@@ -153,31 +158,56 @@ document.addEventListener('DOMContentLoaded', () => {
         if (editButton) {
             e.preventDefault();
             const commentId = editButton.dataset.commentId;
-            document.getElementById(`comment-display-${commentId}`).style.display = 'none';
+            const displayDiv = document.getElementById(`comment-display-${commentId}`);
             const editForm = document.querySelector(`.edit-comment-form[data-comment-id='${commentId}']`);
-            editForm.style.display = 'block';
-            editForm.querySelector('input[name="content"]').focus();
+            
+            if (displayDiv && editForm) {
+                displayDiv.style.display = 'none';
+                editForm.style.display = 'block';
+                editForm.querySelector('input[name="content"]').focus();
+            }
         }
 
         // --- Handle Delete Button Click ---
         if (deleteButton) {
             e.preventDefault();
             const commentId = deleteButton.dataset.commentId;
+            
             if (confirm('Are you sure you want to delete this comment?')) {
                 const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+                
                 fetch(`/Comments/Delete/${commentId}`, {
                     method: 'POST',
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest',
-                        'RequestVerificationToken': token
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    },
+                    body: `__RequestVerificationToken=${encodeURIComponent(token)}`
+                })
+                .then(async response => { // Make this async to await the body text
+                    if (!response.ok) {
+                        // Try to get a JSON error message from the body
+                        const errorData = await response.json().catch(() => null);
+                        const errorMessage = errorData?.message || `Network response was not ok (Status: ${response.status})`;
+                        throw new Error(errorMessage);
                     }
-                }).then(response => response.json()).then(data => {
+                    return response.json();
+                })
+                .then(data => {
                     if (data.success) {
-                        document.getElementById(`comment-container-${commentId}`).remove();
+                        const container = document.getElementById(`comment-container-${commentId}`);
+                        if (container) {
+                            container.style.transition = 'opacity 0.3s';
+                            container.style.opacity = '0';
+                            setTimeout(() => container.remove(), 300);
+                        }
                     } else {
                         alert(data.message || 'Failed to delete comment.');
                     }
-                }).catch(() => alert('An error occurred while deleting the comment.'));
+                }).catch(err => {
+                    console.error('Delete error:', err);
+                    alert(err.message); // Display the more specific error message
+                });
             }
         }
     });
@@ -196,11 +226,16 @@ document.addEventListener('DOMContentLoaded', () => {
 
             fetch('/Comments/Add', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+                headers: { 
+                    'Content-Type': 'application/x-www-form-urlencoded', 
+                    'X-Requested-With': 'XMLHttpRequest' 
+                },
                 body: `postId=${postId}&content=${encodeURIComponent(content)}`
             }).then(response => response.text()).then(html => {
-                // Works for both feed and modal
-                const commentsContainer = document.getElementById(`comments-for-${postId}`) || document.getElementById(`comments-for-modal-${postId}`);
+                const commentsContainer = 
+                    document.getElementById(`comments-list-${postId}`) ||
+                    document.getElementById(`comments-for-modal-${postId}`);
+                
                 if (commentsContainer) {
                     commentsContainer.insertAdjacentHTML('beforeend', html);
                 }
@@ -220,19 +255,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'RequestVerificationToken': token
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
-                body: `content=${encodeURIComponent(content)}`
+                body: `content=${encodeURIComponent(content)}&__RequestVerificationToken=${encodeURIComponent(token)}`
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    document.getElementById(`comment-content-${commentId}`).textContent = data.content;
-                    document.getElementById(`comment-display-${commentId}`).style.display = 'flex';
+                    const contentSpan = document.getElementById(`comment-content-${commentId}`);
+                    const displayDiv = document.getElementById(`comment-display-${commentId}`);
+                    
+                    if (contentSpan) contentSpan.textContent = data.content;
+                    if (displayDiv) displayDiv.style.display = 'flex';
                     form.style.display = 'none';
-                } else { alert(data.message || 'Failed to edit comment.'); }
-            }).catch(() => alert('An error occurred while editing the comment.'));
+                } else { 
+                    alert(data.message || 'Failed to edit comment.'); 
+                }
+            }).catch(err => {
+                console.error('Edit error:', err);
+                alert('An error occurred while editing the comment.');
+            });
         }
     });
 
@@ -293,22 +335,53 @@ document.addEventListener('DOMContentLoaded', () => {
             return; // Exit if the modal isn't on this page
         }
 
-        postModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget; // The thumbnail that was clicked
-            const postId = button.getAttribute('data-post-id');
-            const modalBody = document.getElementById('postModalBody');
-
-            // Show a loading spinner
-            modalBody.innerHTML = '<div class="d-flex justify-content-center p-5"><div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div></div>';
-
-            fetch(`/Posts/PostPartial/${postId}`)
-                .then(response => response.text())
-                .then(html => { modalBody.innerHTML = html; })
-                .catch(err => { modalBody.innerHTML = '<p class="text-danger text-center p-5">Failed to load post. Please try again.</p>'; });
-        });
+        // Remove any existing event listeners to prevent duplicates
+        postModal.removeEventListener('show.bs.modal', handleModalShow);
+        postModal.addEventListener('show.bs.modal', handleModalShow);
     }
 
-    initializePostModal();
+    function handleModalShow(event) {
+        const button = event.relatedTarget; // The thumbnail that was clicked
+        if (!button) {
+            console.error('No button trigger found');
+            return;
+        }
+        
+        const postId = button.getAttribute('data-post-id');
+        if (!postId) {
+            console.error('No post ID found on button:', button);
+            return;
+        }
+        
+        const modalBody = document.getElementById('postModalBody');
+        if (!modalBody) {
+            console.error('Modal body not found');
+            return;
+        }
+
+        // Show a loading spinner
+        modalBody.innerHTML = '<div class="d-flex justify-content-center p-5"><div class="spinner-border text-purple" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+
+        fetch(`/Posts/PostPartial/${postId}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(html => { 
+                modalBody.innerHTML = html;
+            })
+            .catch(err => { 
+                console.error('Modal load error:', err);
+                modalBody.innerHTML = '<p class="text-danger text-center p-5">Failed to load post. Please try again.</p>'; 
+            });
+    }
+
+    // Initialize modal after a short delay to ensure Bootstrap is ready
+    setTimeout(() => {
+        initializePostModal();
+    }, 100);
 
     // =================================================================
     // SIMPLE SIDEBAR TOGGLE LOGIC
@@ -354,7 +427,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
-                // ...existing code...
                 groups.forEach(g => {
                     const item = document.createElement('a');
                     item.href = '#';
@@ -440,8 +512,22 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 chatMessagesContainer.innerHTML = '';
 
-                // ...existing header icon code...
-
+                // FIXED: Update header icon based on conversation type
+                const headerIconContainer = chatModal.querySelector('.modal-header .rounded-circle');
+                if (headerIconContainer) {
+                    if (data.isDm && data.headerPfp) {
+                        // For 1:1 DMs, show the other user's profile picture
+                        headerIconContainer.innerHTML = ''; // Clear the default icon
+                        headerIconContainer.style.backgroundImage = `url('${data.headerPfp}')`;
+                        headerIconContainer.style.backgroundSize = 'cover';
+                        headerIconContainer.style.backgroundPosition = 'center';
+                    } else {
+                        // For group chats, show the default group icon
+                        headerIconContainer.innerHTML = '<i class="bi bi-people-fill" style="color: #6f42c1;"></i>';
+                        headerIconContainer.style.backgroundImage = 'none';
+                    }
+                }
+                
                 if (data.messages.length === 0) {
                     chatMessagesContainer.innerHTML = '<div class="text-center text-muted mt-5">Start the conversation!</div>';
                     return;
@@ -473,27 +559,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     chatMessagesContainer.appendChild(div);
                 });
 
-                // Scroll after initial render
+                // Scroll to bottom after rendering
                 scrollChatToBottom();
-
-                // Ensure images loaded don’t shift scroll
-                const imgs = chatMessagesContainer.querySelectorAll('img');
-                let pending = imgs.length;
-                if (pending === 0) return;
-                imgs.forEach(img => {
-                    if (img.complete) {
-                        pending--;
-                    } else {
-                        img.addEventListener('load', () => {
-                            pending--;
-                            if (pending === 0) scrollChatToBottom();
-                        }, { once: true });
-                        img.addEventListener('error', () => {
-                            pending--;
-                            if (pending === 0) scrollChatToBottom();
-                        }, { once: true });
-                    }
-                });
             });
     }
 
@@ -521,5 +588,82 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-// ...existing code...
+    // =================================================================
+    // Notifications
+    // =================================================================
+    const notifBadge = document.getElementById('notifBadge');
+    const notifList = document.getElementById('notifList');
+    const notifMarkAll = document.getElementById('notifMarkAll');
+
+    async function fetchNotifications() {
+        if (!notifList) return;
+        try {
+            const res = await fetch('/Notifications/Unread');
+            if (!res.ok) return;
+            const data = await res.json();
+            notifList.innerHTML = '';
+            if (data.length === 0) {
+                notifList.innerHTML = '<div class="p-3 text-muted small text-center">No new notifications</div>';
+                notifBadge.classList.add('d-none');
+                return;
+            }
+            notifBadge.textContent = data.length > 9 ? '9+' : data.length;
+            notifBadge.classList.remove('d-none');
+
+            data.forEach(n => {
+                let text = '';
+                switch (n.type) {
+                    case 'Like': text = `<strong>${n.actor}</strong> liked your post.`; break;
+                    case 'Comment': text = `<strong>${n.actor}</strong> commented on your post.`; break;
+                    case 'Follow': text = `<strong>${n.actor}</strong> started following you.`; break;
+                    case 'FollowRequest': text = `<strong>${n.actor}</strong> requested to follow you.`; break;
+                    default: text = 'New notification';
+                }
+                const item = document.createElement('a');
+                // Link to post, or profile for follows
+                item.href = n.postId ? `/Posts/Post/${n.postId}` : (n.type === 'Follow' || n.type === 'FollowRequest' ? `/Profile/Show/${n.actor}` : '#');
+                item.className = 'list-group-item list-group-item-action d-flex align-items-center gap-3';
+                
+                item.innerHTML = `
+                    <img src="${n.actorPfp || '/uploads/default_pfp.jpg'}" class="rounded-circle" width="40" height="40" style="object-fit:cover;">
+                    <div class="flex-grow-1">
+                        <div class="small notification-text">${text}</div>
+                        <div class="text-muted" style="font-size: 0.75rem;">${new Date(n.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                    <button class="btn btn-sm btn-link text-muted p-0 notif-read-btn" data-id="${n.id}" title="Mark as read">
+                        <i class="bi bi-check-circle"></i>
+                    </button>
+                `;
+                notifList.appendChild(item);
+            });
+        } catch (err) {
+            console.error('Notification fetch error:', err);
+        }
+    }
+
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.notif-read-btn');
+        if (btn) {
+            e.preventDefault();
+            const id = btn.dataset.id;
+            fetch('/Notifications/MarkRead', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: `id=${id}`
+            }).then(r => r.json()).then(d => {
+                if (d.success) fetchNotifications();
+            });
+        }
+    });
+
+    if (notifMarkAll) {
+        notifMarkAll.addEventListener('click', () => {
+            fetch('/Notifications/MarkAll', { method: 'POST' })
+                .then(r => r.json())
+                .then(d => { if (d.success) fetchNotifications(); });
+        });
+    }
+
+    fetchNotifications();
+    setInterval(fetchNotifications, 30000);
 });
