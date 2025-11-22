@@ -589,11 +589,51 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // =================================================================
-    // Notifications
+    // Notifications (REPLACE THIS ENTIRE SECTION)
     // =================================================================
     const notifBadge = document.getElementById('notifBadge');
     const notifList = document.getElementById('notifList');
     const notifMarkAll = document.getElementById('notifMarkAll');
+
+    // Delegated click handler for all notification actions
+    if (notifList) {
+        notifList.addEventListener('click', function(e) {
+            const readBtn = e.target.closest('.notif-read-btn');
+            const followRequestBtn = e.target.closest('.follow-request-btn');
+
+            if (readBtn) {
+                e.preventDefault();
+                const id = readBtn.dataset.id;
+                fetch('/Notifications/MarkRead', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `id=${id}`
+                }).then(r => r.json()).then(d => {
+                    if (d.success) fetchNotifications();
+                });
+            }
+
+            if (followRequestBtn) {
+                e.preventDefault();
+                const actorUsername = followRequestBtn.dataset.actor;
+                const action = followRequestBtn.dataset.action;
+
+                fetch(`/Profile/HandleFollowRequest`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: `actorUsername=${encodeURIComponent(actorUsername)}&actionType=${action}`
+                })
+                .then(r => r.json())
+                .then(d => {
+                    if (d.success) {
+                        fetchNotifications(); // Refresh notifications list
+                    } else {
+                        alert(d.message || 'An error occurred.');
+                    }
+                });
+            }
+        });
+    }
 
     async function fetchNotifications() {
         if (!notifList) return;
@@ -612,49 +652,55 @@ document.addEventListener('DOMContentLoaded', () => {
 
             data.forEach(n => {
                 let text = '';
+                let buttons = '';
+                let isRequest = n.type === 'FollowRequest';
+
                 switch (n.type) {
                     case 'Like': text = `<strong>${n.actor}</strong> liked your post.`; break;
                     case 'Comment': text = `<strong>${n.actor}</strong> commented on your post.`; break;
                     case 'Follow': text = `<strong>${n.actor}</strong> started following you.`; break;
-                    case 'FollowRequest': text = `<strong>${n.actor}</strong> requested to follow you.`; break;
+                    case 'FollowRequest':
+                        text = `<strong>${n.actor}</strong> wants to follow you.`;
+                        buttons = `
+                            <div class="mt-2 d-flex gap-2">
+                                <button class="btn btn-sm btn-primary flex-grow-1 follow-request-btn" data-actor="${n.actor}" data-action="accept">Accept</button>
+                                <button class="btn btn-sm btn-secondary flex-grow-1 follow-request-btn" data-actor="${n.actor}" data-action="decline">Decline</button>
+                            </div>`;
+                        break;
                     default: text = 'New notification';
                 }
-                const item = document.createElement('a');
-                // Link to post, or profile for follows
-                item.href = n.postId ? `/Posts/Post/${n.postId}` : (n.type === 'Follow' || n.type === 'FollowRequest' ? `/Profile/Show/${n.actor}` : '#');
-                item.className = 'list-group-item list-group-item-action d-flex align-items-center gap-3';
+
+                const item = document.createElement('div');
+                item.className = 'list-group-item';
                 
-                item.innerHTML = `
-                    <img src="${n.actorPfp || '/uploads/default_pfp.jpg'}" class="rounded-circle" width="40" height="40" style="object-fit:cover;">
-                    <div class="flex-grow-1">
-                        <div class="small notification-text">${text}</div>
-                        <div class="text-muted" style="font-size: 0.75rem;">${new Date(n.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                // Use a link for clickable notifications, but not for requests with buttons
+                const contentHtml = `
+                    <div class="d-flex align-items-start gap-3">
+                        <a href="/Profile/Show/${n.actor}"><img src="${n.actorPfp || '/uploads/default_pfp.jpg'}" class="rounded-circle" width="40" height="40" style="object-fit:cover;"></a>
+                        <div class="flex-grow-1">
+                            <div class="small notification-text">${text}</div>
+                            ${buttons}
+                            <div class="text-muted" style="font-size: 0.75rem; margin-top: 4px;">${new Date(n.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                        </div>
+                        ${!isRequest ? `<button class="btn btn-sm btn-link text-muted p-0 notif-read-btn" data-id="${n.id}" title="Mark as read"><i class="bi bi-check-circle"></i></button>` : ''}
                     </div>
-                    <button class="btn btn-sm btn-link text-muted p-0 notif-read-btn" data-id="${n.id}" title="Mark as read">
-                        <i class="bi bi-check-circle"></i>
-                    </button>
                 `;
+
+                if (isRequest) {
+                    item.innerHTML = contentHtml;
+                } else {
+                    const link = document.createElement('a');
+                    link.href = n.postId ? `/Posts/Post/${n.postId}` : `/Profile/Show/${n.actor}`;
+                    link.className = 'text-decoration-none text-dark';
+                    link.innerHTML = contentHtml;
+                    item.appendChild(link);
+                }
                 notifList.appendChild(item);
             });
         } catch (err) {
             console.error('Notification fetch error:', err);
         }
     }
-
-    document.addEventListener('click', e => {
-        const btn = e.target.closest('.notif-read-btn');
-        if (btn) {
-            e.preventDefault();
-            const id = btn.dataset.id;
-            fetch('/Notifications/MarkRead', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body: `id=${id}`
-            }).then(r => r.json()).then(d => {
-                if (d.success) fetchNotifications();
-            });
-        }
-    });
 
     if (notifMarkAll) {
         notifMarkAll.addEventListener('click', () => {

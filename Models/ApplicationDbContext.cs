@@ -19,10 +19,7 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<Comment> Comments { get; set; }
     public DbSet<Like> Likes { get; set; }
     public DbSet<Follow> Follows { get; set; }
-    public DbSet<Conversation> Conversations { get; set; }
-    public DbSet<Message> Messages { get; set; }
-
-    // ADDED: Group Chat DbSets
+    public DbSet<FollowRequest> FollowRequests { get; set; } // ADD THIS
     public DbSet<Group> Groups { get; set; }
     public DbSet<GroupMember> GroupMembers { get; set; }
     public DbSet<GroupMessage> GroupMessages { get; set; }
@@ -260,5 +257,19 @@ public class ApplicationDbContext : IdentityDbContext<User>
             .WithMany()
             .HasForeignKey(n => n.ActorUserId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        builder.Entity<FollowRequest>(entity =>
+        {
+            entity.HasOne(fr => fr.Requester)
+                .WithMany()
+                .HasForeignKey(fr => fr.RequesterId)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent cascade delete from this path
+
+            
+            entity.HasOne(fr => fr.Requestee)
+                .WithMany()
+                .HasForeignKey(fr => fr.RequesteeId)
+                .OnDelete(DeleteBehavior.Cascade); // Allow cascade delete from this path
+        });
     }
 }

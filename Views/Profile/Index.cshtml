@@ -30,12 +30,27 @@
                             @if (!isOwnProfile)
                             {
                                 var isFollowedByCurrentUser = ViewBag.IsFollowedByCurrentUser as bool? ?? false;
-                                <form method="post" asp-controller="Profile" asp-action="FollowToggle" asp-route-userId="@Model.Id" class="d-inline">
-                                    <button type="submit"
-                                            class="btn btn-sm btn-primary btn-follow-toggle">
-                                        @(isFollowedByCurrentUser ? "Unfollow" : "Follow")
-                                    </button>
-                                </form>
+                                var followRequestSent = ViewBag.FollowRequestSent as bool? ?? false; // Get the new flag
+
+                                if (isFollowedByCurrentUser)
+                                {
+                                    // User is already following -> Show Unfollow button
+                                    <form method="post" asp-controller="Profile" asp-action="FollowToggle" asp-route-userId="@Model.Id" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-secondary btn-follow-toggle">Unfollow</button>
+                                    </form>
+                                }
+                                else if (followRequestSent)
+                                {
+                                    // A request has been sent -> Show Requested button (disabled)
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Requested</button>
+                                }
+                                else
+                                {
+                                    // No follow or request exists -> Show Follow button
+                                    <form method="post" asp-controller="Profile" asp-action="FollowToggle" asp-route-userId="@Model.Id" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-primary btn-follow-toggle">Follow</button>
+                                    </form>
+                                }
                             }
                             else
                             {
