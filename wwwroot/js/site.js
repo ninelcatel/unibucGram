@@ -354,28 +354,29 @@ document.addEventListener('DOMContentLoaded', () => {
                     return;
                 }
 
+                // ...existing code...
                 groups.forEach(g => {
                     const item = document.createElement('a');
                     item.href = '#';
                     item.className = 'list-group-item list-group-item-action border-0 rounded mb-1 d-flex align-items-center p-2';
-                    
-                    // --- NEW LOGIC START ---
-                    // Check for isDm (camelCase from JSON) or IsDm (PascalCase just in case)
+
                     const isDirectMessage = g.isDm || g.IsDm || g.isDirectMessage;
                     let iconHtml = '';
 
                     if (isDirectMessage) {
-                        // It's a DM: Show User PFP
                         const pfpUrl = g.pfp || '/uploads/default_pfp.jpg';
-                        iconHtml = `<img src="${pfpUrl}" class="rounded-circle me-3" width="40" height="40" style="object-fit:cover;">`;
-                    } else {
-                        // It's a Group: Show Group Icon
                         iconHtml = `
-                        <div class="bg-purple text-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px; flex-shrink:0;">
-                            <i class="bi bi-people-fill"></i>
-                        </div>`;
+                          <div class="chat-avatar-outline me-3">
+                            <img src="${pfpUrl}" alt="">
+                          </div>`;
+                    } else {
+                        iconHtml = `
+                          <div class="chat-avatar-outline me-3">
+                            <div class="chat-icon">
+                              <i class="bi bi-people-fill"></i>
+                            </div>
+                          </div>`;
                     }
-                    // --- NEW LOGIC END ---
 
                     item.innerHTML = `
                         ${iconHtml}
@@ -384,15 +385,24 @@ document.addEventListener('DOMContentLoaded', () => {
                             <small class="text-muted text-truncate d-block">${g.lastMessage || 'No messages yet'}</small>
                         </div>
                     `;
-                    
-                    // Click opens modal
                     item.addEventListener('click', (e) => {
                         e.preventDefault();
                         openChatModal(g.id, g.name);
                     });
-                    
                     groupsListContainer.appendChild(item);
                 });
+
+    // Follow button flash effect
+    document.querySelectorAll('.btn-follow-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.classList.add('flash-pulse');
+            // Let animation start before form submit (optional slight delay)
+            setTimeout(() => {
+                btn.closest('form').submit();
+            }, 120);
+        });
+    });
+
             })
             .catch(err => console.error('Failed to load groups', err));
     }
@@ -409,48 +419,89 @@ document.addEventListener('DOMContentLoaded', () => {
         loadMessages(groupId);
     }
 
+   // ...existing code...
+
+    function scrollChatToBottom(retries = 3) {
+        if (!chatMessagesContainer) return;
+        requestAnimationFrame(() => {
+            chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+            // Fallback: use last message
+            const last = chatMessagesContainer.lastElementChild;
+            if (last) last.scrollIntoView({ block: 'end' });
+        });
+        if (retries > 0) {
+            setTimeout(() => scrollChatToBottom(retries - 1), 60); // retry after images/layout settle
+        }
+    }
+
     function loadMessages(groupId) {
         fetch(`/Group/GetMessages/${groupId}`)
             .then(res => res.json())
-            .then(messages => {
+            .then(data => {
                 chatMessagesContainer.innerHTML = '';
-                if(messages.length === 0) {
+
+                // ...existing header icon code...
+
+                if (data.messages.length === 0) {
                     chatMessagesContainer.innerHTML = '<div class="text-center text-muted mt-5">Start the conversation!</div>';
                     return;
                 }
 
-                messages.forEach(msg => {
+                data.messages.forEach(msg => {
                     const isMe = msg.isMe;
                     const div = document.createElement('div');
                     div.className = `d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`;
-                    
-                    const pfpHtml = isMe ? '' : `<a style="cursor:pointer;" class="text-decoration-none" href="/Profile/Show/${encodeURIComponent(msg.senderName)}"><img src="${msg.senderPfp || '/uploads/default_pfp.jpg'}" class="rounded-circle me-2 align-self-end" width="30" height="30" style="object-fit:cover;"></a>`;
-                    
+
+                    const pfpHtml = isMe ? '' : `
+                        <a href="/Profile/Show/${encodeURIComponent(msg.senderName)}" class="text-decoration-none">
+                            <img src="${msg.senderPfp || '/uploads/default_pfp.jpg'}"
+                                 class="rounded-circle me-2 align-self-end"
+                                 width="30" height="30"
+                                 style="object-fit:cover;">
+                        </a>`;
+
                     div.innerHTML = `
                         ${pfpHtml}
-                        <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}" style="max-width: 70%;">
+                        <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}" style="max-width:70%;">
                             ${!isMe ? `<small class="text-muted mb-1 fw-semibold" style="font-size:0.75rem;">${msg.senderName}</small>` : ''}
-                            <div class="p-3 rounded-3 ${isMe ? 'msg-bubble-sent' : 'msg-bubble-received'}" style="word-wrap: break-word; box-shadow: 0 1px 2px rgba(0,0,0,0.1);">
+                            <div class="p-3 rounded-3 ${isMe ? 'msg-bubble-sent' : 'msg-bubble-received'}" style="word-wrap:break-word;box-shadow:0 1px 2px rgba(0,0,0,0.1);">
                                 ${msg.content}
                             </div>
-                            <small class="text-muted mt-1" style="font-size: 0.7rem;">${msg.sentAt}</small>
+                            <small class="text-muted mt-1" style="font-size:0.7rem;">${msg.sentAt}</small>
                         </div>
                     `;
                     chatMessagesContainer.appendChild(div);
                 });
-                
-                // Scroll to bottom
-                chatMessagesContainer.scrollTop = chatMessagesContainer.scrollHeight;
+
+                // Scroll after initial render
+                scrollChatToBottom();
+
+                // Ensure images loaded don’t shift scroll
+                const imgs = chatMessagesContainer.querySelectorAll('img');
+                let pending = imgs.length;
+                if (pending === 0) return;
+                imgs.forEach(img => {
+                    if (img.complete) {
+                        pending--;
+                    } else {
+                        img.addEventListener('load', () => {
+                            pending--;
+                            if (pending === 0) scrollChatToBottom();
+                        }, { once: true });
+                        img.addEventListener('error', () => {
+                            pending--;
+                            if (pending === 0) scrollChatToBottom();
+                        }, { once: true });
+                    }
+                });
             });
     }
 
-    // 3. Send Message
     if (chatForm) {
         chatForm.addEventListener('submit', (e) => {
             e.preventDefault();
             const content = chatInput.value.trim();
             const groupId = currentGroupIdInput.value;
-
             if (!content || !groupId) return;
 
             fetch('/Group/SendMessage', {
@@ -458,13 +509,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: `groupId=${groupId}&content=${encodeURIComponent(content)}`
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
                     chatInput.value = '';
-                    loadMessages(groupId); // Reload to see new message
+                    loadMessages(groupId);
+                    // Extra final pass
+                    setTimeout(() => scrollChatToBottom(), 120);
                 }
             });
         });
     }
+
+// ...existing code...
 });

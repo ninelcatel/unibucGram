@@ -121,6 +121,14 @@ namespace unibucGram.Controllers
         {
             var currentUserId = _userManager.GetUserId(User);
             
+            // Get group info for header
+            var group = await _context.Groups
+                .Include(g => g.GroupMembers)
+                .ThenInclude(gm => gm.User)
+                .FirstOrDefaultAsync(g => g.Id == id);
+            
+            if (group == null) return NotFound();
+            
             var messages = await _context.GroupMessages
                 .Where(m => m.GroupId == id)
                 .Include(m => m.User)
@@ -135,7 +143,20 @@ namespace unibucGram.Controllers
                 })
                 .ToListAsync();
 
-            return Json(messages);
+            // Get header info (for DMs, get the other user's pfp)
+            string headerPfp = null;
+            if (group.IsDirectMessage)
+            {
+                var otherUser = group.GroupMembers
+                    .FirstOrDefault(gm => gm.UserId != currentUserId)?.User;
+                headerPfp = otherUser?.PfpURL;
+            }
+
+            return Json(new { 
+                messages, 
+                isDm = group.IsDirectMessage,
+                headerPfp 
+            });
         }
 
         [HttpPost]
