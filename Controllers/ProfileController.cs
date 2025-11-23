@@ -112,45 +112,48 @@ namespace unibucGram.Controllers
                 return NotFound();
             }
 
-            var user = await _db.Users
-                .FirstOrDefaultAsync(u => u.UserName == name);
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName == name);
 
             if (user == null)
             {
                 return NotFound();
             }
 
-            // --- START OF FIX ---
-            // Calculate and pass all necessary data to the view
-            var posts = await _db.Posts
-                .Where(p => p.UserId == user.Id)
-                .OrderByDescending(p => p.CreatedAt)
-                .Include(p => p.Likes)
-                .Include(p => p.Comments)
-                .ToListAsync();
-
-            ViewBag.Posts = posts;
-            ViewBag.FollowersCount = await _db.Follows.CountAsync(f => f.FolloweeId == user.Id);
-            ViewBag.FollowingCount = await _db.Follows.CountAsync(f => f.FollowerId == user.Id);
-            // --- END OF FIX ---
-
             var currentUserId = _userManager.GetUserId(User);
             var isOwnProfile = currentUserId == user.Id;
-            ViewBag.IsOwnProfile = isOwnProfile;
+            
+            var isFollowing = !isOwnProfile && currentUserId != null && 
+                              await _db.Follows.AnyAsync(f => f.FollowerId == currentUserId && f.FolloweeId == user.Id);
 
-            ViewBag.IsFollowedByCurrentUser = false;
+            // Determine if the current user can view the posts
+            bool canViewPosts = !user.isPrivate || isOwnProfile || isFollowing;
+            ViewBag.CanViewPosts = canViewPosts;
+
+            if (canViewPosts)
+            {
+                ViewBag.Posts = await _db.Posts
+                    .Where(p => p.UserId == user.Id)
+                    .OrderByDescending(p => p.CreatedAt)
+                    .Include(p => p.Likes)
+                    .Include(p => p.Comments)
+                    .ToListAsync();
+            }
+            else
+            {
+                ViewBag.Posts = new List<Post>(); // Provide an empty list for private profiles
+            }
+
+            ViewBag.FollowersCount = await _db.Follows.CountAsync(f => f.FolloweeId == user.Id);
+            ViewBag.FollowingCount = await _db.Follows.CountAsync(f => f.FollowerId == user.Id);
+            
+            ViewBag.IsOwnProfile = isOwnProfile;
+            ViewBag.IsFollowedByCurrentUser = isFollowing; // Reuse the variable
             ViewBag.FollowRequestSent = false;
 
-            if (!isOwnProfile && currentUserId != null)
+            if (!isOwnProfile && currentUserId != null && !isFollowing)
             {
-                ViewBag.IsFollowedByCurrentUser = await _db.Follows
-                    .AnyAsync(f => f.FollowerId == currentUserId && f.FolloweeId == user.Id);
-                
-                if (!(bool)ViewBag.IsFollowedByCurrentUser)
-                {
-                    ViewBag.FollowRequestSent = await _db.FollowRequests
-                        .AnyAsync(fr => fr.RequesterId == currentUserId && fr.RequesteeId == user.Id);
-                }
+                ViewBag.FollowRequestSent = await _db.FollowRequests
+                    .AnyAsync(fr => fr.RequesterId == currentUserId && fr.RequesteeId == user.Id);
             }
 
             return View("Index", user);

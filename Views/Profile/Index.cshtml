@@ -6,6 +6,7 @@
     var followers = (int)(ViewBag.FollowersCount ?? 0);
     var following = (int)(ViewBag.FollowingCount ?? 0);
     var isOwnProfile = (bool)(ViewBag.IsOwnProfile ?? false);
+    var canViewPosts = (bool?)(ViewBag.CanViewPosts) ?? true; // ADDED
 }
 
 <div class="container mt-4" style="max-width: 1140px;">
@@ -30,23 +31,19 @@
                             @if (!isOwnProfile)
                             {
                                 var isFollowedByCurrentUser = ViewBag.IsFollowedByCurrentUser as bool? ?? false;
-                                var followRequestSent = ViewBag.FollowRequestSent as bool? ?? false; // Get the new flag
-
+                                var followRequestSent = ViewBag.FollowRequestSent as bool? ?? false;
                                 if (isFollowedByCurrentUser)
                                 {
-                                    // User is already following -> Show Unfollow button
                                     <form method="post" asp-controller="Profile" asp-action="FollowToggle" asp-route-userId="@Model.Id" class="d-inline">
                                         <button type="submit" class="btn btn-sm btn-secondary btn-follow-toggle">Unfollow</button>
                                     </form>
                                 }
                                 else if (followRequestSent)
                                 {
-                                    // A request has been sent -> Show Requested button (disabled)
                                     <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Requested</button>
                                 }
                                 else
                                 {
-                                    // No follow or request exists -> Show Follow button
                                     <form method="post" asp-controller="Profile" asp-action="FollowToggle" asp-route-userId="@Model.Id" class="d-inline">
                                         <button type="submit" class="btn btn-sm btn-primary btn-follow-toggle">Follow</button>
                                     </form>
@@ -94,77 +91,90 @@
             <h5 class="mb-0 text-purple">Posts</h5>
         </div>
         <div class="card-body p-3">
-            @if (!posts.Any())
+            @* ADDED PRIVACY CHECK *@
+            @if (!canViewPosts && !isOwnProfile)
             {
                 <div class="text-center py-5">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-images text-muted mb-3" viewBox="0 0 16 16">
-                        <path d="M4.502 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
-                        <path d="M14.002 13a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2V5A2 2 0 0 1 2.002 3h10a2 2 0 0 1 2 2zm-1 0V6l-2.646-2.354a.5.5 0 0 0-.63-.062L7.002 7 4.914 5.584a.5.5 0 0 0-.566-.032L1.002 7V13a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1"/>
-                    </svg>
-                    <p class="text-muted">@(isOwnProfile ? "You haven't" : "This user hasn't") posted anything yet.</p>
-                    @if (isOwnProfile)
-                    {
-                        <a asp-controller="Posts" asp-action="New" class="btn btn-primary mt-2">Create Your First Post</a>
-                    }
+                    <i class="bi bi-lock-fill fs-1 text-muted mb-3"></i>
+                    <h5 class="mb-2">This Account is Private</h5>
+                    <p class="text-muted mb-0">Follow this account to see their posts.</p>
                 </div>
             }
             else
             {
-                <div class="row row-cols-3 g-3">
-                    @foreach (var post in posts)
-                    {
-                        var noImage = string.IsNullOrEmpty(post.ImageURL);
-                        <div class="col">
-                            <a href="#" 
-                               class="text-decoration-none post-thumbnail @(noImage ? "text-only-thumb" : "")"
-                               data-bs-toggle="modal"
-                               data-bs-target="#postModal"
-                               data-post-id="@post.Id">
-                                <div class="card h-100 border-0 shadow-sm @(noImage ? "text-only-card" : "")">
-                                    @if (!string.IsNullOrEmpty(post.ImageURL))
-                                    {
-                                        <div class="post-image-container">
-                                            <div class="post-image" style="background-image: url('@post.ImageURL');"></div>
-                                        </div>
-                                    }
-                                    else
-                                    {
-                                        <div class="p-3 text-only-preview d-flex flex-column justify-content-center align-items-center h-100">
-                                            <div class="text-only-icon mb-2">
-                                                <i class="bi bi-chat-square-text fs-3 text-purple"></i>
+                @* ORIGINAL POSTS LOGIC *@
+                if (!posts.Any())
+                {
+                    <div class="text-center py-5">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-images text-muted mb-3" viewBox="0 0 16 16">
+                            <path d="M4.502 9a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3"/>
+                            <path d="M14.002 13a2 2 0 0 1-2 2h-10a2 2 0 0 1-2-2V5A2 2 0 0 1 2.002 3h10a2 2 0 0 1 2 2zm-1 0V6l-2.646-2.354a.5.5 0 0 0-.63-.062L7.002 7 4.914 5.584a.5.5 0 0 0-.566-.032L1.002 7V13a1 1 0 0 0 1 1h10a1 1 0 0 0 1-1"/>
+                        </svg>
+                        <p class="text-muted">@(isOwnProfile ? "You haven't" : "This user hasn't") posted anything yet.</p>
+                        @if (isOwnProfile)
+                        {
+                            <a asp-controller="Posts" asp-action="New" class="btn btn-primary mt-2">Create Your First Post</a>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <div class="row row-cols-3 g-3">
+                        @foreach (var post in posts)
+                        {
+                            var noImage = string.IsNullOrEmpty(post.ImageURL);
+                            <div class="col">
+                                <a href="#"
+                                   class="text-decoration-none post-thumbnail @(noImage ? "text-only-thumb" : "")"
+                                   data-bs-toggle="modal"
+                                   data-bs-target="#postModal"
+                                   data-post-id="@post.Id">
+                                    <div class="card h-100 border-0 shadow-sm @(noImage ? "text-only-card" : "")">
+                                        @if (!string.IsNullOrEmpty(post.ImageURL))
+                                        {
+                                            <div class="post-image-container">
+                                                <div class="post-image" style="background-image: url('@post.ImageURL');"></div>
                                             </div>
+                                        }
+                                        else
+                                        {
+                                            <div class="p-3 text-only-preview d-flex flex-column justify-content-center align-items-center h-100">
+                                                <div class="text-only-icon mb-2">
+                                                    <i class="bi bi-chat-square-text fs-3 text-purple"></i>
+                                                </div>
+                                                @if (!string.IsNullOrEmpty(post.Content))
+                                                {
+                                                    <p class="small mb-0 text-center fw-semibold line-clamp-4">@post.Content</p>
+                                                }
+                                                else
+                                                {
+                                                    <p class="small mb-0 fst-italic text-muted">No caption</p>
+                                                }
+                                            </div>
+                                        }
+                                        <div class="card-body p-2">
                                             @if (!string.IsNullOrEmpty(post.Content))
                                             {
-                                                <p class="small mb-0 text-center fw-semibold line-clamp-4">@post.Content</p>
+                                                <p class="card-text small text-truncate mb-2" title="@post.Content">@post.Content</p>
                                             }
-                                            else
-                                            {
-                                                <p class="small mb-0 fst-italic text-muted">No caption</p>
-                                            }
-                                        </div>
-                                    }
-                                    <div class="card-body p-2">
-                                        @if (!string.IsNullOrEmpty(post.Content))
-                                        {
-                                            <p class="card-text small text-truncate mb-2" title="@post.Content">@post.Content</p>
-                                        }
-                                        <div class="d-flex justify-content-between align-items-center">
-                                            <small class="text-muted" style="font-size: 0.7rem;">@post.CreatedAt.ToLocalTime().ToString("M/d/yy")</small>
-                                            <div>
-                                                <span class="badge bg-light text-dark" style="font-size: 0.65rem;">
-                                                    <i class="bi bi-heart-fill text-danger"></i> @post.Likes.Count
-                                                </span>
-                                                <span class="badge bg-light text-dark ms-1" style="font-size: 0.65rem;">
-                                                    <i class="bi bi-chat-fill"></i> @post.Comments.Count
-                                                </span>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted" style="font-size: 0.7rem;">@post.CreatedAt.ToLocalTime().ToString("M/d/yy")</small>
+                                                <div>
+                                                    <span class="badge bg-light text-dark" style="font-size: 0.65rem;">
+                                                        <i class="bi bi-heart-fill text-danger"></i> @post.Likes.Count
+                                                    </span>
+                                                    <span class="badge bg-light text-dark ms-1" style="font-size: 0.65rem;">
+                                                        <i class="bi bi-chat-fill"></i> @post.Comments.Count
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            </a>
-                        </div>
-                    }
-                </div>
+                                </a>
+                            </div>
+                        }
+                    </div>
+                }
             }
         </div>
     </div>
