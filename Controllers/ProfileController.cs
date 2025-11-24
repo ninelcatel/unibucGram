@@ -193,5 +193,94 @@ namespace unibucGram.Controllers
             await _db.SaveChangesAsync();
             return Json(new { success = true });
         }
+    
+        [HttpGet("GetFollowers/{username}")]
+        public async Task<IActionResult> GetFollowers(string username, int page = 1, int pageSize = 20)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName == username);
+            if (user == null) return NotFound();
+
+            var followers = await _db.Follows
+                .Where(f => f.FolloweeId == user.Id)
+                .Include(f => f.Follower)
+                .OrderByDescending(f => f.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(f => new
+                {
+                    f.Follower.Id,
+                    f.Follower.UserName,
+                    f.Follower.FirstName,
+                    f.Follower.LastName,
+                    f.Follower.PfpURL
+                })
+                .ToListAsync();
+
+            return Json(new { users = followers });
+        }
+
+        [HttpGet("GetFollowing/{username}")]
+        public async Task<IActionResult> GetFollowing(string username, int page = 1, int pageSize = 20)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName == username);
+            if (user == null) return NotFound();
+
+            var following = await _db.Follows
+                .Where(f => f.FollowerId == user.Id)
+                .Include(f => f.Followee)
+                .OrderByDescending(f => f.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(f => new
+                {
+                    f.Followee.Id,
+                    f.Followee.UserName,
+                    f.Followee.FirstName,
+                    f.Followee.LastName,
+                    f.Followee.PfpURL
+                })
+                .ToListAsync();
+
+            return Json(new { users = following });
+        }
+
+        [HttpGet("GetNotFollowingBack/{username}")]
+        public async Task<IActionResult> GetNotFollowingBack(string username, int page = 1, int pageSize = 20)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName == username);
+            if (user == null) return NotFound();
+
+            var currentUserId = _userManager.GetUserId(User);
+            if (currentUserId != user.Id) return Forbid();
+
+            var following = await _db.Follows
+                .Where(f => f.FollowerId == user.Id)
+                .Select(f => f.FolloweeId)
+                .ToListAsync();
+
+            var followers = await _db.Follows
+                .Where(f => f.FolloweeId == user.Id)
+                .Select(f => f.FollowerId)
+                .ToListAsync();
+
+            var notFollowingBackIds = following.Except(followers).ToList();
+
+            var notFollowingBackUsers = await _db.Users
+                .Where(u => notFollowingBackIds.Contains(u.Id))
+                .OrderBy(u => u.UserName)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(u => new
+                {
+                    u.Id,
+                    u.UserName,
+                    u.FirstName,
+                    u.LastName,
+                    u.PfpURL
+                })
+                .ToListAsync();
+
+            return Json(new { users = notFollowingBackUsers });
+        }
     }
 }

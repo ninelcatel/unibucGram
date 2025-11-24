@@ -25,6 +25,20 @@ builder.Services.AddDefaultIdentity<User>(options =>
 builder.Services.AddRazorPages();  // ADD THIS LINE
 builder.Services.AddControllersWithViews();
 
+// Configure form options for large file uploads (videos)
+builder.Services.Configure<Microsoft.AspNetCore.Http.Features.FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 524288000; // 500 MB
+    options.ValueLengthLimit = int.MaxValue;
+    options.MultipartHeadersLengthLimit = int.MaxValue;
+});
+
+// Configure Kestrel server limits for large uploads
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = 524288000; // 500 MB
+});
+
 var app = builder.Build();
 
 // run EF Core migrations on startup with simple retry (ensures Docker DB is used/created)

@@ -466,9 +466,15 @@ namespace unibucGram.Migrations
                     b.Property<string>("ImageURL")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("MediaType")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("VideoURL")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

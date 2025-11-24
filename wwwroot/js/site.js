@@ -1268,3 +1268,198 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
+    // =================================================================
+    // FOLLOWERS/FOLLOWING MODAL LOGIC
+    // =================================================================
+    
+    let currentFollowPage = 1;
+    let currentFollowType = '';
+    let currentUsername = '';
+    let isLoadingFollows = false;
+    let hasMoreFollows = true;
+
+    // Initialize followers/following click handlers
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.followers-link').forEach(link => {
+            link.addEventListener('click', function() {
+                openFollowModal('followers', this.dataset.username);
+            });
+        });
+
+        document.querySelectorAll('.following-link').forEach(link => {
+            link.addEventListener('click', function() {
+                openFollowModal('following', this.dataset.username);
+            });
+        });
+    });
+
+    function openFollowModal(type, username) {
+        currentFollowType = type;
+        currentUsername = username;
+        currentFollowPage = 1;
+        hasMoreFollows = true;
+
+        const modal = document.getElementById('followModal');
+        if (!modal) return;
+
+        const modalLabel = document.getElementById('followModalLabel');
+        const modalBody = document.getElementById('followModalBody');
+
+        // Set title
+        if (type === 'followers') {
+            modalLabel.textContent = 'Followers';
+        } else if (type === 'following') {
+            modalLabel.textContent = 'Following';
+        } else if (type === 'notFollowingBack') {
+            modalLabel.textContent = 'Not Following Back';
+        }
+
+        // Show loading
+        modalBody.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-purple" role="status"></div></div>';
+
+        // Add "Not Following Back" button if viewing following on own profile
+        const isOwnProfile = modal.dataset.ownProfile === 'true';
+        if (type === 'following' && isOwnProfile) {
+            modalBody.innerHTML = `
+                <button class="btn btn-outline-primary w-100 mb-3" id="notFollowingBackBtn">
+                    <i class="bi bi-person-x"></i> Not Following Back
+                </button>
+                <div id="followList"></div>
+            `;
+            
+            setTimeout(() => {
+                const btn = document.getElementById('notFollowingBackBtn');
+                if (btn) {
+                    btn.addEventListener('click', function() {
+                        openFollowModal('notFollowingBack', currentUsername);
+                    });
+                }
+            }, 100);
+        } else {
+            modalBody.innerHTML = '<div id="followList"></div>';
+        }
+
+        // Load first page
+        loadFollows();
+
+        // Show modal or keep it open if already visible
+        let bsModal = bootstrap.Modal.getInstance(modal);
+        if (!bsModal) {
+            bsModal = new bootstrap.Modal(modal);
+            bsModal.show();
+        }
+
+        // Remove existing scroll listeners to prevent duplicates
+        const newModalBody = modalBody.cloneNode(true);
+        modalBody.parentNode.replaceChild(newModalBody, modalBody);
+        
+        // Setup scroll listener on the new element
+        newModalBody.addEventListener('scroll', function() {
+            if (isLoadingFollows || !hasMoreFollows) return;
+            
+            const scrollTop = newModalBody.scrollTop;
+            const scrollHeight = newModalBody.scrollHeight;
+            const clientHeight = newModalBody.clientHeight;
+
+            if (scrollTop + clientHeight >= scrollHeight - 100) {
+                currentFollowPage++;
+                loadFollows();
+            }
+        });
+    }
+
+    async function loadFollows() {
+        if (isLoadingFollows) return;
+        isLoadingFollows = true;
+
+        let endpoint = '';
+        if (currentFollowType === 'followers') {
+            endpoint = `/Profile/GetFollowers/${currentUsername}?page=${currentFollowPage}`;
+        } else if (currentFollowType === 'following') {
+            endpoint = `/Profile/GetFollowing/${currentUsername}?page=${currentFollowPage}`;
+        } else if (currentFollowType === 'notFollowingBack') {
+            endpoint = `/Profile/GetNotFollowingBack/${currentUsername}?page=${currentFollowPage}`;
+        }
+
+        try {
+            const res = await fetch(endpoint);
+            const data = await res.json();
+
+            const targetContainer = document.getElementById('followList') || document.getElementById('followModalBody');
+
+            if (currentFollowPage === 1) {
+                targetContainer.innerHTML = '';
+            }
+
+            if (data.users.length === 0) {
+                hasMoreFollows = false;
+                if (currentFollowPage === 1) {
+                    targetContainer.innerHTML = '<div class="text-center text-muted py-3">No users found</div>';
+                }
+                return;
+            }
+
+            data.users.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.className = 'd-flex align-items-center p-3 border-bottom';
+                userItem.innerHTML = `
+                    <a href="/Profile/Show/${user.userName}" class="text-decoration-none d-flex align-items-center flex-grow-1">
+                        <img src="${user.pfpURL || '/uploads/default_pfp.jpg'}" 
+                             alt="${user.userName}" 
+                             class="rounded-circle me-3" 
+                             width="40" 
+                             height="40"
+                             style="object-fit: cover;">
+                        <div>
+                            <div class="fw-bold text-dark">${user.userName}</div>
+                            <div class="text-muted small">${user.firstName} ${user.lastName}</div>
+                        </div>
+                    </a>
+                `;
+                targetContainer.appendChild(userItem);
+            });
+
+            if (data.users.length < 20) {
+                hasMoreFollows = false;
+            }
+        } catch (err) {
+            console.error('Failed to load follows:', err);
+        } finally {
+            isLoadingFollows = false;
+        }
+    }
+
+    // Video play/pause toggle on feed
+    document.addEventListener('click', function(e) {
+        const video = e.target.closest('.feed-video');
+        if (video) {
+            e.preventDefault();
+            if (video.paused) {
+                video.play();
+            } else {
+                video.pause();
+            }
+        }
+    });
+
+    // Intersection Observer for autoplay videos when in viewport
+    if ('IntersectionObserver' in window) {
+        const videoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const video = entry.target;
+                if (entry.isIntersecting) {
+                    video.play().catch(err => console.log('Autoplay prevented:', err));
+                } else {
+                    video.pause();
+                }
+            });
+        }, {
+            threshold: 0.5 // Video plays when 50% visible
+        });
+
+        // Observe all feed videos
+        document.querySelectorAll('.feed-video').forEach(video => {
+            videoObserver.observe(video);
+        });
+    }
+

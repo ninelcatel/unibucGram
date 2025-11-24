@@ -12,7 +12,17 @@
             </a>
             <small class="text-muted">@post.CreatedAt.ToLocalTime().ToString("g")</small>
         </div>
-        @if (!string.IsNullOrEmpty(post.ImageURL))
+        @if (!string.IsNullOrEmpty(post.VideoURL))
+        {
+            <div style="position: relative; width: 100%; max-height: 600px; background: #000;">
+                <video class="w-100 feed-video" data-post-id="@post.Id" style="max-height: 600px; object-fit: contain; cursor: pointer; display: block;" autoplay loop muted playsinline>
+                    <source src="@post.VideoURL" type="video/mp4">
+                    <source src="@post.VideoURL" type="video/webm">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+        }
+        else if (!string.IsNullOrEmpty(post.ImageURL))
         {
             <a href="#" class="post-image-link" data-bs-toggle="modal" data-bs-target="#postModal" data-post-id="@post.Id">
                 <img src="@post.ImageURL" class="card-img-top" alt="Post Image" style="cursor: pointer;">

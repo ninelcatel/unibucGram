@@ -15,9 +15,11 @@ namespace unibucGram.Models
         public string? Content { get; set; } = string.Empty; // e optionala descrierea
 
         public string? ImageURL { get; set; } = string.Empty; // url catre poza 
+        public string? VideoURL { get; set; } = string.Empty; // url catre video
+        public string? MediaType { get; set; } = string.Empty; // "image" sau "video"
 
         /*
-        un post are poate sa nu aibe descriere sau poza, 
+        un post are poate sa nu aibe descriere sau poza/video, 
         dar trebuie sa aibe cel putin una din ele, 
         
         IDEE: poate se va verifica la nivel de formular?  

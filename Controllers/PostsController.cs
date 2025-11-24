@@ -37,12 +37,14 @@ namespace unibucGram.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Create([Bind("Content")] Post post, IFormFile? image)
+        [RequestSizeLimit(524288000)] // 500 MB limit for video uploads
+        [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+        public async Task<IActionResult> Create([Bind("Content")] Post post, IFormFile? media)
         {
             // Adaugam o validare custom in ModelState
-            if (string.IsNullOrWhiteSpace(post.Content) && (image == null || image.Length == 0))
+            if (string.IsNullOrWhiteSpace(post.Content) && (media == null || media.Length == 0))
             {
-                ModelState.AddModelError(string.Empty, "You must add either text or an image.");
+                ModelState.AddModelError(string.Empty, "You must add either text, an image, or a video.");
             }
 
             // Eliminam campurile setate de server din validare
@@ -57,43 +59,63 @@ namespace unibucGram.Controllers
                 post.UserId = userId ?? string.Empty;
                 post.CreatedAt = DateTime.UtcNow;
 
-                if (image != null && image.Length > 0)
+                if (media != null && media.Length > 0)
                 {
                     var uploads = Path.Combine(_env.WebRootPath ?? "wwwroot", "uploads");
                     Directory.CreateDirectory(uploads);
 
-                    // normalize to jpeg and resize to a max dimension (1080x1080)
-                    var fileName = Guid.NewGuid().ToString() + ".jpg";
-                    var filePath = Path.Combine(uploads, fileName);
+                    var contentType = media.ContentType.ToLower();
+                    var isVideo = contentType.StartsWith("video/");
 
-                    using (var inStream = image.OpenReadStream())
+                    if (isVideo)
                     {
-                        // Load image (ImageSharp will detect format)
-                        using (var img = Image.Load(inStream))
+                        // Handle video upload
+                        var extension = Path.GetExtension(media.FileName).ToLower();
+                        var fileName = Guid.NewGuid().ToString() + extension;
+                        var filePath = Path.Combine(uploads, fileName);
+
+                        using (var stream = new FileStream(filePath, FileMode.Create))
                         {
-                            // Auto orient based on EXIF so phone images display correctly
-                            img.Mutate(x => x.AutoOrient());
+                            await media.CopyToAsync(stream);
+                        }
 
-                            const int maxDim = 540;
-                            img.Mutate(x => x.Resize(new ResizeOptions
-                            {
-                                Size = new SixLabors.ImageSharp.Size(maxDim, maxDim),
-                                Mode = ResizeMode.Max
-                            }));
+                        post.VideoURL = "/uploads/" + fileName;
+                        post.MediaType = "video";
+                    }
+                    else
+                    {
+                        // Handle image upload (existing logic)
+                        var fileName = Guid.NewGuid().ToString() + ".jpg";
+                        var filePath = Path.Combine(uploads, fileName);
 
-                            var encoder = new JpegEncoder { Quality = 80 };
-                            using (var outStream = System.IO.File.Create(filePath))
+                        using (var inStream = media.OpenReadStream())
+                        {
+                            using (var img = Image.Load(inStream))
                             {
-                                img.Save(outStream, encoder);
+                                img.Mutate(x => x.AutoOrient());
+
+                                const int maxDim = 540;
+                                img.Mutate(x => x.Resize(new ResizeOptions
+                                {
+                                    Size = new SixLabors.ImageSharp.Size(maxDim, maxDim),
+                                    Mode = ResizeMode.Max
+                                }));
+
+                                var encoder = new JpegEncoder { Quality = 80 };
+                                using (var outStream = System.IO.File.Create(filePath))
+                                {
+                                    img.Save(outStream, encoder);
+                                }
                             }
                         }
-                    }
 
-                    post.ImageURL = "/uploads/" + fileName;
+                        post.ImageURL = "/uploads/" + fileName;
+                        post.MediaType = "image";
+                    }
                 }
 
                 _db.Posts.Add(post);
-                _db.SaveChanges();
+                await _db.SaveChangesAsync();
 
                 return RedirectToAction("Index", "Home");
             }
@@ -325,6 +347,15 @@ namespace unibucGram.Controllers
                 if (System.IO.File.Exists(imagePath))
                 {
                     System.IO.File.Delete(imagePath);
+                }
+            }
+
+            if (!string.IsNullOrEmpty(post.VideoURL))
+            {
+                var videoPath = Path.Combine(_env.WebRootPath, post.VideoURL.TrimStart('/'));
+                if (System.IO.File.Exists(videoPath))
+                {
+                    System.IO.File.Delete(videoPath);
                 }
             }
 

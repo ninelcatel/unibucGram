@@ -71,11 +71,11 @@
                             <strong class="text-purple">@posts.Count</strong>
                             <span class="text-muted">posts</span>
                         </div>
-                        <div>
+                        <div style="cursor: pointer;" class="followers-link" data-username="@Model.UserName">
                             <strong class="text-purple">@followers</strong>
                             <span class="text-muted">followers</span>
                         </div>
-                        <div>
+                        <div style="cursor: pointer;" class="following-link" data-username="@Model.UserName">
                             <strong class="text-purple">@following</strong>
                             <span class="text-muted">following</span>
                         </div>
@@ -122,15 +122,27 @@
                     <div class="row row-cols-3 g-3">
                         @foreach (var post in posts)
                         {
-                            var noImage = string.IsNullOrEmpty(post.ImageURL);
+                            var noMedia = string.IsNullOrEmpty(post.ImageURL) && string.IsNullOrEmpty(post.VideoURL);
+                            var hasVideo = !string.IsNullOrEmpty(post.VideoURL);
                             <div class="col">
                                 <a href="#"
-                                   class="text-decoration-none post-thumbnail @(noImage ? "text-only-thumb" : "")"
+                                   class="text-decoration-none post-thumbnail @(noMedia ? "text-only-thumb" : "")"
                                    data-bs-toggle="modal"
                                    data-bs-target="#postModal"
                                    data-post-id="@post.Id">
-                                    <div class="card h-100 border-0 shadow-sm @(noImage ? "text-only-card" : "")">
-                                        @if (!string.IsNullOrEmpty(post.ImageURL))
+                                    <div class="card h-100 border-0 shadow-sm @(noMedia ? "text-only-card" : "")">
+                                        @if (hasVideo)
+                                        {
+                                            <div class="post-image-container" style="position: relative; background: #000; height: 250px; overflow: hidden;">
+                                                <video class="w-100 h-100" style="object-fit: cover; display: block; height: 250px;" muted playsinline>
+                                                    <source src="@post.VideoURL" type="video/mp4">
+                                                </video>
+                                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
+                                                    <i class="bi bi-play-circle fs-1 text-white" style="text-shadow: 0 0 10px rgba(0,0,0,0.7);"></i>
+                                                </div>
+                                            </div>
+                                        }
+                                        else if (!string.IsNullOrEmpty(post.ImageURL))
                                         {
                                             <div class="post-image-container">
                                                 <div class="post-image" style="background-image: url('@post.ImageURL');"></div>
@@ -190,6 +202,26 @@
     </div>
   </div>
 </div>
+
+<!-- Followers/Following Modal -->
+<div class="modal fade" id="followModal" tabindex="-1" aria-labelledby="followModalLabel" aria-hidden="true" data-own-profile="@isOwnProfile.ToString().ToLower()">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="followModalLabel">Followers</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="followModalBody" style="max-height: 400px; overflow-y: auto;">
+        <div class="text-center py-3">
+          <div class="spinner-border text-purple" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 
 @section Scripts {
 <style></style>
