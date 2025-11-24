@@ -338,6 +338,11 @@ document.addEventListener('DOMContentLoaded', () => {
         // Remove any existing event listeners to prevent duplicates
         postModal.removeEventListener('show.bs.modal', handleModalShow);
         postModal.addEventListener('show.bs.modal', handleModalShow);
+        
+        // Add event listener for when modal is fully shown
+        postModal.addEventListener('shown.bs.modal', function() {
+            initializeModalCommentsScroll();
+        });
     }
 
     function handleModalShow(event) {
@@ -371,17 +376,131 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(html => { 
                 modalBody.innerHTML = html;
+                // Initialize scroll after content is loaded
+                setTimeout(initializeModalCommentsScroll, 100);
             })
             .catch(err => { 
                 console.error('Modal load error:', err);
                 modalBody.innerHTML = '<p class="text-danger text-center p-5">Failed to load post. Please try again.</p>'; 
             });
     }
+    
+    // Initialize infinite scroll for comments in profile modal
+    function initializeModalCommentsScroll() {
+        const modalBody = document.getElementById('postModalBody');
+        if (!modalBody) return;
+        
+        // Find all scroll containers with the correct ID pattern
+        const scrollContainers = modalBody.querySelectorAll('[id^="modal-comments-container-"]');
+        
+        scrollContainers.forEach(scrollContainer => {
+            const postId = scrollContainer.id.replace('modal-comments-container-', '');
+            let page = 2; // Start from page 2 since we loaded first 10 already
+            let isLoading = false;
+            let hasMore = true;
+            
+            // Remove any existing scroll listeners to prevent duplicates
+            if (scrollContainer._commentsScrollHandler) {
+                scrollContainer.removeEventListener('scroll', scrollContainer._commentsScrollHandler);
+            }
+            
+            scrollContainer._commentsScrollHandler = function() {
+                if (isLoading || !hasMore) return;
+                
+                const scrollTop = scrollContainer.scrollTop;
+                const scrollHeight = scrollContainer.scrollHeight;
+                const clientHeight = scrollContainer.clientHeight;
+                
+                // Load more when scrolled near bottom
+                if (scrollTop + clientHeight >= scrollHeight - 50) {
+                    isLoading = true;
+                    
+                    // Show loading indicator
+                    const loadingIndicator = scrollContainer.querySelector('.modal-comments-loading');
+                    if (loadingIndicator) {
+                        loadingIndicator.style.display = 'block';
+                    }
+                    
+                    fetch(`/Comments/LoadComments?postId=${postId}&page=${page}&pageSize=10`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(response => response.text())
+                    .then(html => {
+                        if (html.trim().length === 0) {
+                            hasMore = false;
+                            if (loadingIndicator) {
+                                loadingIndicator.style.display = 'none';
+                            }
+                        } else {
+                            // Insert before the loading indicator
+                            const commentsDiv = scrollContainer.querySelector(`#comments-for-modal-${postId}`);
+                            if (commentsDiv && loadingIndicator) {
+                                loadingIndicator.insertAdjacentHTML('beforebegin', html);
+                                loadingIndicator.style.display = 'none';
+                            } else if (commentsDiv) {
+                                commentsDiv.insertAdjacentHTML('beforeend', html);
+                            }
+                            page++;
+                        }
+                        isLoading = false;
+                    })
+                    .catch(error => {
+                        console.error('Error loading comments:', error);
+                        if (loadingIndicator) {
+                            loadingIndicator.style.display = 'none';
+                        }
+                        isLoading = false;
+                    });
+                }
+            };
+            
+            scrollContainer.addEventListener('scroll', scrollContainer._commentsScrollHandler);
+        });
+    }
 
     // Initialize modal after a short delay to ensure Bootstrap is ready
     setTimeout(() => {
         initializePostModal();
     }, 100);
+    
+    // Also handle clicks on post images in feed (event delegation)
+    document.addEventListener('click', function(e) {
+        const postImageLink = e.target.closest('.post-image-link');
+        if (postImageLink) {
+            e.preventDefault();
+            const postId = postImageLink.getAttribute('data-post-id');
+            
+            // Manually trigger the modal with the post ID
+            const postModal = document.getElementById('postModal');
+            if (postModal && postId) {
+                const modalBody = document.getElementById('postModalBody');
+                if (modalBody) {
+                    modalBody.innerHTML = '<div class="d-flex justify-content-center p-5"><div class="spinner-border text-purple" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                }
+                
+                // Show the modal
+                const bsModal = new bootstrap.Modal(postModal);
+                bsModal.show();
+                
+                // Load the content
+                fetch(`/Posts/PostPartial/${postId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.text();
+                    })
+                    .then(html => { 
+                        modalBody.innerHTML = html;
+                        setTimeout(initializeModalCommentsScroll, 100);
+                    })
+                    .catch(err => { 
+                        console.error('Modal load error:', err);
+                        modalBody.innerHTML = '<p class="text-danger text-center p-5">Failed to load post. Please try again.</p>'; 
+                    });
+            }
+        }
+    });
 
     // =================================================================
     // SIMPLE SIDEBAR TOGGLE LOGIC

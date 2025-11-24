@@ -14,7 +14,9 @@
         </div>
         @if (!string.IsNullOrEmpty(post.ImageURL))
         {
-            <img src="@post.ImageURL" class="card-img-top" alt="Post Image">
+            <a href="#" class="post-image-link" data-bs-toggle="modal" data-bs-target="#postModal" data-post-id="@post.Id">
+                <img src="@post.ImageURL" class="card-img-top" alt="Post Image" style="cursor: pointer;">
+            </a>
         }
         <div class="card-body">
             @if (!string.IsNullOrWhiteSpace(post.Content))

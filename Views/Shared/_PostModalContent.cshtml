@@ -46,29 +46,40 @@
                             <span>@Model.Content</span>
                         </div>
                     }
-                    <div class="flex-grow-1 overflow-auto mb-3">
+                    <div class="flex-grow-1 overflow-auto mb-3" id="modal-comments-container-@Model.Id" style="max-height: 400px; overflow-y: auto;">
                         <div class="comments-container mt-2" id="comments-for-modal-@Model.Id">
-                            @foreach(var comment in Model.Comments.OrderBy(c => c.CreatedAt))
+                            @foreach(var comment in Model.Comments.OrderBy(c => c.CreatedAt).Take(10))
                             {
                                 @if (comment.User != null)
                                 { <partial name="_CommentPartial" model="comment" /> }
                             }
                         </div>
+                        @if (Model.Comments.Count > 10)
+                        {
+                            <div class="text-center py-2 modal-comments-loading" style="display: none;">
+                                <div class="spinner-border spinner-border-sm text-purple" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                        }
                     </div>
                     <div class="mt-auto">
                         <div class="d-flex align-items-center gap-3 border-top pt-2">
                             @{
                                 var isLiked = Model.Likes.Any(l => l.UserId == currentUserId);
                             }
-                            <button class="btn btn-link text-dark p-0 like-button" data-post-id="@Model.Id">
-                                <i class="bi @(isLiked ? "bi-heart-fill text-danger" : "bi-heart") fs-5"></i>
-                            </button>
-                            <div class="text-dark d-flex align-items-center gap-1">
+                            <div class="d-flex flex-column align-items-center">
+                                <button class="btn btn-link text-dark p-0 like-button" data-post-id="@Model.Id">
+                                    <i class="bi @(isLiked ? "bi-heart-fill text-danger" : "bi-heart") fs-5"></i>
+                                </button>
+                                <div class="fw-bold small mt-1">@Model.Likes.Count</div>
+                            </div>
+                            <div class="d-flex flex-column align-items-center">
                                 <i class="bi bi-chat fs-5"></i>
+                                <div class="text-muted small mt-1">@Model.Comments.Count</div>
                             </div>
                         </div>
-                        <div class="likes-count fw-bold small mt-1">@Model.Likes.Count likes</div>
-                        <div class="text-muted small mt-1">@Model.CreatedAt.ToLocalTime().ToString("D").ToUpper()</div>
+                        <div class="text-muted small mt-2">@Model.CreatedAt.ToLocalTime().ToString("D").ToUpper()</div>
                     </div>
                 </div>
                 <div class="card-footer bg-white p-2">
@@ -109,17 +120,33 @@
                 @{
                     var isLiked = Model.Likes.Any(l => l.UserId == currentUserId);
                 }
-                <button class="btn btn-link p-0 like-button" data-post-id="@Model.Id">
-                    <i class="bi @(isLiked ? "bi-heart-fill text-danger" : "bi-heart") fs-4"></i>
-                </button>
-                <span class="fw-semibold">@Model.Likes.Count likes</span>
-                <span class="text-muted small">@Model.CreatedAt.ToLocalTime().ToString("g")</span>
+                <div class="d-flex flex-column align-items-center">
+                    <button class="btn btn-link p-0 like-button" data-post-id="@Model.Id">
+                        <i class="bi @(isLiked ? "bi-heart-fill text-danger" : "bi-heart") fs-4"></i>
+                    </button>
+                    <span class="fw-semibold small">@Model.Likes.Count</span>
+                </div>
+                <div class="d-flex flex-column align-items-center">
+                    <i class="bi bi-chat fs-4"></i>
+                    <span class="fw-semibold small">@Model.Comments.Count</span>
+                </div>
+                <span class="text-muted small ms-auto">@Model.CreatedAt.ToLocalTime().ToString("g")</span>
             </div>
-            <div class="comments-container mb-3" id="comments-for-modal-@Model.Id">
-                @foreach(var comment in Model.Comments.OrderBy(c => c.CreatedAt))
+            <div id="modal-comments-container-@Model.Id" style="max-height: 350px; overflow-y: auto;" class="mb-3">
+                <div class="comments-container" id="comments-for-modal-@Model.Id">
+                    @foreach(var comment in Model.Comments.OrderBy(c => c.CreatedAt).Take(10))
+                    {
+                        @if (comment.User != null)
+                        { <partial name="_CommentPartial" model="comment" /> }
+                    }
+                </div>
+                @if (Model.Comments.Count > 10)
                 {
-                    @if (comment.User != null)
-                    { <partial name="_CommentPartial" model="comment" /> }
+                    <div class="text-center py-2 modal-comments-loading" style="display: none;">
+                        <div class="spinner-border spinner-border-sm text-purple" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
                 }
             </div>
             <form class="add-comment-form" data-post-id="@Model.Id">

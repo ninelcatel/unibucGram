@@ -57,6 +57,17 @@
     
     @RenderBody()
 
+    <!-- Post Modal (for profile-style viewing) -->
+    <div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content" style="background: transparent; border: none;">
+                <div class="modal-body" id="postModalBody">
+                    <!-- Post content will be loaded here via AJAX -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Comments Modal -->
     <div class="comments-modal-overlay" id="commentsModalOverlay"></div>
     <div class="comments-modal" id="commentsModal">
