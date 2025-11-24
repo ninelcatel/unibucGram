@@ -70,6 +70,25 @@ namespace unibucGram.Controllers
             return BadRequest(new { message = string.Join(" ", errors) });
         }
 
+        [HttpGet]
+        public async Task<IActionResult> LoadComments(int postId, int page = 1, int pageSize = 10)
+        {
+            var comments = await _db.Comments
+                .Include(c => c.User)
+                .Where(c => c.PostId == postId)
+                .OrderBy(c => c.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return PartialView("~/Views/Shared/_CommentsListPartial.cshtml", comments);
+            }
+
+            return Json(comments);
+        }
+
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [FromForm] Comment commentData)

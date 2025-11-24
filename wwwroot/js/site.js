@@ -712,4 +712,181 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fetchNotifications();
     setInterval(fetchNotifications, 30000);
+
+    // =================================================================
+    // Comments Modal Logic
+    // =================================================================
+    const commentsModal = document.getElementById('commentsModal');
+    const commentsModalOverlay = document.getElementById('commentsModalOverlay');
+    const commentsModalBody = document.getElementById('commentsModalBody');
+    const closeCommentsModalBtn = document.getElementById('closeCommentsModal');
+    const modalCommentForm = document.getElementById('modalCommentForm');
+    const modalPostIdInput = document.getElementById('modalPostId');
+    
+    let currentCommentsPage = 1;
+    let isLoadingComments = false;
+    let hasMoreComments = true;
+    let currentPostId = null;
+
+    // Open comments modal when clicking comment button
+    document.addEventListener('click', function(e) {
+        const commentsButton = e.target.closest('.comments-button');
+        if (commentsButton) {
+            e.preventDefault();
+            const postId = commentsButton.dataset.postId;
+            openCommentsModal(postId);
+        }
+    });
+
+    // Close modal handlers
+    closeCommentsModalBtn?.addEventListener('click', closeCommentsModal);
+    commentsModalOverlay?.addEventListener('click', closeCommentsModal);
+
+    // ESC key to close modal
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && commentsModal?.classList.contains('active')) {
+            closeCommentsModal();
+        }
+    });
+
+    function openCommentsModal(postId) {
+        currentPostId = postId;
+        currentCommentsPage = 1;
+        hasMoreComments = true;
+        
+        // Set post ID in the form
+        if (modalPostIdInput) {
+            modalPostIdInput.value = postId;
+        }
+        
+        // Show modal
+        commentsModal?.classList.add('active');
+        commentsModalOverlay?.classList.add('active');
+        document.body.style.overflow = 'hidden';
+        
+        // Clear previous comments
+        if (commentsModalBody) {
+            commentsModalBody.innerHTML = '<div class="comments-loading"><div class="spinner-border" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+        }
+        
+        // Load comments
+        loadCommentsForModal(postId);
+    }
+
+    function closeCommentsModal() {
+        commentsModal?.classList.remove('active');
+        commentsModalOverlay?.classList.remove('active');
+        document.body.style.overflow = '';
+        currentPostId = null;
+        currentCommentsPage = 1;
+        hasMoreComments = true;
+        
+        // Clear the form
+        if (modalCommentForm) {
+            modalCommentForm.reset();
+        }
+    }
+
+    function loadCommentsForModal(postId, page = 1) {
+        if (isLoadingComments) return;
+        
+        isLoadingComments = true;
+        
+        fetch(`/Comments/LoadComments?postId=${postId}&page=${page}&pageSize=10`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
+        .then(response => response.text())
+        .then(html => {
+            if (page === 1) {
+                // First load - replace content
+                if (html.trim().length === 0) {
+                    commentsModalBody.innerHTML = '<div class="no-comments"><i class="bi bi-chat-dots"></i><p>No comments yet. Be the first to comment!</p></div>';
+                    hasMoreComments = false;
+                } else {
+                    commentsModalBody.innerHTML = html;
+                }
+            } else {
+                // Subsequent loads - append content
+                if (html.trim().length === 0) {
+                    hasMoreComments = false;
+                } else {
+                    commentsModalBody.insertAdjacentHTML('beforeend', html);
+                }
+            }
+            isLoadingComments = false;
+        })
+        .catch(error => {
+            console.error('Error loading comments:', error);
+            if (page === 1) {
+                commentsModalBody.innerHTML = '<div class="no-comments"><i class="bi bi-exclamation-triangle"></i><p>Failed to load comments. Please try again.</p></div>';
+            }
+            isLoadingComments = false;
+        });
+    }
+
+    // Infinite scroll for comments
+    if (commentsModalBody) {
+        commentsModalBody.addEventListener('scroll', function() {
+            if (isLoadingComments || !hasMoreComments || !currentPostId) return;
+            
+            const scrollTop = commentsModalBody.scrollTop;
+            const scrollHeight = commentsModalBody.scrollHeight;
+            const clientHeight = commentsModalBody.clientHeight;
+            
+            // Load more when scrolled near bottom
+            if (scrollTop + clientHeight >= scrollHeight - 100) {
+                currentCommentsPage++;
+                loadCommentsForModal(currentPostId, currentCommentsPage);
+            }
+        });
+    }
+
+    // Handle comment submission from modal
+    if (modalCommentForm) {
+        modalCommentForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const input = modalCommentForm.querySelector('input[name="commentText"]');
+            const content = input.value.trim();
+            const postId = modalPostIdInput.value;
+            
+            if (!content || !postId) return;
+            
+            fetch('/Comments/Add', {
+                method: 'POST',
+                headers: { 
+                    'Content-Type': 'application/x-www-form-urlencoded', 
+                    'X-Requested-With': 'XMLHttpRequest' 
+                },
+                body: `postId=${postId}&content=${encodeURIComponent(content)}`
+            })
+            .then(response => response.text())
+            .then(html => {
+                // Remove "no comments" message if present
+                const noComments = commentsModalBody.querySelector('.no-comments');
+                if (noComments) {
+                    noComments.remove();
+                }
+                
+                // Add new comment at the bottom
+                commentsModalBody.insertAdjacentHTML('beforeend', html);
+                
+                // Clear input
+                input.value = '';
+                
+                // Scroll to bottom to show new comment
+                commentsModalBody.scrollTop = commentsModalBody.scrollHeight;
+                
+                // Update comment count on the button
+                const commentButton = document.querySelector(`.comments-button[data-post-id="${postId}"]`);
+                if (commentButton) {
+                    const countSpan = commentButton.querySelector('.comments-count');
+                    if (countSpan) {
+                        const currentCount = parseInt(countSpan.textContent) || 0;
+                        countSpan.textContent = `${currentCount + 1} comments`;
+                    }
+                }
+            })
+            .catch(error => console.error('Error adding comment:', error));
+        });
+    }
 });

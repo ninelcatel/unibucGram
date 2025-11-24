@@ -31,20 +31,13 @@
                     </button>
                     <span class="likes-count">@post.Likes.Count likes</span>
                 </div>
-                <div class="text-dark d-flex align-items-center gap-1" style="cursor: default;">
-                    <i class="bi bi-chat fs-5"></i> @post.Comments.Count comments
-                </div>
+                <button class="btn btn-link text-dark p-0 comments-button" data-post-id="@post.Id" style="cursor: pointer;">
+                    <i class="bi bi-chat fs-5"></i> <span class="comments-count">@post.Comments.Count comments</span>
+                </button>
             </div>
         </div>
         <div class="card-footer bg-white p-2">
             <div class="post-footer p-3">
-                <div id="comments-list-@post.Id" class="comments-section mt-2">
-                    @foreach (var comment in post.Comments.OrderBy(c => c.CreatedAt).Take(3))
-                    {
-                        <partial name="_CommentPartial" model="comment" />
-                    }
-                </div>
-
                 <form class="add-comment-form" data-post-id="@post.Id">
                     <input type="text" name="commentText" class="form-control form-control-sm" placeholder="Add a comment..." />
                 </form>

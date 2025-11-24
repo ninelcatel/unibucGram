@@ -57,9 +57,32 @@
     
     @RenderBody()
 
+    <!-- Comments Modal -->
+    <div class="comments-modal-overlay" id="commentsModalOverlay"></div>
+    <div class="comments-modal" id="commentsModal">
+        <div class="comments-modal-header">
+            <h5 class="comments-modal-title">Comments</h5>
+            <button class="comments-modal-close" id="closeCommentsModal">&times;</button>
+        </div>
+        <div class="comments-modal-body" id="commentsModalBody">
+            <div class="comments-loading">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+            </div>
+        </div>
+        <div class="comments-modal-footer">
+            <form class="add-comment-form" id="modalCommentForm">
+                <input type="hidden" id="modalPostId" />
+                <input type="text" name="commentText" class="form-control" placeholder="Add a comment..." />
+            </form>
+        </div>
+    </div>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
+
 </body>
 </html>
