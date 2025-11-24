@@ -64,20 +64,23 @@
                         }
                     </div>
                     <div class="mt-auto">
-                        <div class="d-flex align-items-center gap-3 border-top pt-2">
+                        <div class="d-flex align-items-center gap-2 border-top pt-2">
                             @{
                                 var isLiked = Model.Likes.Any(l => l.UserId == currentUserId);
                             }
-                            <div class="d-flex flex-column align-items-center">
-                                <button class="btn btn-link text-dark p-0 like-button" data-post-id="@Model.Id">
-                                    <i class="bi @(isLiked ? "bi-heart-fill text-danger" : "bi-heart") fs-5"></i>
-                                </button>
-                                <div class="fw-bold small mt-1">@Model.Likes.Count</div>
-                            </div>
-                            <div class="d-flex flex-column align-items-center">
+                            <button class="btn btn-link text-dark p-0 like-button" data-post-id="@Model.Id">
+                                <i class="bi @(isLiked ? "bi-heart-fill text-danger" : "bi-heart") fs-5"></i>
+                            </button>
+                            <span class="fw-bold small">@Model.Likes.Count likes</span>
+                            
+                            <button class="btn btn-link text-dark p-0 ms-2">
                                 <i class="bi bi-chat fs-5"></i>
-                                <div class="text-muted small mt-1">@Model.Comments.Count</div>
-                            </div>
+                            </button>
+                            <span class="fw-bold small">@Model.Comments.Count comments</span>
+                            
+                            <button class="btn btn-link text-dark p-0 ms-2 share-button" data-post-id="@Model.Id">
+                                <i class="bi bi-send fs-5"></i>
+                            </button>
                         </div>
                         <div class="text-muted small mt-2">@Model.CreatedAt.ToLocalTime().ToString("D").ToUpper()</div>
                     </div>
@@ -116,21 +119,26 @@
                     <p class="fst-italic text-muted mb-0">No caption</p>
                 }
             </div>
-            <div class="d-flex align-items-center gap-3 mb-3">
-                @{
-                    var isLiked = Model.Likes.Any(l => l.UserId == currentUserId);
-                }
-                <div class="d-flex flex-column align-items-center">
+            <div class="border-top pt-3 mb-3">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    @{
+                        var isLiked = Model.Likes.Any(l => l.UserId == currentUserId);
+                    }
                     <button class="btn btn-link p-0 like-button" data-post-id="@Model.Id">
                         <i class="bi @(isLiked ? "bi-heart-fill text-danger" : "bi-heart") fs-4"></i>
                     </button>
-                    <span class="fw-semibold small">@Model.Likes.Count</span>
+                    <span class="fw-semibold small">@Model.Likes.Count likes</span>
+                    
+                    <button class="btn btn-link p-0 ms-2">
+                        <i class="bi bi-chat fs-4"></i>
+                    </button>
+                    <span class="fw-semibold small">@Model.Comments.Count comments</span>
+                    
+                    <button class="btn btn-link p-0 ms-2 share-button" data-post-id="@Model.Id">
+                        <i class="bi bi-send fs-4"></i>
+                    </button>
                 </div>
-                <div class="d-flex flex-column align-items-center">
-                    <i class="bi bi-chat fs-4"></i>
-                    <span class="fw-semibold small">@Model.Comments.Count</span>
-                </div>
-                <span class="text-muted small ms-auto">@Model.CreatedAt.ToLocalTime().ToString("g")</span>
+                <div class="text-muted small">@Model.CreatedAt.ToLocalTime().ToString("g")</div>
             </div>
             <div id="modal-comments-container-@Model.Id" style="max-height: 350px; overflow-y: auto;" class="mb-3">
                 <div class="comments-container" id="comments-for-modal-@Model.Id">

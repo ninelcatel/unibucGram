@@ -569,11 +569,17 @@ document.addEventListener('DOMContentLoaded', () => {
                           </div>`;
                     }
 
+                    // Replace [SHARED_POST:xxx] with "Attachment"
+                    let lastMessage = g.lastMessage || 'No messages yet';
+                    if (lastMessage.startsWith('[SHARED_POST:') && lastMessage.endsWith(']')) {
+                        lastMessage = 'Attachment';
+                    }
+
                     item.innerHTML = `
                         ${iconHtml}
                         <div class="overflow-hidden">
                             <div class="fw-bold text-truncate">${g.name}</div>
-                            <small class="text-muted text-truncate d-block">${g.lastMessage || 'No messages yet'}</small>
+                            <small class="text-muted text-truncate d-block">${lastMessage}</small>
                         </div>
                     `;
                     item.addEventListener('click', (e) => {
@@ -665,17 +671,87 @@ document.addEventListener('DOMContentLoaded', () => {
                                  style="object-fit:cover;">
                         </a>`;
 
-                    div.innerHTML = `
-                        ${pfpHtml}
-                        <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}" style="max-width:70%;">
-                            ${!isMe ? `<small class="text-muted mb-1 fw-semibold" style="font-size:0.75rem;">${msg.senderName}</small>` : ''}
-                            <div class="p-3 rounded-3 ${isMe ? 'msg-bubble-sent' : 'msg-bubble-received'}" style="word-wrap:break-word;box-shadow:0 1px 2px rgba(0,0,0,0.1);">
-                                ${msg.content}
+                    // Check if it's a shared post
+                    if (msg.sharedPost) {
+                        const post = msg.sharedPost;
+                        const postHtml = `
+                            <div class="shared-post-preview" data-post-id="${post.id}" style="cursor: pointer; max-width: 300px;">
+                                <div class="card border shadow-sm">
+                                    ${post.imageURL ? `<img src="${post.imageURL}" class="card-img-top" alt="Shared post" style="max-height: 200px; object-fit: cover;">` : ''}
+                                    <div class="card-body p-2">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <img src="${post.userPfp || '/uploads/default_pfp.jpg'}"
+                                                 alt="avatar" width="20" height="20" class="rounded-circle me-2" />
+                                            <small class="fw-bold text-truncate">${post.username}</small>
+                                        </div>
+                                        ${post.content ? `<p class="card-text small text-muted mb-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${post.content}</p>` : ''}
+                                        <div class="d-flex gap-2 text-muted" style="font-size: 0.7rem;">
+                                            <span><i class="bi bi-heart-fill text-danger"></i> ${post.likesCount}</span>
+                                            <span><i class="bi bi-chat-fill"></i> ${post.commentsCount}</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
-                            <small class="text-muted mt-1" style="font-size:0.7rem;">${msg.sentAt}</small>
-                        </div>
-                    `;
+                        `;
+                        
+                        div.innerHTML = `
+                            ${pfpHtml}
+                            <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}" style="max-width:70%;">
+                                ${!isMe ? `<small class="text-muted mb-1 fw-semibold" style="font-size:0.75rem;">${msg.senderName}</small>` : ''}
+                                ${postHtml}
+                                <small class="text-muted mt-1" style="font-size:0.7rem;">${msg.sentAt}</small>
+                            </div>
+                        `;
+                    } else {
+                        // Regular message
+                        div.innerHTML = `
+                            ${pfpHtml}
+                            <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}" style="max-width:70%;">
+                                ${!isMe ? `<small class="text-muted mb-1 fw-semibold" style="font-size:0.75rem;">${msg.senderName}</small>` : ''}
+                                <div class="p-3 rounded-3 ${isMe ? 'msg-bubble-sent' : 'msg-bubble-received'}" style="word-wrap:break-word;box-shadow:0 1px 2px rgba(0,0,0,0.1);">
+                                    ${msg.content}
+                                </div>
+                                <small class="text-muted mt-1" style="font-size:0.7rem;">${msg.sentAt}</small>
+                            </div>
+                        `;
+                    }
+                    
                     chatMessagesContainer.appendChild(div);
+                });
+
+                // Add click handlers for shared posts
+                chatMessagesContainer.querySelectorAll('.shared-post-preview').forEach(preview => {
+                    preview.addEventListener('click', function() {
+                        const postId = this.dataset.postId;
+                        
+                        // Close chat modal first
+                        const chatModalInstance = bootstrap.Modal.getInstance(chatModal);
+                        if (chatModalInstance) {
+                            chatModalInstance.hide();
+                        }
+                        
+                        // Open post modal
+                        const postModal = document.getElementById('postModal');
+                        const postModalBody = document.getElementById('postModalBody');
+                        
+                        if (postModal && postModalBody) {
+                            postModalBody.innerHTML = '<div class="d-flex justify-content-center p-5"><div class="spinner-border text-purple" role="status"></div></div>';
+                            
+                            const bsPostModal = new bootstrap.Modal(postModal);
+                            bsPostModal.show();
+                            
+                            fetch(`/Posts/PostPartial/${postId}`)
+                                .then(response => response.text())
+                                .then(html => {
+                                    postModalBody.innerHTML = html;
+                                    setTimeout(initializeModalCommentsScroll, 100);
+                                })
+                                .catch(err => {
+                                    console.error('Failed to load post:', err);
+                                    postModalBody.innerHTML = '<p class="text-danger text-center p-5">Failed to load post.</p>';
+                                });
+                        }
+                    });
                 });
 
                 // Scroll to bottom after rendering
@@ -831,6 +907,189 @@ document.addEventListener('DOMContentLoaded', () => {
 
     fetchNotifications();
     setInterval(fetchNotifications, 30000);
+
+    // =================================================================
+    // Share Post Functionality
+    // =================================================================
+    let currentSharePostId = null;
+    const selectedGroupsForShare = new Set();
+    const shareModal = document.getElementById('shareModal');
+    const shareSearchInput = document.getElementById('shareSearchInput');
+    const shareGroupsList = document.getElementById('shareGroupsList');
+    const selectedGroupsContainer = document.getElementById('selectedGroupsForShare');
+    const confirmShareBtn = document.getElementById('confirmShareBtn');
+
+    // Open share modal when clicking share button
+    document.addEventListener('click', function(e) {
+        const shareButton = e.target.closest('.share-button');
+        if (shareButton) {
+            e.preventDefault();
+            currentSharePostId = shareButton.dataset.postId;
+            selectedGroupsForShare.clear();
+            if (selectedGroupsContainer) {
+                selectedGroupsContainer.innerHTML = '';
+            }
+            
+            // Show modal
+            const bsModal = new bootstrap.Modal(shareModal);
+            bsModal.show();
+            
+            // Load user's groups
+            loadGroupsForShare();
+        }
+    });
+
+    function loadGroupsForShare(query = '') {
+        if (!shareGroupsList) return;
+        
+        shareGroupsList.innerHTML = '<div class="text-center text-muted py-3"><div class="spinner-border spinner-border-sm" role="status"></div></div>';
+        
+        const url = query ? `/Group/SearchGroups?q=${encodeURIComponent(query)}` : '/Group/GetUserGroups';
+        
+        fetch(url)
+            .then(res => res.json())
+            .then(groups => {
+                shareGroupsList.innerHTML = '';
+                
+                if (groups.length === 0) {
+                    shareGroupsList.innerHTML = '<div class="text-center text-muted py-3">No groups found</div>';
+                    return;
+                }
+                
+                groups.forEach(g => {
+                    const item = document.createElement('div');
+                    item.className = 'list-group-item list-group-item-action d-flex align-items-center justify-content-between';
+                    item.style.cursor = 'pointer';
+                    
+                    const iconHtml = g.isDm && g.pfp
+                        ? `<img src="${g.pfp}" class="rounded-circle me-2" width="32" height="32" style="object-fit:cover;">`
+                        : '<i class="bi bi-people-fill fs-5 me-2 text-purple"></i>';
+                    
+                    const isSelected = selectedGroupsForShare.has(g.id);
+                    
+                    item.innerHTML = `
+                        <div class="d-flex align-items-center">
+                            ${iconHtml}
+                            <span>${g.name}</span>
+                        </div>
+                        <i class="bi ${isSelected ? 'bi-check-circle-fill text-success' : 'bi-circle'}"></i>
+                    `;
+                    
+                    item.addEventListener('click', () => toggleGroupSelection(g.id, g.name, item));
+                    shareGroupsList.appendChild(item);
+                });
+            })
+            .catch(err => {
+                console.error('Failed to load groups:', err);
+                shareGroupsList.innerHTML = '<div class="text-center text-danger py-3">Failed to load groups</div>';
+            });
+    }
+
+    function toggleGroupSelection(groupId, groupName, element) {
+        if (selectedGroupsForShare.has(groupId)) {
+            selectedGroupsForShare.delete(groupId);
+            element.querySelector('i').className = 'bi bi-circle';
+        } else {
+            selectedGroupsForShare.add(groupId);
+            element.querySelector('i').className = 'bi bi-check-circle-fill text-success';
+        }
+        
+        updateSelectedGroupsDisplay();
+    }
+
+    function updateSelectedGroupsDisplay() {
+        if (!selectedGroupsContainer) return;
+        
+        if (selectedGroupsForShare.size === 0) {
+            selectedGroupsContainer.innerHTML = '';
+            return;
+        }
+        
+        selectedGroupsContainer.innerHTML = `
+            <div class="alert alert-info mb-0">
+                <i class="bi bi-info-circle me-2"></i>
+                ${selectedGroupsForShare.size} group${selectedGroupsForShare.size > 1 ? 's' : ''} selected
+            </div>
+        `;
+    }
+
+    // Search groups
+    if (shareSearchInput) {
+        let searchTimeout;
+        shareSearchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+            
+            searchTimeout = setTimeout(() => {
+                loadGroupsForShare(query);
+            }, 300);
+        });
+    }
+
+    // Confirm share
+    if (confirmShareBtn) {
+        confirmShareBtn.addEventListener('click', function() {
+            if (selectedGroupsForShare.size === 0) {
+                alert('Please select at least one group');
+                return;
+            }
+            
+            if (!currentSharePostId) return;
+            
+            confirmShareBtn.disabled = true;
+            confirmShareBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Sharing...';
+            
+            fetch('/Group/SharePost', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]')?.value || ''
+                },
+                body: JSON.stringify({
+                    postId: parseInt(currentSharePostId),
+                    groupIds: Array.from(selectedGroupsForShare)
+                })
+            })
+            .then(res => {
+                if (!res.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return res.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Close modal
+                    const bsModal = bootstrap.Modal.getInstance(shareModal);
+                    bsModal.hide();
+                    
+                    // Show success message (you can customize this)
+                    alert('Post shared successfully!');
+                    
+                    // Reset
+                    selectedGroupsForShare.clear();
+                    currentSharePostId = null;
+                }
+            })
+            .catch(err => {
+                console.error('Share failed:', err);
+                alert('Failed to share post. Please try again.');
+            })
+            .finally(() => {
+                confirmShareBtn.disabled = false;
+                confirmShareBtn.innerHTML = 'Share';
+            });
+        });
+    }
+
+    // Reset modal on close
+    if (shareModal) {
+        shareModal.addEventListener('hidden.bs.modal', function() {
+            selectedGroupsForShare.clear();
+            currentSharePostId = null;
+            if (shareSearchInput) shareSearchInput.value = '';
+            if (selectedGroupsContainer) selectedGroupsContainer.innerHTML = '';
+        });
+    }
 
     // =================================================================
     // Comments Modal Logic

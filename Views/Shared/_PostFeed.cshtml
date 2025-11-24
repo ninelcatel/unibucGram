@@ -23,20 +23,25 @@
             {
                 <p class="card-text">@post.Content</p>
             }
-            <div class="d-flex align-items-center gap-3">
-                <div class="d-flex align-items-center gap-1">
-                    @{
-                        var isLiked = post.Likes.Any(l => l.UserId == UserManager.GetUserId(User));
-                    }
-                    <button class="btn btn-link text-dark p-0 like-button" data-post-id="@post.Id" style="line-height: 1;">
-                        <i class="bi @(isLiked ? "bi-heart-fill text-danger" : "bi-heart") fs-5"></i>
-                    </button>
-                    <span class="likes-count">@post.Likes.Count likes</span>
-                </div>
-                <button class="btn btn-link text-dark p-0 comments-button" data-post-id="@post.Id" style="cursor: pointer;">
-                    <i class="bi bi-chat fs-5"></i> <span class="comments-count">@post.Comments.Count comments</span>
+            <div class="d-flex align-items-center gap-2 mb-2">
+                @{
+                    var isLiked = post.Likes.Any(l => l.UserId == UserManager.GetUserId(User));
+                }
+                <button class="btn btn-link text-dark p-0 like-button" data-post-id="@post.Id" style="line-height: 1;">
+                    <i class="bi @(isLiked ? "bi-heart-fill text-danger" : "bi-heart") fs-5"></i>
+                </button>
+                <span class="fw-bold small">@post.Likes.Count likes</span>
+                
+                <button class="btn btn-link text-dark p-0 comments-button ms-2" data-post-id="@post.Id" style="cursor: pointer;">
+                    <i class="bi bi-chat fs-5"></i>
+                </button>
+                <span class="fw-bold small">@post.Comments.Count comments</span>
+                
+                <button class="btn btn-link text-dark p-0 share-button ms-2" data-post-id="@post.Id" style="cursor: pointer;">
+                    <i class="bi bi-send fs-5"></i>
                 </button>
             </div>
+            <div class="text-muted small">@post.CreatedAt.ToLocalTime().ToString("MMMM dd, yyyy")</div>
         </div>
         <div class="card-footer bg-white p-2">
             <div class="post-footer p-3">

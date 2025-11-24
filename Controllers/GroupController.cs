@@ -133,15 +133,59 @@ namespace unibucGram.Controllers
                 .Where(m => m.GroupId == id)
                 .Include(m => m.User)
                 .OrderBy(m => m.SentAt)
-                .Select(m => new {
+                .ToListAsync();
+
+            var messageData = new List<object>();
+
+            foreach (var m in messages)
+            {
+                // Check if it's a shared post
+                if (m.Content.StartsWith("[SHARED_POST:") && m.Content.EndsWith("]"))
+                {
+                    var postIdStr = m.Content.Substring(13, m.Content.Length - 14);
+                    if (int.TryParse(postIdStr, out int postId))
+                    {
+                        var post = await _context.Posts
+                            .Include(p => p.User)
+                            .Include(p => p.Likes)
+                            .Include(p => p.Comments)
+                            .FirstOrDefaultAsync(p => p.Id == postId);
+
+                        if (post != null)
+                        {
+                            messageData.Add(new {
+                                m.Id,
+                                Content = "Attachment", // Display "Attachment" instead of [SHARED_POST:...]
+                                SharedPost = new {
+                                    post.Id,
+                                    post.ImageURL,
+                                    post.Content,
+                                    Username = post.User?.UserName,
+                                    UserPfp = post.User?.PfpURL,
+                                    LikesCount = post.Likes.Count,
+                                    CommentsCount = post.Comments.Count
+                                },
+                                SenderName = m.User.UserName,
+                                SenderPfp = m.User.PfpURL,
+                                IsMe = m.UserId == currentUserId,
+                                SentAt = m.SentAt.ToString("HH:mm")
+                            });
+                            continue;
+                        }
+                    }
+                }
+
+                // Regular message
+                messageData.Add(new {
                     m.Id,
                     m.Content,
+                    SharedPost = (object)null,
                     SenderName = m.User.UserName,
                     SenderPfp = m.User.PfpURL,
                     IsMe = m.UserId == currentUserId,
                     SentAt = m.SentAt.ToString("HH:mm")
-                })
-                .ToListAsync();
+                });
+            }
 
             // Get header info (for DMs, get the other user's pfp)
             string headerPfp = null;
@@ -153,7 +197,7 @@ namespace unibucGram.Controllers
             }
 
             return Json(new { 
-                messages, 
+                messages = messageData, 
                 isDm = group.IsDirectMessage,
                 headerPfp 
             });
@@ -179,6 +223,77 @@ namespace unibucGram.Controllers
             await _context.SaveChangesAsync();
 
             return Json(new { success = true });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SharePost([FromBody] SharePostRequest request)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            var post = await _context.Posts
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == request.PostId);
+            
+            if (post == null) return NotFound();
+
+            // Create a message for each selected group
+            foreach (var groupId in request.GroupIds)
+            {
+                // Verify user is member of the group
+                var isMember = await _context.GroupMembers
+                    .AnyAsync(gm => gm.GroupId == groupId && gm.UserId == user.Id);
+                
+                if (!isMember) continue;
+
+                var msg = new GroupMessage
+                {
+                    GroupId = groupId,
+                    UserId = user.Id,
+                    Content = $"[SHARED_POST:{request.PostId}]", // Special format to identify shared posts
+                    SentAt = DateTime.UtcNow
+                };
+
+                _context.GroupMessages.Add(msg);
+            }
+
+            await _context.SaveChangesAsync();
+            return Json(new { success = true });
+        }
+
+        public class SharePostRequest
+        {
+            public int PostId { get; set; }
+            public List<int> GroupIds { get; set; }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> SearchGroups(string q)
+        {
+            var userId = _userManager.GetUserId(User);
+            if (userId == null) return Unauthorized();
+
+            var groups = await _context.GroupMembers
+                .Where(gm => gm.UserId == userId && gm.Group.Name.Contains(q))
+                .Select(gm => new {
+                    gm.Group.Id,
+                    gm.Group.Name,
+                    gm.Group.IsDirectMessage,
+                    OtherUser = gm.Group.GroupMembers
+                        .Where(m => m.UserId != userId)
+                        .Select(m => new { m.User.UserName, m.User.PfpURL })
+                        .FirstOrDefault()
+                })
+                .ToListAsync();
+
+            var result = groups.Select(g => new {
+                g.Id,
+                Name = g.IsDirectMessage ? g.OtherUser?.UserName : g.Name,
+                Pfp = g.IsDirectMessage ? g.OtherUser?.PfpURL : null,
+                IsDm = g.IsDirectMessage
+            });
+
+            return Json(result);
         }
     }
 }

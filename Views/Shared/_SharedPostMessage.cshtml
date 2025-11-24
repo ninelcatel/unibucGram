@@ -1,0 +1,27 @@
+@model unibucGram.Models.Post
+
+<div class="shared-post-preview" data-post-id="@Model.Id" style="cursor: pointer; max-width: 300px;">
+    <div class="card border shadow-sm">
+        @if (!string.IsNullOrEmpty(Model.ImageURL))
+        {
+            <img src="@Model.ImageURL" class="card-img-top" alt="Shared post" style="max-height: 200px; object-fit: cover;">
+        }
+        <div class="card-body p-2">
+            <div class="d-flex align-items-center mb-2">
+                <img src="@(string.IsNullOrWhiteSpace(Model.User?.PfpURL) ? "/uploads/default_pfp.jpg" : Model.User.PfpURL)"
+                     alt="avatar" width="20" height="20" class="rounded-circle me-2" />
+                <small class="fw-bold text-truncate">@Model.User?.UserName</small>
+            </div>
+            @if (!string.IsNullOrWhiteSpace(Model.Content))
+            {
+                <p class="card-text small text-muted mb-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+                    @Model.Content
+                </p>
+            }
+            <div class="d-flex gap-2 text-muted" style="font-size: 0.7rem;">
+                <span><i class="bi bi-heart-fill text-danger"></i> @Model.Likes.Count</span>
+                <span><i class="bi bi-chat-fill"></i> @Model.Comments.Count</span>
+            </div>
+        </div>
+    </div>
+</div>
