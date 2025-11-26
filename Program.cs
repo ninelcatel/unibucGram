@@ -18,7 +18,7 @@ builder.Services.AddDefaultIdentity<User>(options =>
     options.Password.RequiredLength = 6;
     options.Password.RequireNonAlphanumeric = false;
 })
-.AddRoles<IdentityRole>() // Add this line if you intend to use roles
+.AddRoles<IdentityRole>() 
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
 
@@ -45,6 +45,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
+    SeedData.Initialize(services); // FOR ROLES
     var db = services.GetRequiredService<ApplicationDbContext>();
     var attempts = 0;
     var maxAttempts = 10;
