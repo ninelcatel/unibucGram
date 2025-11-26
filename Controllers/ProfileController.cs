@@ -165,7 +165,7 @@ namespace unibucGram.Controllers
         }
 
 
-        [HttpPost("HandleFollowRequest")] // FIX: Removed "Profile/" prefix
+        [HttpPost("HandleFollowRequest")] 
         [Authorize]
         public async Task<IActionResult> HandleFollowRequest(string actorUsername, string actionType)
         {

@@ -15,7 +15,6 @@ namespace unibucGram.Models
 
         public DateTime RequestedAt { get; set; } = DateTime.UtcNow;
 
-        // ADD THESE NAVIGATION PROPERTIES
         public virtual User Requester { get; set; }
         public virtual User Requestee { get; set; }
     }

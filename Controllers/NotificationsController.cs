@@ -5,6 +5,9 @@ using unibucGram.Models;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+// !!!!!
+// FOLLOW REQUESTS THAT ARE MARKED AS READ WILL BE DELETED 
+// !!!!!
 
 namespace unibucGram.Controllers
 {
@@ -30,7 +33,8 @@ namespace unibucGram.Controllers
                 .Include(n => n.ActorUser)
                 .Include(n => n.Post)
                 .Take(20)
-                .Select(n => new {
+                .Select(n => new
+                {
                     id = n.Id,                           // lowercase for JS
                     type = n.Type.ToString(),            // lowercase for JS
                     actor = n.ActorUser!.UserName,       // lowercase for JS

@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using unibucGram.Models;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
 
 namespace unibucGram.Controllers
 {
@@ -28,9 +29,10 @@ namespace unibucGram.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "User,Admin,Editor")]
         public IActionResult New()
         {
-            // This line prevents the blank red box on the "New Post" page.
+            // This line prevents the blank red box on the New Post page.
             ModelState.Clear();
             return View(new Post());
         }
@@ -39,6 +41,7 @@ namespace unibucGram.Controllers
         [ValidateAntiForgeryToken]
         [RequestSizeLimit(524288000)] // 500 MB limit for video uploads
         [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
+
         public async Task<IActionResult> Create([Bind("Content")] Post post, IFormFile? media)
         {
             // Adaugam o validare custom in ModelState
@@ -138,7 +141,15 @@ namespace unibucGram.Controllers
             {
                 return NotFound();
             }
-
+            var currentUserId = _userManager.GetUserId(User);
+            if (post.User.isPrivate && post.UserId != currentUserId)
+            {
+                var isFollowing = _db.Follows.Any(f => f.FollowerId == currentUserId && f.FolloweeId == post.UserId);
+                if (!isFollowing)
+                {
+                    return Forbid();
+                }
+            }
             return View(post);
         }
 
@@ -160,7 +171,8 @@ namespace unibucGram.Controllers
             return PartialView("~/Views/Shared/_PostModalContent.cshtml", post);
         }
 
-        [HttpPost]
+        [HttpPost()]
+        [Authorize(Roles = "User")] // admins editors and guests shouldnt like other ppl posts.
         public async Task<IActionResult> ToggleLike(int postId, string? returnUrl)
         {
             var userId = _userManager.GetUserId(User);
@@ -213,29 +225,33 @@ namespace unibucGram.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "User,Admin,Editor")]
         public async Task<IActionResult> Edit(int id)
         {
-            var userId = _userManager.GetUserId(User);
             var post = await _db.Posts.FindAsync(id);
-
             if (post == null)
             {
                 return NotFound();
             }
 
-            // Security check: Only the owner can edit the post
-            if (post.UserId != userId)
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null) return Forbid();
+
+            var isOwner = post.UserId == currentUser.Id;
+            var isAdminOrEditor = await _userManager.IsInRoleAsync(currentUser, "Admin") || await _userManager.IsInRoleAsync(currentUser, "Editor");
+
+            if (!isOwner && !isAdminOrEditor)
             {
                 return Forbid();
             }
-            
-            // This line prevents the blank red box on the "Edit Post" page.
+
             ModelState.Clear();
             return View(post);
         }
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "User,Admin,Editor")]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Content")] Post postData, IFormFile? newImage, bool removeImage = false)
         {
             if (id != postData.Id)
@@ -254,9 +270,13 @@ namespace unibucGram.Controllers
                 return NotFound();
             }
 
-            // Security check
-            var userId = _userManager.GetUserId(User);
-            if (postToUpdate.UserId != userId)
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null) return Forbid();
+
+            var isOwner = postToUpdate.UserId == currentUser.Id;
+            var isAdminOrEditor = await _userManager.IsInRoleAsync(currentUser, "Admin") || await _userManager.IsInRoleAsync(currentUser, "Editor");
+
+            if (!isOwner && !isAdminOrEditor)
             {
                 return Forbid();
             }
@@ -326,20 +346,26 @@ namespace unibucGram.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "User,Admin,Editor")]
         public async Task<IActionResult> Delete(int postId)
         {
-            var userId = _userManager.GetUserId(User);
             var post = await _db.Posts.FirstOrDefaultAsync(p => p.Id == postId);
-
             if (post == null)
             {
                 return NotFound();
             }
 
-            if (post.UserId != userId)
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (currentUser == null) return Forbid();
+
+            var isOwner = post.UserId == currentUser.Id;
+            var isAdminOrEditor = await _userManager.IsInRoleAsync(currentUser, "Admin") || await _userManager.IsInRoleAsync(currentUser, "Editor");
+
+            if (!isOwner && !isAdminOrEditor)
             {
                 return Forbid();
             }
+
 
             if (!string.IsNullOrEmpty(post.ImageURL))
             {
