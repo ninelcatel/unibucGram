@@ -1,70 +1,90 @@
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;    
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using unibucGram.Models;
-using Microsoft.AspNetCore.Identity; // Required for UserManager
 
-public class SearchController : Controller
+namespace unibucGram.Controllers
 {
-    private readonly ApplicationDbContext _db;
-    private readonly UserManager<User> _userManager; // Inject UserManager
-
-    public SearchController(ApplicationDbContext db, UserManager<User> userManager)
+    [Authorize]
+    public class SearchController : Controller
     {
-        _db = db;
-        _userManager = userManager;
-    }
+        private readonly ApplicationDbContext _db;
+        private readonly UserManager<User> _userManager;
 
-    [HttpGet]
-    public async Task<IActionResult> Live(string q)
-    {
-        if (string.IsNullOrWhiteSpace(q)) return PartialView("_SearchResults", Enumerable.Empty<User>());
-
-
-        var results = await _db.Users
-            .Where(u => u.UserName.Contains(q))
-            .OrderBy(u => u.UserName)
-            .Take(13)
-            .ToListAsync();
-        foreach (var user in results)
+        public SearchController(ApplicationDbContext db, UserManager<User> userManager)
         {
-            var roles = await _userManager.GetRolesAsync(user);
-            if(roles.Contains("Guest") || roles.Contains("Admin") || roles.Contains("Editor")) 
-            {
-                results.Remove(user);
-            }
+            _db = db;
+            _userManager = userManager;
         }
-        return PartialView("_SearchResults", results);
-    }
 
-    // Create a Group form search bar --> followers only
-    [HttpGet]
-    public async Task<IActionResult> LiveChat(string q)
-    {
-        if (string.IsNullOrWhiteSpace(q)) return PartialView("_SearchResults", Enumerable.Empty<User>());
-            
-
-        var currentUserId = _userManager.GetUserId(User);
-
-        // Find users matching 'q' WHO ALSO follow the current user
-        // Assuming 'Follows' table has FollowerId (who follows) and FolloweeId (who is followed)
-        // We want people where FollowerId = FoundUser AND FolloweeId = CurrentUser
-        
-        var results = await _db.Users
-            .Where(u => u.UserName.Contains(q) && 
-                        _db.Follows.Any(f => f.FollowerId == u.Id && f.FolloweeId == currentUserId))
-            .OrderBy(u => u.UserName)
-            .Take(13)
-            .ToListAsync();
-        foreach (var user in results)
+        [HttpGet]
+        [Authorize(Roles = "User,Editor,Admin")] // Guests cannot search
+        public async Task<IActionResult> Live(string q)
         {
-            var roles = await _userManager.GetRolesAsync(user);
-            if(roles.Contains("Guest") || roles.Contains("Admin") || roles.Contains("Editor")) 
+            if (string.IsNullOrWhiteSpace(q)) 
+                return PartialView("_SearchResults", Enumerable.Empty<User>());
+
+            var allUsers = await _db.Users
+                .Where(u => u.UserName.Contains(q) || 
+                           u.FirstName.Contains(q) || 
+                           u.LastName.Contains(q))
+                .OrderBy(u => u.UserName)
+                .Take(50) // Take more, then filter
+                .ToListAsync();
+
+            // Filter by role
+            var filteredResults = new List<User>();
+            foreach (var user in allUsers)
             {
-                results.Remove(user);
+                var roles = await _userManager.GetRolesAsync(user);
+                if (roles.Contains("User"))
+                {
+                    filteredResults.Add(user);
+                    if (filteredResults.Count >= 10) break; // Limit results
+                }
             }
+
+            return PartialView("_SearchResults", filteredResults);
         }
-        return PartialView("_SearchResults_LiveChat", results);
+
+        [HttpGet]
+        [Authorize(Roles = "User,Editor,Admin")] // Guests cannot search for chats
+        public async Task<IActionResult> LiveChat(string q)
+        {
+            if (string.IsNullOrWhiteSpace(q)) 
+                return PartialView("_SearchResults_LiveChat", Enumerable.Empty<User>());
+
+            var currentUserId = _userManager.GetUserId(User);
+            if (currentUserId == null) return Unauthorized();
+
+            // Find followers only
+            var allFollowers = await _db.Users
+                .Where(u => (u.UserName.Contains(q) || 
+                            u.FirstName.Contains(q) || 
+                            u.LastName.Contains(q)) && 
+                            _db.Follows.Any(f => f.FollowerId == u.Id && f.FolloweeId == currentUserId))
+                .OrderBy(u => u.UserName)
+                .Take(50)
+                .ToListAsync();
+
+            // Filter by role
+            var filteredResults = new List<User>();
+            foreach (var user in allFollowers)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                
+                if (roles.Contains("User"))
+                {
+                    filteredResults.Add(user);
+                    if (filteredResults.Count >= 10) break;
+                }
+            }
+
+            return PartialView("_SearchResults_LiveChat", filteredResults);
+        }
     }
 }

@@ -11,7 +11,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace unibucGram.Controllers
 {
-    [Authorize]
+    [Authorize(Roles = "User,Editor,Admin")] // Guests cannot access notifications
     public class NotificationsController : Controller
     {
         private readonly ApplicationDbContext _db;
@@ -35,13 +35,13 @@ namespace unibucGram.Controllers
                 .Take(20)
                 .Select(n => new
                 {
-                    id = n.Id,                           // lowercase for JS
-                    type = n.Type.ToString(),            // lowercase for JS
-                    actor = n.ActorUser!.UserName,       // lowercase for JS
-                    actorPfp = n.ActorUser!.PfpURL,      // camelCase for JS
-                    postId = n.PostId,                   // camelCase for JS
-                    commentId = n.CommentId,             // camelCase for JS
-                    time = n.CreatedAt                   // lowercase for JS
+                    id = n.Id,
+                    type = n.Type.ToString(),
+                    actor = n.ActorUser!.UserName,
+                    actorPfp = n.ActorUser!.PfpURL,
+                    postId = n.PostId,
+                    commentId = n.CommentId,
+                    time = n.CreatedAt
                 })
                 .ToListAsync();
 
@@ -49,6 +49,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkRead(int id)
         {
             var uid = _userManager.GetUserId(User);
@@ -61,11 +62,16 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkAll()
         {
             var uid = _userManager.GetUserId(User);
             if (uid == null) return Unauthorized();
-            var items = await _db.Notifications.Where(x => x.UserId == uid && !x.IsRead).ToListAsync();
+
+            var items = await _db.Notifications
+                .Where(x => x.UserId == uid && !x.IsRead)
+                .ToListAsync();
+
             items.ForEach(i => i.IsRead = true);
             await _db.SaveChangesAsync();
             return Json(new { success = true });

@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore; // Ensure this is present
+using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using unibucGram.Models;
-using System.Linq; // Necesar pentru a selecta erorile
+using System.Linq;
 
 namespace unibucGram.Controllers
 {
@@ -21,6 +21,8 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "User,Editor,Admin")] // Guests cannot comment
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Add([FromForm] Comment comment)
         {
             ModelState.Remove("UserId");
@@ -54,18 +56,16 @@ namespace unibucGram.Controllers
                     await _db.SaveChangesAsync();
                 }
 
-                // If it's an AJAX call, return partial; else redirect to the post page
                 if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
                 {
                     return PartialView("~/Views/Shared/_CommentPartial.cshtml", comment);
                 }
-                return RedirectToAction("Post", "Posts", new { id = comment.PostId });
+                return RedirectToAction("Show", "Posts", new { id = comment.PostId });
             }
 
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
-            // For non-AJAX, send user back to the post page with a flash message if you prefer
             if (Request.Headers["X-Requested-With"] != "XMLHttpRequest")
-                return RedirectToAction("Post", "Posts", new { id = comment.PostId });
+                return RedirectToAction("Show", "Posts", new { id = comment.PostId });
 
             return BadRequest(new { message = string.Join(" ", errors) });
         }
@@ -91,16 +91,15 @@ namespace unibucGram.Controllers
 
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [Authorize(Roles = "User,Editor,Admin")] // guests cannot edit comments
         public async Task<IActionResult> Edit(int id, [FromForm] Comment commentData)
         {
-            // Eliminam campurile setate de server din validare
             ModelState.Remove("PostId");
             ModelState.Remove("UserId");
             ModelState.Remove("Post");
             ModelState.Remove("User");
             ModelState.Remove("CreatedAt");
 
-            // Verificam doar campul Content, deoarece doar el este trimis
             if (string.IsNullOrWhiteSpace(commentData.Content) || commentData.Content.Length > 1000)
             {
                  ModelState.AddModelError("Content", "Comment must be between 1 and 1000 characters.");
@@ -109,14 +108,20 @@ namespace unibucGram.Controllers
             if (ModelState.IsValid)
             {
                 var userId = _userManager.GetUserId(User);
-                var comment = await _db.Comments.FindAsync(id);
+                if (userId == null) return Unauthorized();
 
+                var comment = await _db.Comments.FindAsync(id);
                 if (comment == null)
                 {
                     return NotFound(new { success = false, message = "Comment not found." });
                 }
 
-                if (comment.UserId != userId)
+                // check permissions
+                var currentUser = await _userManager.FindByIdAsync(userId);
+                var isAdminOrEditor = await _userManager.IsInRoleAsync(currentUser, "Admin") || 
+                                       await _userManager.IsInRoleAsync(currentUser, "Editor");
+
+                if (comment.UserId != userId && !isAdminOrEditor)
                 {
                     return Forbid();
                 }
@@ -132,35 +137,34 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
-        [IgnoreAntiforgeryToken] // CHANGED: Use this attribute for the AJAX endpoint
+        [IgnoreAntiforgeryToken]
+        [Authorize(Roles = "User,Editor,Admin")] // Guests cannot delete comments
         public async Task<IActionResult> Delete(int id)
         {
             var userId = _userManager.GetUserId(User);
             if (userId == null)
             {
-                // This returns a 401 Unauthorized, which is a "not ok" response.
                 return Unauthorized();
             }
 
             var comment = await _db.Comments.FindAsync(id);
-            
             if (comment == null)
             {
-                // This returns a 404 Not Found, also "not ok".
                 return NotFound(new { success = false, message = "Comment not found." });
             }
 
-            // Security Check: Allow deletion only if the user is the comment author OR the post author.
             var post = await _db.Posts.FindAsync(comment.PostId);
-            if (comment.UserId != userId && (post == null || post.UserId != userId))
+            var currentUser = await _userManager.FindByIdAsync(userId);
+            var isAdminOrEditor = await _userManager.IsInRoleAsync(currentUser, "Admin") || 
+                                   await _userManager.IsInRoleAsync(currentUser, "Editor");
+
+            if (comment.UserId != userId && (post == null || post.UserId != userId) && !isAdminOrEditor)
             {
-                // This returns a 403 Forbidden, also "not ok".
                 return Forbid();
             }
 
             _db.Comments.Remove(comment);
             
-            // Clean up related notifications
             var notifications = await _db.Notifications.Where(n => n.CommentId == id).ToListAsync();
             if (notifications.Any())
             {
@@ -168,8 +172,6 @@ namespace unibucGram.Controllers
             }
 
             await _db.SaveChangesAsync();
-
-            // On success, return a 200 OK with the success payload.
             return Json(new { success = true });
         }
     }

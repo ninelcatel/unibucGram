@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
@@ -12,17 +13,19 @@ using Microsoft.Extensions.Configuration.UserSecrets;
 
 namespace unibucGram.Controllers
 {
+    [Authorize]
     public class GroupController : Controller
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<User> _userManager;
 
-        public GroupController(ApplicationDbContext context, UserManager<User> userManager, SignInManager<User> signInManager)
+        public GroupController(ApplicationDbContext context, UserManager<User> userManager)
         {
-        _context = context;
+            _context = context;
             _userManager = userManager;
         }
 
+        [Authorize(Roles = "User,Editor,Admin")]
         public IActionResult Index()
         {
             return View();
@@ -35,54 +38,55 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "User,Editor,Admin")] // Guests cannot create groups
         public async Task<IActionResult> Create(Group Group, List<string> SelectedUserIds)
         {
-            // Console.WriteLine("Creating group with name: " + groupName);
-            // foreach (var id in SelectedUserIds)
-            // {
-            //     Console.WriteLine("Member ID: " + id);
-            // }
-
-
             try
             {
                 await _context.Groups.AddAsync(Group);
                 await _context.SaveChangesAsync();
 
                 var currentUser = await _userManager.GetUserAsync(User);
-                if (currentUser == null) return RedirectToAction("Login", "Account");
-                var members = new List<GroupMember>();
-                members.Add(new GroupMember
+                if (currentUser == null) return Unauthorized();
+
+                var members = new List<GroupMember>
                 {
-                    GroupId = Group.Id,
-                    UserId = currentUser.Id
-                });
+                    new GroupMember
+                    {
+                        GroupId = Group.Id,
+                        UserId = currentUser.Id
+                    }
+                };
+
                 if (SelectedUserIds != null)
                 {
                     var distinctIds = SelectedUserIds.Distinct();
-                    foreach (var u in distinctIds)
-                    {
+                    foreach (var userId in distinctIds)
+                    {   
+                        var user = await _userManager.FindByIdAsync(userId);
+                        if (user == null) continue; // Skip invalid user IDs
+                        
                         members.Add(new GroupMember
                         {
                             GroupId = Group.Id,
-                            UserId = u,
+                            UserId = userId,
                         });
                     }
                 }
+
                 await _context.GroupMembers.AddRangeAsync(members);
                 await _context.SaveChangesAsync();
                 return RedirectToAction("Index", "Home");    
             } 
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.WriteLine(e);
-                return Error();
+                return RedirectToAction("Index", "Home");
             }
         }
 
-        
-
         [HttpGet]
+        [Authorize(Roles = "User,Editor,Admin")]
         public async Task<IActionResult> GetUserGroups()
         {
             var userId = _userManager.GetUserId(User);
@@ -117,11 +121,11 @@ namespace unibucGram.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "User,Editor,Admin")]
         public async Task<IActionResult> GetMessages(int id)
         {
             var currentUserId = _userManager.GetUserId(User);
             
-            // Get group info for header
             var group = await _context.Groups
                 .Include(g => g.GroupMembers)
                 .ThenInclude(gm => gm.User)
@@ -204,6 +208,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "User,Editor,Admin")]
         public async Task<IActionResult> SendMessage(int groupId, string content)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -226,6 +231,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
+        [Authorize(Roles = "User,Editor,Admin")]
         public async Task<IActionResult> SharePost([FromBody] SharePostRequest request)
         {
             var user = await _userManager.GetUserAsync(User);
@@ -268,6 +274,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpGet]
+        [Authorize(Roles = "User,Editor,Admin")]
         public async Task<IActionResult> SearchGroups(string q)
         {
             var userId = _userManager.GetUserId(User);
