@@ -1,0 +1,23 @@
+@using Microsoft.AspNetCore.Identity
+@using unibucGram.Models
+@inject SignInManager<User> SignInManager
+@{
+    ViewData["Title"] = "Dashboard";
+}  
+
+@if (SignInManager.IsSignedIn(User) && (User.IsInRole("Admin") || User.IsInRole("Editor")))
+{
+    <h2 class="text-center mt-4">Welcome to the Dashboard</h2>
+    <p class="text-center text-muted mb-4">Manage site content and user activities here.</p>
+
+    <div class="d-flex justify-content-center gap-4">
+        <a asp-controller="Dashboard" asp-action="ManageUsers" class="btn btn-primary btn-lg">Manage Users</a>
+        <a asp-controller="Dashboard" asp-action="ManagePosts" class="btn btn-secondary btn-lg">Manage Posts</a>
+    </div>
+}
+else
+{
+    <div class="alert alert-danger text-center mt-4" role="alert">
+        You do not have permission to access the Dashboard.
+    </div>
+}
