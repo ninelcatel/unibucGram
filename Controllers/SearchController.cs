@@ -22,7 +22,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "User,Editor,Admin")] // Guests cannot search
+        [Authorize(Roles = "User,Editor,Admin")]
         public async Task<IActionResult> Live(string q)
         {
             if (string.IsNullOrWhiteSpace(q)) 
@@ -33,10 +33,9 @@ namespace unibucGram.Controllers
                            u.FirstName.Contains(q) || 
                            u.LastName.Contains(q))
                 .OrderBy(u => u.UserName)
-                .Take(50) // Take more, then filter
+                .Take(50)
                 .ToListAsync();
 
-            // Filter by role
             var filteredResults = new List<User>();
             foreach (var user in allUsers)
             {
@@ -44,7 +43,7 @@ namespace unibucGram.Controllers
                 if (roles.Contains("User"))
                 {
                     filteredResults.Add(user);
-                    if (filteredResults.Count >= 10) break; // Limit results
+                    if (filteredResults.Count >= 10) break;
                 }
             }
 
@@ -52,7 +51,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "User,Editor,Admin")] // Guests cannot search for chats
+        [Authorize(Roles = "User,Editor,Admin")]
         public async Task<IActionResult> LiveChat(string q)
         {
             if (string.IsNullOrWhiteSpace(q)) 
@@ -61,7 +60,6 @@ namespace unibucGram.Controllers
             var currentUserId = _userManager.GetUserId(User);
             if (currentUserId == null) return Unauthorized();
 
-            // Find followers only
             var allFollowers = await _db.Users
                 .Where(u => (u.UserName.Contains(q) || 
                             u.FirstName.Contains(q) || 
@@ -71,7 +69,6 @@ namespace unibucGram.Controllers
                 .Take(50)
                 .ToListAsync();
 
-            // Filter by role
             var filteredResults = new List<User>();
             foreach (var user in allFollowers)
             {
@@ -85,6 +82,53 @@ namespace unibucGram.Controllers
             }
 
             return PartialView("_SearchResults_LiveChat", filteredResults);
+        }
+
+        // Dashboard search for users (Editors and Admins only)
+        [HttpGet]
+        [Authorize(Roles = "Editor,Admin")]
+        public async Task<IActionResult> DashboardUsers(string q)
+        {
+            if (string.IsNullOrWhiteSpace(q))
+                return PartialView("_DashboardUserResults", Enumerable.Empty<User>());
+
+            var users = await _db.Users
+                .Where(u => u.UserName.Contains(q) || 
+                           u.FirstName.Contains(q) || 
+                           u.LastName.Contains(q) ||
+                           u.Email.Contains(q))
+                .OrderBy(u => u.UserName)
+                .Take(20)
+                .ToListAsync();
+
+            // Attach roles for each user
+            var usersWithRoles = new List<(User User, IList<string> Roles)>();
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                usersWithRoles.Add((user, roles));
+            }
+
+            return PartialView("_DashboardUserResults", usersWithRoles);
+        }
+
+        // Dashboard search for posts (Editors and Admins only)
+        [HttpGet]
+        [Authorize(Roles = "Editor,Admin")]
+        public async Task<IActionResult> DashboardPosts(string q)
+        {
+            if (string.IsNullOrWhiteSpace(q))
+                return PartialView("_DashboardPostResults", Enumerable.Empty<Post>());
+
+            var posts = await _db.Posts
+                .Include(p => p.User)
+                .Where(p => p.Content.Contains(q) || 
+                           p.User.UserName.Contains(q))
+                .OrderByDescending(p => p.CreatedAt)
+                .Take(20)
+                .ToListAsync();
+
+            return PartialView("_DashboardPostResults", posts);
         }
     }
 }

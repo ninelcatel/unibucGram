@@ -1,36 +1,187 @@
 @using Microsoft.AspNetCore.Identity
 @using unibucGram.Models
 @inject UserManager<User> UserManager
-@inject SignInManager<User> SignInManager
 @{
     ViewData["Title"] = "Manage Users";
 }
 @model IEnumerable<unibucGram.Models.User>
 
-<h2 class="text-center mt-4">Manage Users</h2>
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="mb-0">
+                    <i class="bi bi-people-fill text-primary me-2"></i>
+                    Manage Users
+                </h2>
+                <span class="badge bg-secondary">@Model.Count() Total Users</span>
+            </div>
+            
+            <!-- Search Bar -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <div class="input-group">
+                        <span class="input-group-text bg-white border-end-0">
+                            <i class="bi bi-search text-muted"></i>
+                        </span>
+                        <input type="text" 
+                               class="form-control border-start-0" 
+                               id="userSearchInput" 
+                               placeholder="Search users by username, name, or email..." 
+                               autocomplete="off">
+                    </div>
+                    <div id="userSearchResults" class="mt-3" style="display: none;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<table class="table">
-    <thead>
-        <tr>
-            <th>User Name</th>
-            <th>Email</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var user in Model)
-        {
-            <tr>
-                <td>@user.UserName</td>
-                <td>@user.Email</td>
-                <td>
-                    <a asp-controller="Dashboard" asp-action="EditUser" asp-route-id="@user.Id" class="btn btn-sm btn-warning">Edit</a>
-              
-                    <form asp-action="DeleteUser" asp-route-id="@user.Id" method="post" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this user? All their data will be lost.');">
-                        <button type="submit" class="btn btn-sm btn-danger">Delete</button>
-                    </form>
-                </td>
-            </tr>
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 25%;">User</th>
+                            <th style="width: 25%;">Email</th>
+                            <th style="width: 20%;">Name</th>
+                            <th style="width: 15%;">Role</th>
+                            <th style="width: 15%;" class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @if (!Model.Any())
+                        {
+                            <tr>
+                                <td colspan="5" class="text-center text-muted py-5">
+                                    <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+                                    No users found
+                                </td>
+                            </tr>
+                        }
+                        else
+                        {
+                            @foreach (var user in Model)
+                            {
+                                var roles = await UserManager.GetRolesAsync(user);
+                                var isAdmin = roles.Contains("Admin");
+                                var isEditor = roles.Contains("Editor");
+                                
+                                <tr>
+                                    <td>
+                                        <a asp-controller="Profile" asp-action="Show" asp-route-name="@user.UserName" 
+                                           class="text-decoration-none" target="_blank">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <img src="@(string.IsNullOrEmpty(user.PfpURL) ? "/uploads/default_pfp.jpg" : user.PfpURL)" 
+                                                     alt="@user.UserName" 
+                                                     class="rounded-circle" 
+                                                     style="width: 40px; height: 40px; object-fit: cover;">
+                                                <div>
+                                                    <div class="fw-semibold">@user.UserName</div>
+                                                </div>
+                                            </div>
+                                        </a>
+                                    </td>
+                                    <td class="text-muted">@user.Email</td>
+                                    <td>@user.FirstName @user.LastName</td>
+                                    <td>
+                                        @if (isAdmin)
+                                        {
+                                            <span class="badge bg-danger">
+                                                <i class="bi bi-shield-fill-check"></i> Admin
+                                            </span>
+                                        }
+                                        else if (isEditor)
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                <i class="bi bi-pencil-square"></i> Editor
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-secondary">
+                                                <i class="bi bi-person"></i> User
+                                            </span>
+                                        }
+                                    </td>
+                                    <td class="text-center">
+                                        <div class="btn-group" role="group">
+                                            <a asp-controller="Profile" asp-action="Show" asp-route-name="@user.UserName" 
+                                               class="btn btn-sm btn-outline-primary" 
+                                               target="_blank"
+                                               title="View Profile">
+                                                <i class="bi bi-eye"></i>
+                                            </a>
+                                            @if (User.IsInRole("Admin"))
+                                            {
+                                                <a asp-action="EditUser" asp-route-id="@user.Id" 
+                                                   class="btn btn-sm btn-outline-secondary"
+                                                   title="Edit User">
+                                                    <i class="bi bi-pencil"></i>
+                                                </a>
+                                            }
+                                            @if (User.IsInRole("Admin") && !isAdmin)
+                                            {
+                                                <form asp-action="DeleteUser" asp-route-id="@user.Id" 
+                                                      method="post" 
+                                                      class="d-inline" 
+                                                      onsubmit="return confirm('⚠️ Are you sure you want to permanently delete @user.UserName and all their content?');">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" 
+                                                            class="btn btn-sm btn-outline-danger" 
+                                                            title="Delete User">
+                                                        <i class="bi bi-trash"></i>
+                                                    </button>
+                                                </form>
+                                            }
+                                            else if (isAdmin)
+                                            {
+                                                <button class="btn btn-sm btn-outline-secondary" disabled title="Cannot delete admins">
+                                                    <i class="bi bi-shield-lock"></i>
+                                                </button>
+                                            }
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const userSearchInput = document.getElementById('userSearchInput');
+        const userSearchResults = document.getElementById('userSearchResults');
+        
+        if (userSearchInput && userSearchResults) {
+            let searchTimeout;
+            
+            userSearchInput.addEventListener('input', function() {
+                clearTimeout(searchTimeout);
+                const query = this.value.trim();
+                
+                if (!query) {
+                    userSearchResults.innerHTML = '';
+                    userSearchResults.style.display = 'none';
+                    return;
+                }
+                
+                searchTimeout = setTimeout(() => {
+                    fetch(`/Search/DashboardUsers?q=${encodeURIComponent(query)}`, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    })
+                    .then(res => res.text())
+                    .then(html => {
+                        userSearchResults.innerHTML = html;
+                        userSearchResults.style.display = 'block';
+                    })
+                    .catch(err => console.error('Search error:', err));
+                }, 300);
+            });
         }
-    </tbody>
-</table>
+    </script>
+}

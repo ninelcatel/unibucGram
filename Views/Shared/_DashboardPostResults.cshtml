@@ -1,0 +1,99 @@
+@using Microsoft.AspNetCore.Identity
+@using unibucGram.Models
+@inject UserManager<User> UserManager
+@model IEnumerable<unibucGram.Models.Post>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info mb-0">
+        <i class="bi bi-info-circle"></i> No posts found matching your search.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 10%;">ID</th>
+                    <th style="width: 40%;">Content</th>
+                    <th style="width: 20%;">Author</th>
+                    <th style="width: 15%;">Date</th>
+                    <th style="width: 15%;" class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var post in Model)
+                {
+                    var author = await UserManager.FindByIdAsync(post.UserId);
+                    <tr>
+                        <td class="text-muted">#@post.Id</td>
+                        <td>
+                            <a asp-controller="Posts" asp-action="Post" asp-route-id="@post.Id" 
+                               class="text-decoration-none text-dark" target="_blank">
+                                <div class="d-flex align-items-start gap-2">
+                                    @if (!string.IsNullOrEmpty(post.ImageURL))
+                                    {
+                                        <img src="@post.ImageURL" 
+                                             alt="Post image" 
+                                             class="rounded" 
+                                             style="width: 50px; height: 50px; object-fit: cover;">
+                                    }
+                                    <div class="flex-grow-1">
+                                        <p class="mb-0 text-truncate" style="max-width: 400px;">
+                                            @(string.IsNullOrEmpty(post.Content) ? "(No content)" : post.Content)
+                                        </p>
+                                    </div>
+                                </div>
+                            </a>
+                        </td>
+                        <td>
+                            <a asp-controller="Profile" asp-action="Show" asp-route-name="@author.UserName" 
+                               class="text-decoration-none" target="_blank">
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="@(string.IsNullOrEmpty(author.PfpURL) ? "/uploads/default_pfp.jpg" : author.PfpURL)" 
+                                         alt="@author.UserName" 
+                                         class="rounded-circle" 
+                                         style="width: 32px; height: 32px; object-fit: cover;">
+                                    <span class="fw-semibold">@author.UserName</span>
+                                </div>
+                            </a>
+                        </td>
+                        <td class="text-muted small">
+                            @post.CreatedAt.ToString("MMM dd, yyyy")
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <a asp-controller="Posts" asp-action="Post" asp-route-id="@post.Id" 
+                                   class="btn btn-sm btn-outline-primary" 
+                                   target="_blank"
+                                   title="View Post">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a asp-controller="Dashboard" asp-action="EditPost" asp-route-id="@post.Id" 
+                                       class="btn btn-sm btn-outline-secondary"
+                                       title="Edit Post">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                    <form asp-controller="Dashboard" asp-action="DeletePost" asp-route-id="@post.Id" 
+                                          method="post" 
+                                          class="d-inline" 
+                                          onsubmit="return confirm('⚠️ Are you sure you want to permanently delete this post?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-outline-danger" 
+                                                title="Delete Post">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

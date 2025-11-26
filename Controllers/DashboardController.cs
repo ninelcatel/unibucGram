@@ -7,34 +7,197 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using unibucGram.Models;
 
-namespace unibucGram.Controllers;
-
-public class DashboardController : Controller
+namespace unibucGram.Controllers
 {
-    private readonly ApplicationDbContext _context;
-    private readonly UserManager<User> _userManager;
-    private readonly SignInManager<User> _signInManager;
+    [Authorize(Roles = "Editor,Admin")]
+    public class DashboardController : Controller
+    {
+        private readonly ApplicationDbContext _db;
+        private readonly UserManager<User> _userManager;
 
-    public DashboardController(ApplicationDbContext context, UserManager<User> userManager, SignInManager<User> signInManager)
-    {
-        _context = context;
-        _userManager = userManager;
-        _signInManager = signInManager;
-    }
-    [HttpGet]
-    public IActionResult Index()
-    {
-        return View();
-    }
-    public async Task<IActionResult> ManageUsers()
-    {
-        var users = await _userManager.Users.ToListAsync();
-        return View(users);
-    }
+        public DashboardController(ApplicationDbContext db, UserManager<User> userManager)
+        {
+            _db = db;
+            _userManager = userManager;
+        }
 
-    public async Task<IActionResult> ManagePosts()
-    {
-        var posts = await _context.Posts.ToListAsync();
-        return View(posts);
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+        public async Task<IActionResult> ManageUsers()
+        {
+            var users = await _db.Users.OrderBy(u => u.UserName).ToListAsync();
+            return View(users);
+        }
+
+        public async Task<IActionResult> ManagePosts()
+        {
+            var posts = await _db.Posts
+                .Include(p => p.User)
+                .OrderByDescending(p => p.CreatedAt)
+                .ToListAsync();
+            return View(posts);
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> EditUser(string id)
+        {
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            var roles = await _userManager.GetRolesAsync(user);
+            
+            var model = new EditUserViewModel
+            {
+                UserId = user.Id,
+                UserName = user.UserName!,
+                Email = user.Email!,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
+                PhoneNumber = user.PhoneNumber,
+                Bio = user.Bio,
+                PfpURL = user.PfpURL,
+                IsAdmin = roles.Contains("Admin"),
+                IsEditor = roles.Contains("Editor"),
+                IsUser = roles.Contains("User")
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditUser(EditUserViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var user = await _userManager.FindByIdAsync(model.UserId);
+            if (user == null) return NotFound();
+
+            // Update all fields
+            user.UserName = model.UserName;
+            user.Email = model.Email;
+            user.FirstName = model.FirstName;
+            user.LastName = model.LastName;
+            user.PhoneNumber = model.PhoneNumber;
+            user.Bio = model.Bio;
+            user.PfpURL = model.PfpURL;
+
+            var result = await _userManager.UpdateAsync(user);
+            if (!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError(string.Empty, error.Description);
+                }
+                return View(model);
+            }
+
+            // Update roles (only Admin can change roles)
+            var currentRoles = await _userManager.GetRolesAsync(user);
+            
+            // Remove all current roles
+            if (currentRoles.Any())
+            {
+                await _userManager.RemoveFromRolesAsync(user, currentRoles);
+            }
+
+            // Add selected roles
+            if (model.IsAdmin)
+            {
+                await _userManager.AddToRoleAsync(user, "Admin");
+            }
+            if (model.IsEditor)
+            {
+                await _userManager.AddToRoleAsync(user, "Editor");
+            }
+            if (model.IsUser)
+            {
+                await _userManager.AddToRoleAsync(user, "User");
+            }
+
+            TempData["Success"] = "User updated successfully.";
+            return RedirectToAction("ManageUsers");
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> EditPost(int id)
+        {
+            var post = await _db.Posts
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == id);
+            
+            if (post == null) return NotFound();
+
+            var model = new EditPostViewModel
+            {
+                PostId = post.Id,
+                Content = post.Content,
+                ImageURL = post.ImageURL,
+                AuthorUsername = post.User.UserName!
+            };
+
+            return View(model);
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditPost(EditPostViewModel model)
+        {
+            if (!ModelState.IsValid) return View(model);
+
+            var post = await _db.Posts.FindAsync(model.PostId);
+            if (post == null) return NotFound();
+
+            post.Content = model.Content;
+            post.ImageURL = model.ImageURL;
+
+            await _db.SaveChangesAsync();
+
+            TempData["Success"] = "Post updated successfully.";
+            return RedirectToAction("ManagePosts");
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            var user = await _db.Users.FindAsync(id);
+            if (user == null) return NotFound();
+
+            // Prevent deleting admins
+            var roles = await _userManager.GetRolesAsync(user);
+            if (roles.Contains("Admin"))
+            {
+                TempData["Error"] = "Cannot delete admin users.";
+                return RedirectToAction("ManageUsers");
+            }
+
+            _db.Users.Remove(user);
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "User deleted successfully.";
+            return RedirectToAction("ManageUsers");
+        }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeletePost(int id)
+        {
+            var post = await _db.Posts.FindAsync(id);
+            if (post == null) return NotFound();
+
+            _db.Posts.Remove(post);
+            await _db.SaveChangesAsync();
+            TempData["Success"] = "Post deleted successfully.";
+            return RedirectToAction("ManagePosts");
+        }
     }
 }

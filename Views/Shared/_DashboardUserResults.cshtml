@@ -1,0 +1,113 @@
+@using Microsoft.AspNetCore.Identity
+@using unibucGram.Models
+@inject UserManager<User> UserManager
+@model IEnumerable<(User User, IList<string> Roles)>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info mb-0">
+        <i class="bi bi-info-circle"></i> No users found matching your search.
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+                <tr>
+                    <th style="width: 25%;">User</th>
+                    <th style="width: 25%;">Email</th>
+                    <th style="width: 20%;">Name</th>
+                    <th style="width: 15%;">Role</th>
+                    <th style="width: 15%;" class="text-center">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    var user = item.User;
+                    var roles = item.Roles;
+                    var isAdmin = roles.Contains("Admin");
+                    var isEditor = roles.Contains("Editor");
+                    
+                    <tr>
+                        <td>
+                            <a asp-controller="Profile" asp-action="Show" asp-route-name="@user.UserName" 
+                               class="text-decoration-none" target="_blank">
+                                <div class="d-flex align-items-center gap-2">
+                                    <img src="@(string.IsNullOrEmpty(user.PfpURL) ? "/uploads/default_pfp.jpg" : user.PfpURL)" 
+                                         alt="@user.UserName" 
+                                         class="rounded-circle" 
+                                         style="width: 40px; height: 40px; object-fit: cover;">
+                                    <div>
+                                        <div class="fw-semibold">@user.UserName</div>
+                                    </div>
+                                </div>
+                            </a>
+                        </td>
+                        <td class="text-muted">@user.Email</td>
+                        <td>@user.FirstName @user.LastName</td>
+                        <td>
+                            @if (isAdmin)
+                            {
+                                <span class="badge bg-danger">
+                                    <i class="bi bi-shield-fill-check"></i> Admin
+                                </span>
+                            }
+                            else if (isEditor)
+                            {
+                                <span class="badge bg-warning text-dark">
+                                    <i class="bi bi-pencil-square"></i> Editor
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">
+                                    <i class="bi bi-person"></i> User
+                                </span>
+                            }
+                        </td>
+                        <td class="text-center">
+                            <div class="btn-group" role="group">
+                                <a asp-controller="Profile" asp-action="Show" asp-route-name="@user.UserName" 
+                                   class="btn btn-sm btn-outline-primary" 
+                                   target="_blank"
+                                   title="View Profile">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                @if (User.IsInRole("Admin"))
+                                {
+                                    <a asp-controller="Dashboard" asp-action="EditUser" asp-route-id="@user.Id" 
+                                       class="btn btn-sm btn-outline-secondary"
+                                       title="Edit User">
+                                        <i class="bi bi-pencil"></i>
+                                    </a>
+                                }
+                                @if (User.IsInRole("Admin") && !isAdmin)
+                                {
+                                    <form asp-controller="Dashboard" asp-action="DeleteUser" asp-route-id="@user.Id" 
+                                          method="post" 
+                                          class="d-inline" 
+                                          onsubmit="return confirm('⚠️ Are you sure you want to permanently delete @user.UserName and all their content?');">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" 
+                                                class="btn btn-sm btn-outline-danger" 
+                                                title="Delete User">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                }
+                                else if (isAdmin)
+                                {
+                                    <button class="btn btn-sm btn-outline-secondary" disabled title="Cannot delete admins">
+                                        <i class="bi bi-shield-lock"></i>
+                                    </button>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
