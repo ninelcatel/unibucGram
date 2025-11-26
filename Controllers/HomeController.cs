@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -81,9 +82,9 @@ public class HomeController : Controller
         return PartialView("_PostFeed", posts);
     }
 
-    
-
     [HttpPost]
+    [Authorize(Roles = "Guest")] // Only Guests can upgrade
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> VerifyAccount()
     {
         var user = await _userManager.GetUserAsync(User);
@@ -92,17 +93,11 @@ public class HomeController : Controller
             return NotFound();
         }
 
-        // check if user is currently a Guest
-        if (await _userManager.IsInRoleAsync(user, "Guest"))
-        {
-            await _userManager.RemoveFromRoleAsync(user, "Guest");
-            
-            await _userManager.AddToRoleAsync(user, "User");
-            
-            await _signInManager.RefreshSignInAsync(user);
-            
-            TempData["StatusMessage"] = "Success! Your account has been upgraded to User. You can now like, comment, and follow others.";
-        }
+        await _userManager.RemoveFromRoleAsync(user, "Guest");
+        await _userManager.AddToRoleAsync(user, "User");
+        await _signInManager.RefreshSignInAsync(user);
+
+        TempData["StatusMessage"] = "Success! Your account has been upgraded to User. You can now like, comment, and follow others.";
 
         return RedirectToAction("Index");
     }

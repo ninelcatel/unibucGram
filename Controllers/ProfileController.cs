@@ -33,13 +33,7 @@ namespace unibucGram.Controllers
                 return Redirect("/Identity/Account/Login");
             }
 
-            var currentUser = await _userManager.GetUserAsync(User);
-            if (await _userManager.IsInRoleAsync(currentUser, "Admin") || await _userManager.IsInRoleAsync(currentUser, "Editor"))
-            {
-                return Forbid();
-            }
-
-            currentUser = await _db.Users.FindAsync(userId);
+            var currentUser = await _db.Users.FindAsync(userId);
             if (currentUser == null)
             {
                 return Redirect("/Identity/Account/Login");
@@ -62,8 +56,8 @@ namespace unibucGram.Controllers
             return View(currentUser);
         }
 
-        [HttpPost("FollowToggle")] // FIX: Removed "Profile/" prefix
-        [Authorize(Roles ="User")] // admin and editor account shouldn't be able to follow
+        [HttpPost("FollowToggle")]
+        [Authorize(Roles = "User,Editor,Admin")] // Allow all authenticated users except Guests
         public async Task<IActionResult> FollowToggle(string userId)
         {
             var currentUserId = _userManager.GetUserId(User);
@@ -207,6 +201,7 @@ namespace unibucGram.Controllers
         }
     
         [HttpGet("GetFollowers/{username}")]
+        [Authorize(Roles = "User,Editor,Admin")]
         public async Task<IActionResult> GetFollowers(string username, int page = 1, int pageSize = 20)
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName == username);
@@ -232,6 +227,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpGet("GetFollowing/{username}")]
+        [Authorize(Roles = "User,Editor,Admin")]
         public async Task<IActionResult> GetFollowing(string username, int page = 1, int pageSize = 20)
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName == username);
@@ -257,6 +253,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpGet("GetNotFollowingBack/{username}")]
+        [Authorize(Roles = "User,Editor,Admin")]
         public async Task<IActionResult> GetNotFollowingBack(string username, int page = 1, int pageSize = 20)
         {
             var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName == username);

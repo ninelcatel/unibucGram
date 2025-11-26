@@ -172,7 +172,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost()]
-        [Authorize(Roles = "User")] // admins editors and guests shouldnt like other ppl posts.
+        [Authorize(Roles = "User,Admin,Editor")] // admins editors and guests shouldnt like other ppl posts.
         public async Task<IActionResult> ToggleLike(int postId, string? returnUrl)
         {
             var userId = _userManager.GetUserId(User);
