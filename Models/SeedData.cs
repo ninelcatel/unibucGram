@@ -39,7 +39,7 @@ namespace unibucGram.Models
                         PasswordHash = hasher.HashPassword(null, "Admin123!"),
                         SecurityStamp = Guid.NewGuid().ToString(),
                         FirstName = "Admin",
-                        LastName = "System"
+                        LastName = "Administrator"
                     },
                     new User{
                         UserName = "editor@test.com",
@@ -53,14 +53,14 @@ namespace unibucGram.Models
                         LastName = "Staff"
                     },
                     new User{
-                        UserName = "user@test.com",
-                        NormalizedUserName = "USER@TEST.COM",
-                        Email = "user@test.com",
-                        NormalizedEmail = "USER@TEST.COM",
+                        UserName = "guest@test.com",
+                        NormalizedUserName = "GUEST@TEST.COM",
+                        Email = "guest@test.com",
+                        NormalizedEmail = "GUEST@TEST.COM",
                         EmailConfirmed = true,
-                        PasswordHash = hasher.HashPassword(null, "User123!"),
+                        PasswordHash = hasher.HashPassword(null, "Guest123!"),
                         SecurityStamp = Guid.NewGuid().ToString(),
-                        FirstName = "Standard",
+                        FirstName = "Guest",
                         LastName = "User"
                     }
                 );

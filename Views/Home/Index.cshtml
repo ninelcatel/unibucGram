@@ -41,7 +41,19 @@
         <!-- 2. CENTER CONTENT (Posts) -->
         <main class="main-content">
             <div id="feed-container" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
-                <partial name="_PostFeed" model="Model" />
+                @if(User.IsInRole("Guest"))
+                {
+                    <h5 class="text-center text-muted mt-5">Welcome! Please Verify your email via this button to unlock the full features of unibucGram.</h5>
+                    <div class="d-flex justify-content-center mb-4">
+                        <form asp-controller="Home" asp-action="VerifyAccount" method="post">
+                            <button type="submit" class="btn btn-primary">Verify your account</button>
+                        </form>
+                    </div>
+                }
+                else
+                {
+                    <partial name="_PostFeed" model="Model" />
+                }
             </div>
 
             <div id="loading" class="text-center my-4" style="display: none;">

@@ -20,7 +20,7 @@ public class HomeController : Controller
         _userManager = userManager;
         _signInManager = signInManager;
     }
-
+    [HttpGet]
     public async Task<IActionResult> Index()
     {
         if (_signInManager.IsSignedIn(User))
@@ -79,6 +79,32 @@ public class HomeController : Controller
             .ToListAsync();
 
         return PartialView("_PostFeed", posts);
+    }
+
+    
+
+    [HttpPost]
+    public async Task<IActionResult> VerifyAccount()
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return NotFound();
+        }
+
+        // check if user is currently a Guest
+        if (await _userManager.IsInRoleAsync(user, "Guest"))
+        {
+            await _userManager.RemoveFromRoleAsync(user, "Guest");
+            
+            await _userManager.AddToRoleAsync(user, "User");
+            
+            await _signInManager.RefreshSignInAsync(user);
+            
+            TempData["StatusMessage"] = "Success! Your account has been upgraded to User. You can now like, comment, and follow others.";
+        }
+
+        return RedirectToAction("Index");
     }
 
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]

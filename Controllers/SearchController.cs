@@ -25,9 +25,16 @@ public class SearchController : Controller
         var results = await _db.Users
             .Where(u => u.UserName.Contains(q))
             .OrderBy(u => u.UserName)
-            .Take(10)
+            .Take(13)
             .ToListAsync();
-
+        foreach (var user in results)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            if(roles.Contains("Guest") || roles.Contains("Admin") || roles.Contains("Editor")) 
+            {
+                results.Remove(user);
+            }
+        }
         return PartialView("_SearchResults", results);
     }
 
@@ -48,9 +55,16 @@ public class SearchController : Controller
             .Where(u => u.UserName.Contains(q) && 
                         _db.Follows.Any(f => f.FollowerId == u.Id && f.FolloweeId == currentUserId))
             .OrderBy(u => u.UserName)
-            .Take(10)
+            .Take(13)
             .ToListAsync();
-        
+        foreach (var user in results)
+        {
+            var roles = await _userManager.GetRolesAsync(user);
+            if(roles.Contains("Guest") || roles.Contains("Admin") || roles.Contains("Editor")) 
+            {
+                results.Remove(user);
+            }
+        }
         return PartialView("_SearchResults_LiveChat", results);
     }
 }

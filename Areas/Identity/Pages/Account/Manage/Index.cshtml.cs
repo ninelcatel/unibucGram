@@ -221,6 +221,7 @@ namespace unibucGram.Areas.Identity.Pages.Account.Manage
                     return RedirectToPage();
                 }
             }
+            
 
             await _signInManager.RefreshSignInAsync(user);
             StatusMessage = "Your profile has been updated";

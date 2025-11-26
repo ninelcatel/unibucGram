@@ -45,8 +45,9 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    SeedData.Initialize(services); // FOR ROLES
     var db = services.GetRequiredService<ApplicationDbContext>();
+    
+    // Apply migrations with retry
     var attempts = 0;
     var maxAttempts = 10;
     while (true)
@@ -63,6 +64,8 @@ using (var scope = app.Services.CreateScope())
             Thread.Sleep(5000);
         }
     }
+    
+    SeedData.Initialize(services);
 }
 
 // Configure the HTTP request pipeline.
@@ -94,7 +97,7 @@ app.UseStaticFiles();
 // Register static web assets (Razor class libraries)
 app.MapStaticAssets();
 
-app.MapRazorPages();  // This line should now work
+app.MapRazorPages();  
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
