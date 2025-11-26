@@ -33,7 +33,13 @@ namespace unibucGram.Controllers
                 return Redirect("/Identity/Account/Login");
             }
 
-            var currentUser = await _db.Users.FindAsync(userId);
+            var currentUser = await _userManager.GetUserAsync(User);
+            if (await _userManager.IsInRoleAsync(currentUser, "Admin") || await _userManager.IsInRoleAsync(currentUser, "Editor"))
+            {
+                return Forbid();
+            }
+
+            currentUser = await _db.Users.FindAsync(userId);
             if (currentUser == null)
             {
                 return Redirect("/Identity/Account/Login");
@@ -57,6 +63,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost("FollowToggle")] // FIX: Removed "Profile/" prefix
+        [Authorize(Roles ="User")] // admin and editor account shouldn't be able to follow
         public async Task<IActionResult> FollowToggle(string userId)
         {
             var currentUserId = _userManager.GetUserId(User);
@@ -67,7 +74,7 @@ namespace unibucGram.Controllers
                 return BadRequest();
             }
 
-            // --- UNFOLLOW LOGIC ---
+            // UNFOLLOW LOGIC 
             var existingFollow = await _db.Follows.FirstOrDefaultAsync(f => f.FollowerId == currentUserId && f.FolloweeId == userId);
             if (existingFollow != null)
             {
@@ -76,7 +83,7 @@ namespace unibucGram.Controllers
                 return RedirectToAction("Show", new { name = targetedUser.UserName });
             }
 
-            // --- FOLLOW/REQUEST LOGIC ---
+            // FOLLOW/REQUEST LOGIC 
             if (targetedUser.isPrivate)
             {
                 var existingRequest = await _db.FollowRequests.FirstOrDefaultAsync(fr => fr.RequesterId == currentUserId && fr.RequesteeId == userId);
@@ -160,13 +167,13 @@ namespace unibucGram.Controllers
         }
         [HttpGet("Edit")]
         public IActionResult Edit()
-        {
+        {   
             return Redirect("/Identity/Account/Manage");
         }
 
 
         [HttpPost("HandleFollowRequest")] 
-        [Authorize]
+        [Authorize(Roles ="User,Admin,Editor")]
         public async Task<IActionResult> HandleFollowRequest(string actorUsername, string actionType)
         {
             var currentUserId = _userManager.GetUserId(User);
@@ -176,6 +183,11 @@ namespace unibucGram.Controllers
 
             var request = await _db.FollowRequests.FirstOrDefaultAsync(fr => fr.RequesterId == actor.Id && fr.RequesteeId == currentUserId);
             if (request == null) return NotFound(new { success = false, message = "Request not found." });
+
+            if (request.RequesteeId != currentUserId)
+            {
+                return Forbid();
+            }
 
             if (actionType == "accept")
             {
