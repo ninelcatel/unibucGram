@@ -22,7 +22,7 @@ namespace unibucGram.Controllers
 
         [HttpPost]
         [Authorize(Roles = "User,Editor,Admin")] // Guests cannot comment
-        [ValidateAntiForgeryToken]
+        // SA NU ADAUGI ALA CU ANTIFORGERYTOKEN CA SE STRICA
         public async Task<IActionResult> Add([FromForm] Comment comment)
         {
             ModelState.Remove("UserId");
@@ -60,12 +60,12 @@ namespace unibucGram.Controllers
                 {
                     return PartialView("~/Views/Shared/_CommentPartial.cshtml", comment);
                 }
-                return RedirectToAction("Show", "Posts", new { id = comment.PostId });
+                return RedirectToAction("Post", "Posts", new { id = comment.PostId });
             }
 
             var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage);
             if (Request.Headers["X-Requested-With"] != "XMLHttpRequest")
-                return RedirectToAction("Show", "Posts", new { id = comment.PostId });
+                return RedirectToAction("Post", "Posts", new { id = comment.PostId });
 
             return BadRequest(new { message = string.Join(" ", errors) });
         }
