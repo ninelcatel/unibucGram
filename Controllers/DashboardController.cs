@@ -224,9 +224,57 @@ namespace unibucGram.Controllers
                 return RedirectToAction("ManageUsers");
             }
 
+            // Cascade delete all related data to avoid foreign key constraints
+            // Order matters: 
+            var userPosts = await _db.Posts.Where(p => p.UserId == id).ToListAsync();
+            foreach (var post in userPosts)
+            {
+                
+                var postNotifications = await _db.Notifications.Where(n => n.PostId == post.Id).ToListAsync();
+                _db.Notifications.RemoveRange(postNotifications);
+
+                var postComments = await _db.Comments.Where(c => c.PostId == post.Id).ToListAsync();
+                _db.Comments.RemoveRange(postComments);
+
+                var postLikes = await _db.Likes.Where(l => l.PostId == post.Id).ToListAsync();
+                _db.Likes.RemoveRange(postLikes);
+            }
+            _db.Posts.RemoveRange(userPosts);
+
+            var userComments = await _db.Comments.Where(c => c.UserId == id).ToListAsync();
+            _db.Comments.RemoveRange(userComments);
+
+            
+            var userLikes = await _db.Likes.Where(l => l.UserId == id).ToListAsync();
+            _db.Likes.RemoveRange(userLikes);
+
+            var userNotifications = await _db.Notifications
+                .Where(n => n.UserId == id)
+                .ToListAsync();
+            _db.Notifications.RemoveRange(userNotifications);
+
+            var followRelations = await _db.Follows
+                .Where(f => f.FollowerId == id || f.FolloweeId == id)
+                .ToListAsync();
+            _db.Follows.RemoveRange(followRelations);
+
+            var followRequests = await _db.FollowRequests
+                .Where(f => f.RequesterId == id || f.RequesteeId == id)
+                .ToListAsync();
+            _db.FollowRequests.RemoveRange(followRequests);
+
+            var groupMembers = await _db.GroupMembers.Where(gm => gm.UserId == id).ToListAsync();
+            _db.GroupMembers.RemoveRange(groupMembers);
+
+            var groupMessages = await _db.GroupMessages.Where(gm => gm.UserId == id).ToListAsync();
+            _db.GroupMessages.RemoveRange(groupMessages);
+
+            
             _db.Users.Remove(user);
+
             await _db.SaveChangesAsync();
-            TempData["Success"] = "User deleted successfully.";
+
+            TempData["Success"] = $"User {user.UserName} and all related content deleted successfully.";
             return RedirectToAction("ManageUsers");
         }
 
@@ -238,9 +286,22 @@ namespace unibucGram.Controllers
             var post = await _db.Posts.FindAsync(id);
             if (post == null) return NotFound();
 
+           
+            var notifications = await _db.Notifications.Where(n => n.PostId == id).ToListAsync();
+            _db.Notifications.RemoveRange(notifications);
+
+            
+            var comments = await _db.Comments.Where(c => c.PostId == id).ToListAsync();
+            _db.Comments.RemoveRange(comments);
+
+            var likes = await _db.Likes.Where(l => l.PostId == id).ToListAsync();
+            _db.Likes.RemoveRange(likes);
+
             _db.Posts.Remove(post);
+
             await _db.SaveChangesAsync();
-            TempData["Success"] = "Post deleted successfully.";
+
+            TempData["Success"] = "Post and all related content deleted successfully.";
             return RedirectToAction("ManagePosts");
         }
     }
