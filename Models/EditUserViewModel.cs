@@ -6,26 +6,28 @@ namespace unibucGram.Models
     {
         public string UserId { get; set; } = string.Empty;
         
-        [Required]
+        [Required(ErrorMessage = "Username is required.")]
         [Display(Name = "Username")]
         public string UserName { get; set; } = string.Empty;
         
-        [Required]
+        [Required(ErrorMessage = "Email is required.")]
         [Display(Name = "Email")]
-        [EmailAddress]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address.")]
         public string Email { get; set; } = string.Empty;
         
-        [Required]
+        [Required(ErrorMessage = "First name is required.")]
         [Display(Name = "First Name")]
         public string FirstName { get; set; } = string.Empty;
         
-        [Required]
+        [Required(ErrorMessage = "Last name is required.")]
         [Display(Name = "Last Name")]
         public string LastName { get; set; } = string.Empty;
         
+        [Phone(ErrorMessage = "Please enter a valid phone number.")]
         [Display(Name = "Phone Number")]
         public string? PhoneNumber { get; set; }
         
+        [StringLength(200, ErrorMessage = "Bio cannot exceed 200 characters.")]
         [Display(Name = "Bio")]
         public string? Bio { get; set; }
         
@@ -41,7 +43,6 @@ namespace unibucGram.Models
         [Display(Name = "User Role")]
         public bool IsUser { get; set; }
         
-        // Add this for file upload
         [Display(Name = "Profile Picture File")]
         public IFormFile? ProfilePictureFile { get; set; }
     }

@@ -21,8 +21,12 @@ namespace unibucGram.Models
         public DateTime DateOfBirth { get; set; }
         public bool isPrivate { get; set; } = false; // default public profile
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        
         [StringLength(200)]
         public string? Bio { get; set; } = string.Empty; // e optionala bio
+
+        [Phone(ErrorMessage = "Please enter a valid phone number.")]
+        public override string? PhoneNumber { get; set; }
 
         public string? PfpURL { get; set; } = "/uploads/default_pfp.svg"; // putem adauga un url pt basic pfp dar inca nu stiu cum ,vom vedea
 

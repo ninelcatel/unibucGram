@@ -1,212 +1,112 @@
 @page
-@model unibucGram.Areas.Identity.Pages.Account.Manage.IndexModel
+@model IndexModel
 @{
-    ViewData["Title"] = "Edit Profile";
+    ViewData["Title"] = "Profile";
     ViewData["ActivePage"] = ManageNavPages.Index;
-    Layout = "/Views/Shared/_Layout.cshtml";
 }
 
-<link href="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.css" rel="stylesheet">
-
-<div class="container py-3 py-md-4" style="max-width: 950px;">
-
-    <!-- Navbar + Card Section -->
-    <div class="row g-3 align-items-start">
-        <!-- Left Sidebar Navigation - Aligned with card -->
-        <div class="col-12 col-md-3 col-lg-2">
-            <div style="position: sticky; top: 76px;">
-                <partial name="_ManageNav" />
+<h3>@ViewData["Title"]</h3>
+<partial name="_StatusMessage" for="StatusMessage" />
+<div class="row">
+    <div class="col-md-6">
+        <form id="profile-form" method="post" enctype="multipart/form-data">
+            <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+            
+            <div class="form-floating mb-3">
+                <input asp-for="Input.FirstName" class="form-control" placeholder="First Name" />
+                <label asp-for="Input.FirstName" class="form-label"></label>
+                <span asp-validation-for="Input.FirstName" class="text-danger"></span>
             </div>
-        </div>
-
-        <!-- Main Content Card -->
-        <div class="col-12 col-md-9 col-lg-10">
-            <!-- Profile Card -->
-            <div class="card form-container">
-                <div class="card-body p-3 p-md-4">
-                    <partial name="_StatusMessage" for="StatusMessage" />
-
-                    <form id="profile-form" method="post" enctype="multipart/form-data">
-                        <div asp-validation-summary="ModelOnly" class="alert alert-danger" role="alert"></div>
-
-                        <!-- Profile Picture Section -->
-                        <div class="text-center mb-4">
-                            <img src="@Url.Content(string.IsNullOrWhiteSpace(Model.Input?.PfpURL) 
-                                ? "~/uploads/default_pfp.jpg" 
-                                : Model.Input.PfpURL)" 
-                                alt="Profile Picture" 
-                                style="width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-purple); box-shadow: 0 2px 8px rgba(0,0,0,0.1);"
-                                id="profile-picture-preview" />
-
-                            <div class="mt-2">
-                                <label for="profile-picture-input" class="btn btn-primary btn-sm px-2">
-                                    <i class="bi bi-camera me-1"></i>Change
-                                </label>
-                                <input type="file" id="profile-picture-input" name="ProfilePictureFile" class="d-none" accept="image/*">
-                                <input type="hidden" asp-for="Input.PfpURL" id="pfp-url-input" />
-                                <input type="hidden" asp-for="Input.ProfilePictureBase64" id="profile-picture-base64" />
-                                
-                                @if (!string.IsNullOrWhiteSpace(Model.Input?.PfpURL) && Model.Input.PfpURL != "/uploads/default_pfp.jpg")
-                                {
-                                    <button type="button" class="btn btn-outline-secondary btn-sm ms-1 px-2" id="remove-pfp-btn">
-                                        <i class="bi bi-trash me-1"></i>Remove
-                                    </button>
-                                }
-                            </div>
-                        </div>
-
-                        <!-- Form Fields -->
-                        <div class="form-floating mb-2">
-                            <input asp-for="Username" class="form-control form-control-sm" disabled />
-                            <label asp-for="Username" class="small">Username</label>
-                        </div>
-
-                        <div class="row g-2 mb-2">
-                            <div class="col-6">
-                                <div class="form-floating">
-                                    <input asp-for="Input.FirstName" class="form-control form-control-sm" placeholder="First Name" />
-                                    <label asp-for="Input.FirstName" class="small">First Name</label>
-                                    <span asp-validation-for="Input.FirstName" class="text-danger small"></span>
-                                </div>
-                            </div>
-                            <div class="col-6">
-                                <div class="form-floating">
-                                    <input asp-for="Input.LastName" class="form-control form-control-sm" placeholder="Last Name" />
-                                    <label asp-for="Input.LastName" class="small">Last Name</label>
-                                    <span asp-validation-for="Input.LastName" class="text-danger small"></span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="form-floating mb-2">
-                            <input asp-for="Input.DateOfBirth" class="form-control form-control-sm" type="date" max="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                            <label asp-for="Input.DateOfBirth" class="small">Date of Birth</label>
-                            <span asp-validation-for="Input.DateOfBirth" class="text-danger small"></span>
-                        </div>
-
-                        <div class="form-floating mb-2">
-                            <textarea asp-for="Input.Bio" class="form-control form-control-sm" placeholder="Tell us about yourself" style="height: 70px;"></textarea>
-                            <label asp-for="Input.Bio" class="small">Bio</label>
-                            <span asp-validation-for="Input.Bio" class="text-danger small"></span>
-                        </div>
-
-                        <div class="form-check mb-3">
-                            <input asp-for="Input.IsPrivate" class="form-check-input purple-checkbox" type="checkbox" id="isPrivateCheckbox" />
-                            <label asp-for="Input.IsPrivate" class="form-check-label small ms-2">Private Account</label>
-                        </div>
-
-                        <div class="form-floating mb-3">
-                            <input asp-for="Input.PhoneNumber" class="form-control form-control-sm" placeholder="Phone number" />
-                            <label asp-for="Input.PhoneNumber" class="small">Phone Number</label>
-                            <span asp-validation-for="Input.PhoneNumber" class="text-danger small"></span>
-                        </div>
-
-                        <div class="d-flex justify-content-center">
-                            <button id="update-profile-button" type="submit" class="btn btn-primary btn-sm px-4">
-                                <i class="bi bi-check-circle me-1"></i>Save Changes
-                            </button>
-                        </div>
-                    </form>
-                    
-                </div>
+            
+            <div class="form-floating mb-3">
+                <input asp-for="Input.LastName" class="form-control" placeholder="Last Name" />
+                <label asp-for="Input.LastName" class="form-label"></label>
+                <span asp-validation-for="Input.LastName" class="text-danger"></span>
             </div>
-        </div>
-    </div>
-</div>
-
-<!-- Cropper Modal -->
-<div class="modal fade" id="cropper-modal" tabindex="-1" aria-labelledby="cropperModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="cropperModalLabel">Crop Image</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            
+            <div class="form-floating mb-3">
+                <input asp-for="Input.DateOfBirth" class="form-control" type="date" />
+                <label asp-for="Input.DateOfBirth" class="form-label"></label>
+                <span asp-validation-for="Input.DateOfBirth" class="text-danger"></span>
             </div>
-            <div class="modal-body">
-                <div class="img-container">
-                    <img id="cropper-image" src="" alt="Image to crop">
-                </div>
+            
+            <div class="form-floating mb-3">
+                <textarea asp-for="Input.Bio" class="form-control" style="height: 100px" maxlength="200" placeholder="Bio"></textarea>
+                <label asp-for="Input.Bio" class="form-label"></label>
+                <span asp-validation-for="Input.Bio" class="text-danger"></span>
+                <small class="form-text text-muted"><span id="bioCounter">0</span>/200 characters</small>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary btn-sm" id="crop-button">Crop & Save</button>
+            
+            <div class="form-check mb-3">
+                <input asp-for="Input.IsPrivate" class="form-check-input" />
+                <label asp-for="Input.IsPrivate" class="form-check-label"></label>
             </div>
-        </div>
+            
+            <div class="form-floating mb-3">
+                <input asp-for="Input.PhoneNumber" class="form-control" type="tel" placeholder="+40 123 456 789" />
+                <label asp-for="Input.PhoneNumber"></label>
+                <span asp-validation-for="Input.PhoneNumber" class="text-danger"></span>
+                <small class="form-text text-muted">Format: +40 123 456 789 or 0712345678</small>
+            </div>
+            
+            <div class="mb-3">
+                <label asp-for="Input.ProfilePicture" class="form-label"></label>
+                <input asp-for="Input.ProfilePicture" class="form-control" type="file" accept="image/*" />
+                <span asp-validation-for="Input.ProfilePicture" class="text-danger"></span>
+                @if (!string.IsNullOrEmpty(Model.Input.PfpURL))
+                {
+                    <img src="@Model.Input.PfpURL" alt="Profile Picture" class="mt-2 rounded-circle" style="width: 80px; height: 80px; object-fit: cover;" />
+                }
+            </div>
+            
+            <button id="update-profile-button" type="submit" class="w-100 btn btn-lg btn-primary">Save</button>
+        </form>
     </div>
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/cropperjs@1.6.1/dist/cropper.min.js"></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const removePfpBtn = document.getElementById('remove-pfp-btn');
-            if (removePfpBtn) {
-                removePfpBtn.addEventListener('click', () => {
-                    const preview = document.getElementById('profile-picture-preview');
-                    const pfpUrlInput = document.getElementById('pfp-url-input');
-                    
-                    preview.src = '/uploads/default_pfp.jpg';
-                    pfpUrlInput.value = '/uploads/default_pfp.jpg';
-                    removePfpBtn.style.display = 'none';
-                    document.getElementById('profile-picture-input').value = '';
-                });
+        $(document).ready(function() {
+            // Bio character counter
+            var bioTextarea = $('#Input_Bio');
+            var bioCounter = $('#bioCounter');
+            
+            function updateBioCounter() {
+                var count = bioTextarea.val().length;
+                bioCounter.text(count);
+                if (count > 200) {
+                    bioCounter.css('color', 'red');
+                } else {
+                    bioCounter.css('color', 'inherit');
+                }
             }
-
-            const imageInput = document.getElementById('profile-picture-input');
-            const preview = document.getElementById('profile-picture-preview');
-            const modal = new bootstrap.Modal(document.getElementById('cropper-modal'));
-            const cropperImage = document.getElementById('cropper-image');
-            const cropButton = document.getElementById('crop-button');
-            let cropper;
-
-            imageInput.addEventListener('change', (e) => {
-                const files = e.target.files;
-                if (files && files.length > 0) {
-                    const file = files[0];
-                    const reader = new FileReader();
-                    reader.onload = (event) => {
-                        cropperImage.src = event.target.result;
-                        modal.show();
-                    };
-                    reader.readAsDataURL(file);
-                }
+            
+            bioTextarea.on('input', updateBioCounter);
+            updateBioCounter(); // Initialize counter
+            
+            // Custom validation for phone number
+            $.validator.addMethod("phoneValidation", function(value, element) {
+                if (!value) return true; // Optional field
+                // Match international format (+40 123 456 789) or Romanian format (0712345678)
+                return /^(\+?\d{1,3}[\s.-]?)?\(?\d{3}\)?[\s.-]?\d{3}[\s.-]?\d{3,4}$/.test(value);
+            }, "Please enter a valid phone number (e.g., +40 123 456 789 or 0712345678).");
+            
+            // Apply custom validation to phone number
+            $('#Input_PhoneNumber').rules('add', {
+                phoneValidation: true
             });
-
-            document.getElementById('cropper-modal').addEventListener('shown.bs.modal', () => {
-                cropper = new Cropper(cropperImage, {
-                    aspectRatio: 1,
-                    viewMode: 1,
-                    autoCropArea: 0.8,
-                });
-            });
-
-            document.getElementById('cropper-modal').addEventListener('hidden.bs.modal', () => {
-                if (cropper) {
-                    cropper.destroy();
-                    cropper = null;
+            
+            // Enhance form validation
+            $('#profile-form').validate({
+                errorClass: 'text-danger',
+                errorElement: 'span',
+                highlight: function(element) {
+                    $(element).addClass('is-invalid');
+                },
+                unhighlight: function(element) {
+                    $(element).removeClass('is-invalid');
                 }
-                imageInput.value = '';
-            });
-
-            cropButton.addEventListener('click', () => {
-                if (cropper) {
-                    const canvas = cropper.getCroppedCanvas({
-                        width: 300,
-                        height: 300,
-                        imageSmoothingQuality: 'high',
-                    });
-
-                    const base64Data = canvas.toDataURL('image/jpeg', 0.9);
-                    preview.src = base64Data;
-                    document.getElementById('profile-picture-base64').value = base64Data;
-
-                    if (removePfpBtn) {
-                        removePfpBtn.style.display = 'inline-block';
-                    }
-                }
-                modal.hide();
             });
         });
     </script>
