@@ -40,5 +40,9 @@ namespace unibucGram.Models
         
         [Display(Name = "User Role")]
         public bool IsUser { get; set; }
+        
+        // Add this for file upload
+        [Display(Name = "Profile Picture File")]
+        public IFormFile? ProfilePictureFile { get; set; }
     }
 }

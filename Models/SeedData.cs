@@ -39,7 +39,8 @@ namespace unibucGram.Models
                         PasswordHash = hasher.HashPassword(null, "Admin123!"),
                         SecurityStamp = Guid.NewGuid().ToString(),
                         FirstName = "Admin",
-                        LastName = "Administrator"
+                        LastName = "Administrator",
+                        PfpURL = "/uploads/default_pfp.jpg"
                     },
                     new User{
                         UserName = "editor@test.com",
@@ -50,7 +51,8 @@ namespace unibucGram.Models
                         PasswordHash = hasher.HashPassword(null, "Editor123!"),
                         SecurityStamp = Guid.NewGuid().ToString(),
                         FirstName = "Editor",
-                        LastName = "Staff"
+                        LastName = "Staff",
+                        PfpURL = "/uploads/default_pfp.jpg"
                     },
                     new User{
                         UserName = "guest@test.com",
@@ -61,7 +63,8 @@ namespace unibucGram.Models
                         PasswordHash = hasher.HashPassword(null, "Guest123!"),
                         SecurityStamp = Guid.NewGuid().ToString(),
                         FirstName = "Guest",
-                        LastName = "User"
+                        LastName = "User",
+                        PfpURL = "/uploads/default_pfp.jpg"
                     }
                 );
 

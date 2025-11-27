@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using unibucGram.Models;
+using System.IO;
+using Microsoft.AspNetCore.Hosting;
 
 namespace unibucGram.Controllers
 {
@@ -14,11 +16,13 @@ namespace unibucGram.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly UserManager<User> _userManager;
+        private readonly IWebHostEnvironment _environment; 
 
-        public DashboardController(ApplicationDbContext db, UserManager<User> userManager)
+        public DashboardController(ApplicationDbContext db, UserManager<User> userManager, IWebHostEnvironment environment)
         {
             _db = db;
             _userManager = userManager;
+            _environment = environment;
         }
 
         public IActionResult Index()
@@ -77,6 +81,26 @@ namespace unibucGram.Controllers
 
             var user = await _userManager.FindByIdAsync(model.UserId);
             if (user == null) return NotFound();
+
+            // profile picture upload
+            if (model.ProfilePictureFile != null && model.ProfilePictureFile.Length > 0)
+            {
+                var uploadsDir = Path.Combine(_environment.WebRootPath, "uploads");
+                if (!Directory.Exists(uploadsDir))
+                {
+                    Directory.CreateDirectory(uploadsDir);
+                }
+
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(model.ProfilePictureFile.FileName);
+                var filePath = Path.Combine(uploadsDir, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await model.ProfilePictureFile.CopyToAsync(stream);
+                }
+
+                model.PfpURL = "/uploads/" + fileName;
+            }
 
             // Update all fields
             user.UserName = model.UserName;
@@ -154,6 +178,26 @@ namespace unibucGram.Controllers
 
             var post = await _db.Posts.FindAsync(model.PostId);
             if (post == null) return NotFound();
+
+            //  new image upload
+            if (model.NewImage != null && model.NewImage.Length > 0)
+            {
+                var uploadsDir = Path.Combine(_environment.WebRootPath, "uploads");
+                if (!Directory.Exists(uploadsDir))
+                {
+                    Directory.CreateDirectory(uploadsDir);
+                }
+
+                var fileName = Guid.NewGuid().ToString() + Path.GetExtension(model.NewImage.FileName);
+                var filePath = Path.Combine(uploadsDir, fileName);
+
+                using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await model.NewImage.CopyToAsync(stream);
+                }
+
+                model.ImageURL = "/uploads/" + fileName;
+            }
 
             post.Content = model.Content;
             post.ImageURL = model.ImageURL;

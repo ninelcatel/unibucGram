@@ -13,5 +13,8 @@ namespace unibucGram.Models
         public string? ImageURL { get; set; }
         
         public string AuthorUsername { get; set; } = string.Empty;
+        [Display(Name = "New Image File")]
+        public IFormFile? NewImage { get; set; }
+    
     }
 }
