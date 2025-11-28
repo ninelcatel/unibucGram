@@ -49,7 +49,6 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> MarkRead(int id)
         {
             var uid = _userManager.GetUserId(User);
@@ -62,7 +61,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
-        [ValidateAntiForgeryToken]
+        
         public async Task<IActionResult> MarkAll()
         {
             var uid = _userManager.GetUserId(User);
