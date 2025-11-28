@@ -11,30 +11,31 @@ document.addEventListener('DOMContentLoaded', () => {
                         function openPanel() {
                             panel.classList.add('open');
                             content.classList.add('shifted');
-                            // populate panel with current group title / members (if available)
+                            
                             const title = document.getElementById('chatModalTitle')?.textContent?.trim() || 'Group';
                             document.getElementById('panelGroupName').textContent = title;
-                            // attempt to populate members from a data attribute or via fetch (if you implement)
-                            // Clear current list
+                            
                             const list = document.getElementById('panelMembersList');
                             list.innerHTML = '<div class="text-muted small">Loading members...</div>';
-                            // If you have a route to fetch members, call it here. Placeholder example:
+                            
                             const gid = document.getElementById('currentGroupId')?.value;
                             if (gid) {
-                                fetch(`/Group/GetMembers/${encodeURIComponent(gid)}`)
+                                fetch(`/Group/GetGroupMembers?groupId=${encodeURIComponent(gid)}`)
                                     .then(r => r.ok ? r.json() : Promise.reject(r))
                                     .then(json => {
                                         list.innerHTML = '';
                                         if (!json || !json.length) {
                                             list.innerHTML = '<div class="text-muted small">No members</div>';
                                             document.getElementById('panelGroupCount').textContent = '0 members';
+                                            console.log("No members data received");
                                             return;
                                         }
                                         document.getElementById('panelGroupCount').textContent = json.length + ' members';
                                         json.forEach(m => {
                                             const el = document.createElement('div');
                                             el.className = 'd-flex align-items-center mb-2';
-                                            el.innerHTML = `<div class="bg-light rounded-circle me-2" style="width:34px;height:34px"></div><div><div class="fw-semibold small">${m.userName}</div><div class="small text-muted">${m.role || ''}</div></div>`;
+                                            el.innerHTML = `<img src="${m.pfpURL || '/uploads/default_pfp.jpg'}" alt="${m.userName}" class="rounded-circle me-2" width="34" height="34" style="object-fit:cover;"><div><div class="fw-semibold small">${m.userName}</div><div class="small text-muted">${m.role || ''}</div></div>`;
+                                            console.log("Adding member to panel:", m.userName);
                                             list.appendChild(el);
                                         });
                                     })

@@ -18,11 +18,13 @@ namespace unibucGram.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly UserManager<User> _userManager;
+        private readonly ILogger<GroupController> _logger;
 
-        public GroupController(ApplicationDbContext context, UserManager<User> userManager)
+        public GroupController(ApplicationDbContext context, UserManager<User> userManager, ILogger<GroupController> logger)
         {
             _context = context;
             _userManager = userManager;
+            _logger = logger;
         }
 
         [Authorize(Roles = "User,Editor,Admin")]
@@ -303,6 +305,34 @@ namespace unibucGram.Controllers
             });
 
             return Json(result);
+        }
+        [HttpGet]
+        [Authorize(Roles = "User,Editor,Admin")]
+        public async Task<IActionResult> GetGroupMembers(int groupId)
+        {   
+            /*_logger.LogInformation("Attempting to get members for GroupId: {GroupId}", groupId);
+            
+            if (groupId == 0)
+            {
+                _logger.LogWarning("Received GroupId=0, which is likely an error. Returning empty list.");
+                return Json(new List<object>());
+            }
+            ^^^ was used for debugging, man i hate JS
+            */
+
+            var members = await _context.GroupMembers
+                .Where(gm => gm.GroupId == groupId)
+                .Include(gm => gm.User) // Eagerly load the User navigation property
+                .Select(gm => new {
+                    userName = gm.User != null ? gm.User.UserName : "Unknown User",
+                    pfpURL = gm.User != null ? gm.User.PfpURL : null, // Also select the profile picture URL
+                    role = gm.isModerator ? "Moderator" : "Member"
+                })
+                .ToListAsync();
+
+            //_logger.LogInformation("Found {MemberCount} members for GroupId: {GroupId}", members.Count, groupId);
+
+            return Json(members);
         }
     }
 }
