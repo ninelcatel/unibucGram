@@ -1031,3 +1031,25 @@ body.modal-open .home-layout {
     }
 }
 
+.group-info-panel {
+                        position: absolute;
+                        top: 0;
+                        right: -340px; /* hidden offscreen */
+                        width: 340px;
+                        height: 100%;
+                        background: #fff;
+                        z-index: 1055;
+                        transition: right 0.28s ease;
+                        border-left: 1px solid rgba(0,0,0,0.08);
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    .group-info-panel.open {
+                        right: 0;
+                    }
+                    /* slightly push modal-body when panel open (visual) */
+                    .modal-content.shifted .modal-body,
+                    .modal-content.shifted .modal-footer {
+                        transform: translateX(-340px);
+                        transition: transform 0.28s ease;
+                    }

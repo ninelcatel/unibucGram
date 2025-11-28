@@ -19,5 +19,7 @@ namespace unibucGram.Models
         public string? UserId { get; set; } = string.Empty;
         [Required]
         public virtual User? User { get; set; } 
+        public bool isModerator {get; set; } = false;
+        
     }
 }

@@ -76,8 +76,6 @@
                     data-bs-toggle="modal" data-bs-target="#createGroupModal">
                     <i class="bi bi-plus-circle"></i> Create Group
                 </button>
-
-                <!-- UPDATED: Container for Groups List -->
                 <div id="userGroupsList" class="list-group list-group-flush">
                     <!-- Groups will be loaded here by JavaScript -->
                     <div class="text-center text-muted mt-3">
@@ -125,11 +123,9 @@
             </div>
         </div>
     </div>
-
-    <!-- NEW: Group Chat Modal -->
     <div class="modal fade" id="groupChatModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div class="modal-content border-0 shadow-lg" style="height: 80vh;">
+            <div class="modal-content border-0 shadow-lg" style="height: 80vh; position: relative;">
                 
                 <!-- Header -->
                 <div class="modal-header border-bottom-0" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);">
@@ -139,24 +135,131 @@
                         </div>
                         <h5 class="modal-title fw-bold mb-0 text-white" id="chatModalTitle">Group Name</h5>
                     </div>
+
+                    <!-- Info / Settings toggle -->
+                    <button id="groupInfoToggle" type="button" class="btn btn-link text-white me-2" title="Group info">
+                        <i class="bi bi-info-circle" style="font-size: 1.25rem;"></i>
+                    </button>
+
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
 
-                <!-- Body (Messages) -->
-                <div class="modal-body bg-light" id="chatMessagesContainer" style="overflow-y: auto;">
-                    <!-- Messages injected here -->
+                <!-- Sliding info panel (hidden by default, slides in from right) -->
+                <div id="groupInfoPanel" class="group-info-panel shadow">
+                    <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
+                        <div>
+                            <h6 class="mb-0 fw-bold" id="panelGroupName">Group Name</h6>
+                            <small class="text-muted" id="panelGroupCount">0 members</small>
+                        </div>
+                        <button id="groupInfoClose" class="btn btn-sm btn-light" title="Close">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                    <div class="p-3" id="panelMembersList" style="overflow-y:auto; max-height:calc(80vh - 80px);">
+                        <!-- Members will be injected here -->
+                        <div class="text-muted small">No members yet</div>
+                    </div>
                 </div>
 
-                <!-- Footer (Input) -->
-                <div class="modal-footer border-top-0 bg-white">
-                    <form id="chatForm" class="w-100 d-flex gap-2">
-                        <input type="hidden" id="currentGroupId" />
-                        <input type="text" id="chatInput" class="form-control rounded-pill" placeholder="Type a message..." autocomplete="off" />
-                        <button type="submit" class="btn btn-purple rounded-circle" style="width: 40px; height: 40px; padding: 0;">
-                            <i class="bi bi-send-fill"></i>
-                        </button>
-                    </form>
-                </div>
+                <style>
+                    /* sliding panel styles */
+                    .group-info-panel {
+                        position: absolute;
+                        top: 0;
+                        right: -340px; /* hidden offscreen */
+                        width: 340px;
+                        height: 100%;
+                        background: #fff;
+                        z-index: 1055;
+                        transition: right 0.28s ease;
+                        border-left: 1px solid rgba(0,0,0,0.08);
+                        display: flex;
+                        flex-direction: column;
+                    }
+                    .group-info-panel.open {
+                        right: 0;
+                    }
+                    /* slightly push modal-body when panel open (visual) */
+                    .modal-content.shifted .modal-body,
+                    .modal-content.shifted .modal-footer {
+                        transform: translateX(-340px);
+                        transition: transform 0.28s ease;
+                    }
+                </style>
+ 
+                 <!-- Body (Messages) -->
+                 <div class="modal-body bg-light" id="chatMessagesContainer" style="overflow-y: auto;">
+                     <!-- Messages injected here -->
+                 </div>
+ 
+                 <!-- Footer (Input) -->
+                 <div class="modal-footer border-top-0 bg-white">
+                     <form id="chatForm" class="w-100 d-flex gap-2">
+                         <input type="hidden" id="currentGroupId" />
+                         <input type="text" id="chatInput" class="form-control rounded-pill" placeholder="Type a message..." autocomplete="off" />
+                         <button type="submit" class="btn btn-purple rounded-circle" style="width: 40px; height: 40px; padding: 0;">
+                             <i class="bi bi-send-fill"></i>
+                         </button>
+                     </form>
+                 </div>
+ 
++                <script>
++                    (function(){
++                        const toggle = document.getElementById('groupInfoToggle');
++                        const panel = document.getElementById('groupInfoPanel');
++                        const content = document.querySelector('.modal-content');
++                        const closeBtn = document.getElementById('groupInfoClose');
++
++                        function openPanel() {
++                            panel.classList.add('open');
++                            content.classList.add('shifted');
++                            // populate panel with current group title / members (if available)
++                            const title = document.getElementById('chatModalTitle')?.textContent?.trim() || 'Group';
++                            document.getElementById('panelGroupName').textContent = title;
++                            // attempt to populate members from a data attribute or via fetch (if you implement)
++                            // Clear current list
++                            const list = document.getElementById('panelMembersList');
++                            list.innerHTML = '<div class="text-muted small">Loading members...</div>';
++                            // If you have a route to fetch members, call it here. Placeholder example:
++                            const gid = document.getElementById('currentGroupId')?.value;
++                            if (gid) {
++                                fetch(`/Group/GetMembers/${encodeURIComponent(gid)}`)
++                                    .then(r => r.ok ? r.json() : Promise.reject(r))
++                                    .then(json => {
++                                        list.innerHTML = '';
++                                        if (!json || !json.length) {
++                                            list.innerHTML = '<div class="text-muted small">No members</div>';
++                                            document.getElementById('panelGroupCount').textContent = '0 members';
++                                            return;
++                                        }
++                                        document.getElementById('panelGroupCount').textContent = json.length + ' members';
++                                        json.forEach(m => {
++                                            const el = document.createElement('div');
++                                            el.className = 'd-flex align-items-center mb-2';
++                                            el.innerHTML = `<div class="bg-light rounded-circle me-2" style="width:34px;height:34px"></div><div><div class="fw-semibold small">${m.userName}</div><div class="small text-muted">${m.role || ''}</div></div>`;
++                                            list.appendChild(el);
++                                        });
++                                    })
++                                    .catch(()=> {
++                                        list.innerHTML = '<div class="text-muted small">Unable to load members</div>';
++                                    });
++                            } else {
++                                list.innerHTML = '<div class="text-muted small">Members not available</div>';
++                            }
++                        }
++
++                        function closePanel() {
++                            panel.classList.remove('open');
++                            content.classList.remove('shifted');
++                        }
++
++                        toggle?.addEventListener('click', () => {
++                            panel.classList.contains('open') ? closePanel() : openPanel();
++                        });
++                        closeBtn?.addEventListener('click', closePanel);
++                    })();
++                </script>
+ 
             </div>
         </div>
     </div>

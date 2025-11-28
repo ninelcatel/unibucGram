@@ -54,7 +54,8 @@ namespace unibucGram.Controllers
                     new GroupMember
                     {
                         GroupId = Group.Id,
-                        UserId = currentUser.Id
+                        UserId = currentUser.Id,
+                        isModerator = true
                     }
                 };
 
@@ -70,6 +71,7 @@ namespace unibucGram.Controllers
                         {
                             GroupId = Group.Id,
                             UserId = userId,
+                            isModerator = false
                         });
                     }
                 }

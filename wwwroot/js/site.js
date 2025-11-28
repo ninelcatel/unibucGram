@@ -2,6 +2,62 @@
 // for details on configuring this project to bundle and minify static web assets.
 
 document.addEventListener('DOMContentLoaded', () => {
+    (function(){
+                        const toggle = document.getElementById('groupInfoToggle');
+                        const panel = document.getElementById('groupInfoPanel');
+                        const content = document.querySelector('.modal-content');
+                        const closeBtn = document.getElementById('groupInfoClose');
+
+                        function openPanel() {
+                            panel.classList.add('open');
+                            content.classList.add('shifted');
+                            // populate panel with current group title / members (if available)
+                            const title = document.getElementById('chatModalTitle')?.textContent?.trim() || 'Group';
+                            document.getElementById('panelGroupName').textContent = title;
+                            // attempt to populate members from a data attribute or via fetch (if you implement)
+                            // Clear current list
+                            const list = document.getElementById('panelMembersList');
+                            list.innerHTML = '<div class="text-muted small">Loading members...</div>';
+                            // If you have a route to fetch members, call it here. Placeholder example:
+                            const gid = document.getElementById('currentGroupId')?.value;
+                            if (gid) {
+                                fetch(`/Group/GetMembers/${encodeURIComponent(gid)}`)
+                                    .then(r => r.ok ? r.json() : Promise.reject(r))
+                                    .then(json => {
+                                        list.innerHTML = '';
+                                        if (!json || !json.length) {
+                                            list.innerHTML = '<div class="text-muted small">No members</div>';
+                                            document.getElementById('panelGroupCount').textContent = '0 members';
+                                            return;
+                                        }
+                                        document.getElementById('panelGroupCount').textContent = json.length + ' members';
+                                        json.forEach(m => {
+                                            const el = document.createElement('div');
+                                            el.className = 'd-flex align-items-center mb-2';
+                                            el.innerHTML = `<div class="bg-light rounded-circle me-2" style="width:34px;height:34px"></div><div><div class="fw-semibold small">${m.userName}</div><div class="small text-muted">${m.role || ''}</div></div>`;
+                                            list.appendChild(el);
+                                        });
+                                    })
+                                    .catch(()=> {
+                                        list.innerHTML = '<div class="text-muted small">Unable to load members</div>';
+                                    });
+                           } else {
+                               list.innerHTML = '<div class="text-muted small">Members not available</div>';
+                           }
+                       }
+
+                        function closePanel() {
+                            panel.classList.remove('open');
+                            content.classList.remove('shifted');
+                        }
+
+                        toggle?.addEventListener('click', () => {
+                            panel.classList.contains('open') ? closePanel() : openPanel();
+                        });
+                        closeBtn?.addEventListener('click', closePanel);
+                    })();
+
+
     const input = document.querySelector('#searchInput');
     const results = document.querySelector('#searchResults');
     if (!input || !results) return;
