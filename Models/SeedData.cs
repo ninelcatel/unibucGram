@@ -73,7 +73,7 @@ namespace unibucGram.Models
                 
                 var adminUser = context.Users.Single(u => u.NormalizedEmail == "ADMIN@TEST.COM");
                 var editorUser = context.Users.Single(u => u.NormalizedEmail == "EDITOR@TEST.COM");
-                var normalUser = context.Users.Single(u => u.NormalizedEmail == "USER@TEST.COM");
+                var guestUser = context.Users.Single(u => u.NormalizedEmail == "GUEST@TEST.COM");
                 var adminRole = context.Roles.Single(r => r.NormalizedName == "ADMIN");
                 var editorRole = context.Roles.Single(r => r.NormalizedName == "EDITOR");
                 var userRole = context.Roles.Single(r => r.NormalizedName == "USER");
@@ -81,7 +81,7 @@ namespace unibucGram.Models
                 context.UserRoles.AddRange(
                     new IdentityUserRole<string> { UserId = adminUser.Id, RoleId = adminRole.Id },
                     new IdentityUserRole<string> { UserId = editorUser.Id, RoleId = editorRole.Id },
-                    new IdentityUserRole<string> { UserId = normalUser.Id, RoleId = userRole.Id }
+                    new IdentityUserRole<string> { UserId = guestUser.Id, RoleId = userRole.Id }
                 );
 
                 context.SaveChanges();
