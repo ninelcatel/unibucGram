@@ -130,10 +130,12 @@
                 <!-- Header -->
                 <div class="modal-header border-bottom-0" style="background: linear-gradient(135deg, #6f42c1 0%, #5a32a3 100%);">
                     <div class="d-flex align-items-center">
-                        <div class="bg-white rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
-                            <i class="bi bi-people-fill" style="color: #6f42c1;"></i>
+                        <!-- Group Image -->
+                        <img id="groupHeaderImage" src="/uploads/default_pfp.jpg" alt="Group" class="rounded-circle me-3" width="48" height="48" style="object-fit:cover; border: 2px solid white;">
+                        <div>
+                            <h5 class="modal-title fw-bold mb-0 text-white" id="chatModalTitle">Group Name</h5>
+                            <small class="text-white-50" id="groupHeaderSubtitle">Loading...</small>
                         </div>
-                        <h5 class="modal-title fw-bold mb-0 text-white" id="chatModalTitle">Group Name</h5>
                     </div>
                     <button id="groupInfoToggle" type="button" class="btn btn-link text-white me-2" title="Group info">
                         <i class="bi bi-info-circle" style="font-size: 1.25rem;"></i>
@@ -144,17 +146,32 @@
 
                 <!-- Sliding info panel (hidden by default, slides in from right) -->
                 <div id="groupInfoPanel" class="group-info-panel shadow">
-                    <div class="p-3 border-bottom d-flex align-items-center justify-content-between">
-                        <div>
-                            <h6 class="mb-0 fw-bold" id="panelGroupName">Group Name</h6>
-                            <small class="text-muted" id="panelGroupCount">0 members</small>
+                    <div class="p-3 border-bottom">
+                        <div class="d-flex align-items-center justify-content-between mb-3">
+                            <div>
+                                <h6 class="mb-0 fw-bold" id="panelGroupName">Group Name</h6>
+                                <small class="text-muted" id="panelGroupCount">0 members</small>
+                            </div>
+                            <button id="groupInfoClose" class="btn btn-sm btn-light" title="Close">
+                                <i class="bi bi-x"></i>
+                            </button>
                         </div>
-                        <button id="groupInfoClose" class="btn btn-sm btn-light" title="Close">
-                            <i class="bi bi-x"></i>
-                        </button>
+                        
                     </div>
-                    <div class="p-3" id="panelMembersList" style="overflow-y:auto; max-height:calc(80vh - 80px);">
+                    
+                    <div class="p-3" id="panelMembersList" style="overflow-y:auto; max-height:calc(80vh - 220px);">
                         <!-- Member list injected here --> 
+                    </div>
+
+                    <!-- Leave Group Button (Form) -->
+                    <div class="p-3 border-top">
+                        <form id="leaveGroupForm" asp-controller="Group" asp-action="LeaveGroup" method="post" class="d-grid">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="id" id="leaveGroupId" />
+        <button type="submit" class="btn btn-danger w-100" id="leaveGroupBtn">
+            <i class="bi bi-box-arrow-right me-2"></i>Leave Group
+        </button>
+    </form>
                     </div>
                 </div>
  

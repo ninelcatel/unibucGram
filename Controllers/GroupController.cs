@@ -102,6 +102,7 @@ namespace unibucGram.Controllers
                     gm.Group.Id,
                     gm.Group.Name,
                     gm.Group.IsDirectMessage,
+                    gm.Group.ImageURL,  
                     OtherUser = gm.Group.GroupMembers
                         .Where(m => m.UserId != userId)
                         .Select(m => new { m.User.UserName, m.User.PfpURL })
@@ -117,6 +118,7 @@ namespace unibucGram.Controllers
                 g.Id,
                 Name = g.IsDirectMessage ? g.OtherUser?.UserName : g.Name,
                 Pfp = g.IsDirectMessage ? g.OtherUser?.PfpURL : null,
+                ImageURL = g.ImageURL,  
                 IsDm = g.IsDirectMessage,
                 LastMessage = g.LastMessage
             });
@@ -333,13 +335,12 @@ namespace unibucGram.Controllers
             var groupMember = await _context.GroupMembers
                 .FirstOrDefaultAsync(gm => gm.GroupId == groupId && gm.UserId == user.Id);
 
-            if (groupMember == null)
-            {
-                return NotFound();
-            }
-            var role  = await _userManager.IsInRoleAsync(user, "Admin,Editor");
-            var groupRole = (groupMember.isModerator || role) ? "Moderator" : "Member";
-            return Json(new { groupRole,currentUserId = user.Id } );
+            if (groupMember == null) return NotFound();
+
+            var isAdmin = await _userManager.IsInRoleAsync(user, "Admin");
+            var isEditor = await _userManager.IsInRoleAsync(user, "Editor");
+            var groupRole = (groupMember.isModerator || isAdmin || isEditor) ? "Moderator" : "Member";
+            return Json(new { groupRole, currentUserId = user.Id });
         }
         [HttpPost]
         [Authorize(Roles = "User,Editor,Admin")]
@@ -384,6 +385,65 @@ namespace unibucGram.Controllers
             
             await _context.SaveChangesAsync();
             return RedirectToAction("Index","Home");
+        }
+        [HttpPost]
+        [Authorize(Roles = "User,Editor,Admin")]
+        public async Task<IActionResult> LeaveGroup(int id)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            var groupMember = await _context.GroupMembers
+                .FirstOrDefaultAsync(gm => gm.GroupId == id && gm.UserId == user.Id);
+
+            if (groupMember == null) return NotFound();
+
+            // Prevent <ONLY> moderator from leaving 
+            if (groupMember.isModerator)
+            {
+                var otherMods = await _context.GroupMembers
+                    .CountAsync(gm => gm.GroupId == id && gm.isModerator && gm.UserId != user.Id);
+                var count = await _context.GroupMembers.CountAsync(gm => gm.GroupId == id && gm.UserId != user.Id);
+                if (count == 0)
+                {
+                    return Json(new { success = false, message = "You cannot leave: you are the only moderator." });
+                }
+                else if(otherMods == 0 && count >= 1)
+                {
+                    var newMod = await _context.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == id && !gm.isModerator && gm.UserId != user.Id);
+                    if (newMod != null)
+                    {
+                        newMod.isModerator = true;
+                    }
+                }
+            }
+
+            _context.GroupMembers.Remove(groupMember);
+            await _context.SaveChangesAsync();
+
+            return Json(new { success = true });
+        }
+
+        [HttpGet]
+        [Authorize(Roles = "User,Editor,Admin")]
+        public async Task<IActionResult> GetGroupInfo(int groupId)
+        {
+            var group = await _context.Groups
+                .AsNoTracking()
+                .FirstOrDefaultAsync(g => g.Id == groupId);
+
+            if (group == null) return NotFound();
+
+            var memberCount = await _context.GroupMembers
+                .CountAsync(gm => gm.GroupId == groupId);
+
+            return Json(new {
+                id = group.Id,
+                name = group.Name,
+                imageURL = group.ImageURL,
+                memberCount = memberCount,
+                createdAt = group.CreatedAt
+            });
         }
     }
 }

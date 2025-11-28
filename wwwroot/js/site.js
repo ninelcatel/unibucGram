@@ -109,17 +109,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     });
 
                 } else {
-                    // for non-moderators) 
+                    // --- RENDER SIMPLE MEMBER LIST (for non-moderators) ---
                     if (!members || !members.length) {
                         list.innerHTML = '<div class="text-muted small p-3">No members</div>';
                         return;
                     }
+                    
+                    // Create a container for members only (no button here)
+                    const membersList = document.createElement('div');
                     members.forEach(m => {
                         const el = document.createElement('div');
                         el.className = 'd-flex align-items-center mb-2';
                         el.innerHTML = `<img src="${m.pfpURL || '/uploads/default_pfp.jpg'}" alt="${m.userName}" class="rounded-circle me-2" width="34" height="34" style="object-fit:cover;"><div><div class="fw-semibold small">${m.userName}</div><div class="small text-muted">${m.role || 'Member'}</div></div>`;
-                        list.appendChild(el);
+                        membersList.appendChild(el);
                     });
+
+                    list.innerHTML = '';
+                    list.appendChild(membersList);
                 }
 
             } catch (err) {
@@ -712,11 +718,13 @@ document.addEventListener('DOMContentLoaded', () => {
                             <img src="${pfpUrl}" alt="">
                           </div>`;
                     } else {
+                        // For group chats, use the group's ImageURL or default group icon
+                        const groupPfp = g.imageURL || g.pfp || '/uploads/default_pfp.jpg';
                         iconHtml = `
                           <div class="chat-avatar-outline me-3">
-                            <div class="chat-icon">
-                              <i class="bi bi-people-fill"></i>
-                            </div>
+                            ${groupPfp && groupPfp !== '/uploads/default_pfp.jpg' 
+                              ? `<img src="${groupPfp}" alt="${g.name}" style="object-fit:cover;">` 
+                              : '<div class="chat-icon"><i class="bi bi-people-fill"></i></div>'}
                           </div>`;
                     }
 
@@ -764,10 +772,23 @@ document.addEventListener('DOMContentLoaded', () => {
         const bsModal = new bootstrap.Modal(chatModal);
         bsModal.show();
 
+        // ✅ Fetch and display group image in header
+        fetch(`/Group/GetGroupInfo?groupId=${groupId}`)
+            .then(r => r.json())
+            .then(groupData => {
+                const headerImage = document.getElementById('groupHeaderImage');
+                const subtitle = document.getElementById('groupHeaderSubtitle');
+                if (headerImage && groupData.imageURL) {
+                    headerImage.src = groupData.imageURL;
+                }
+                if (subtitle) {
+                    subtitle.textContent = `${groupData.memberCount || 0} members`;
+                }
+            })
+            .catch(err => console.error('Error loading group info:', err));
+
         loadMessages(groupId);
     }
-
-   // ...existing code...
 
     function scrollChatToBottom(retries = 3) {
         if (!chatMessagesContainer) return;
