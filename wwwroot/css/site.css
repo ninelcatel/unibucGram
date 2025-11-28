@@ -35,6 +35,16 @@ body {
   padding: 0;
   margin: 0;
   overflow-x: hidden; /* Prevent horizontal scrollbar */
+  padding-top: 0; /* navbar is sticky, not fixed, so no padding needed */
+}
+
+/* Sticky navbar */
+header nav {
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    background-color: #fff;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08);
 }
 
 /* --- 1. The Grid Layout --- */

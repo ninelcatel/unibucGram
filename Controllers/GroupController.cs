@@ -341,5 +341,49 @@ namespace unibucGram.Controllers
             var groupRole = (groupMember.isModerator || role) ? "Moderator" : "Member";
             return Json(new { groupRole,currentUserId = user.Id } );
         }
+        [HttpPost]
+        [Authorize(Roles = "User,Editor,Admin")]
+        public async Task<IActionResult> UpdateSettings(int groupId, string groupName, IFormFile groupPfpFile, IEnumerable<string> moderatorIds)
+        {   
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+            var groupMember = await _context.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == groupId && gm.UserId == user.Id);
+            if (groupMember == null || !groupMember.isModerator)
+            {
+                return Forbid();
+            }
+            var group = await _context.Groups.FirstOrDefaultAsync( g => g.Id == groupId);
+            if (group == null)
+            {
+                return NotFound();
+            }
+            group.Name = groupName;
+            if (groupPfpFile != null && groupPfpFile.Length > 0)
+            {
+                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "grouppfps");
+                if (!Directory.Exists(uploadsFolder))
+                {
+                    Directory.CreateDirectory(uploadsFolder);
+                }
+                var uniqueFileName = $"{Guid.NewGuid()}_{groupPfpFile.FileName}";
+                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                using (var fileStream = new FileStream(filePath, FileMode.Create))
+                {
+                    await groupPfpFile.CopyToAsync(fileStream);
+                }
+                group.ImageURL = $"/uploads/grouppfps/{uniqueFileName}";
+            }
+            
+            var modList = (moderatorIds ?? Enumerable.Empty<string>()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        
+                var groupMembers = await _context.GroupMembers.Where(gm => gm.GroupId == groupId).ToListAsync();
+                foreach (var member in groupMembers)
+                {
+                    member.isModerator = modList.Contains(member.UserId) || member.UserId == user.Id;
+                }
+            
+            await _context.SaveChangesAsync();
+            return RedirectToAction("Index","Home");
+        }
     }
 }
