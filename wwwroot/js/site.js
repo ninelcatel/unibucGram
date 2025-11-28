@@ -1,62 +1,156 @@
 ﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
+// ...existing code...
 document.addEventListener('DOMContentLoaded', () => {
     (function(){
-                        const toggle = document.getElementById('groupInfoToggle');
-                        const panel = document.getElementById('groupInfoPanel');
-                        const content = document.querySelector('.modal-content');
-                        const closeBtn = document.getElementById('groupInfoClose');
+        const chatModal = document.getElementById('groupChatModal');
+        if (!chatModal) return;
 
-                        function openPanel() {
-                            panel.classList.add('open');
-                            content.classList.add('shifted');
-                            
-                            const title = document.getElementById('chatModalTitle')?.textContent?.trim() || 'Group';
-                            document.getElementById('panelGroupName').textContent = title;
-                            
-                            const list = document.getElementById('panelMembersList');
-                            list.innerHTML = '<div class="text-muted small">Loading members...</div>';
-                            
-                            const gid = document.getElementById('currentGroupId')?.value;
-                            if (gid) {
-                                fetch(`/Group/GetGroupMembers?groupId=${encodeURIComponent(gid)}`)
-                                    .then(r => r.ok ? r.json() : Promise.reject(r))
-                                    .then(json => {
-                                        list.innerHTML = '';
-                                        if (!json || !json.length) {
-                                            list.innerHTML = '<div class="text-muted small">No members</div>';
-                                            document.getElementById('panelGroupCount').textContent = '0 members';
-                                            console.log("No members data received");
-                                            return;
-                                        }
-                                        document.getElementById('panelGroupCount').textContent = json.length + ' members';
-                                        json.forEach(m => {
-                                            const el = document.createElement('div');
-                                            el.className = 'd-flex align-items-center mb-2';
-                                            el.innerHTML = `<img src="${m.pfpURL || '/uploads/default_pfp.jpg'}" alt="${m.userName}" class="rounded-circle me-2" width="34" height="34" style="object-fit:cover;"><div><div class="fw-semibold small">${m.userName}</div><div class="small text-muted">${m.role || ''}</div></div>`;
-                                            console.log("Adding member to panel:", m.userName);
-                                            list.appendChild(el);
-                                        });
-                                    })
-                                    .catch(()=> {
-                                        list.innerHTML = '<div class="text-muted small">Unable to load members</div>';
-                                    });
-                           } else {
-                               list.innerHTML = '<div class="text-muted small">Members not available</div>';
-                           }
-                       }
+        const toggle = document.getElementById('groupInfoToggle');
+        const panel = document.getElementById('groupInfoPanel');
+        const content = chatModal.querySelector('.modal-content');
+        const closeBtn = document.getElementById('groupInfoClose');
 
-                        function closePanel() {
-                            panel.classList.remove('open');
-                            content.classList.remove('shifted');
-                        }
+        if (!toggle || !panel || !content || !closeBtn) {
+            console.error('Group info panel elements not found.');
+            return;
+        }
 
-                        toggle?.addEventListener('click', () => {
-                            panel.classList.contains('open') ? closePanel() : openPanel();
-                        });
-                        closeBtn?.addEventListener('click', closePanel);
-                    })();
+        async function openPanel() {
+            panel.classList.add('open');
+            content.classList.add('shifted');
+            
+            const title = document.getElementById('chatModalTitle')?.textContent?.trim() || 'Group';
+            document.getElementById('panelGroupName').textContent = title;
+            
+            const list = document.getElementById('panelMembersList');
+            list.innerHTML = '<div class="text-muted small p-3">Loading...</div>';
+            
+            const gid = document.getElementById('currentGroupId')?.value;
+            if (!gid) {
+               list.innerHTML = '<div class="text-muted small p-3">Members not available</div>';
+               return;
+            }
+
+            try {
+                // First, check if the current user is authorized as a moderator/admin
+                const authResponse = await fetch(`/Group/IsAuthorizedInGroup?groupId=${encodeURIComponent(gid)}`);
+                if (!authResponse.ok) throw new Error('Auth check failed');
+                const authData = await authResponse.json();
+                const isAuthorized = authData.groupRole === 'Moderator';
+
+                // Second, fetch the member list
+                const membersResponse = await fetch(`/Group/GetGroupMembers?groupId=${encodeURIComponent(gid)}`);
+                if (!membersResponse.ok) throw new Error('Member fetch failed');
+                const members = await membersResponse.json();
+
+                list.innerHTML = ''; // Clear loading indicator
+                document.getElementById('panelGroupCount').textContent = `${members.length} member${members.length !== 1 ? 's' : ''}`;
+
+                if (isAuthorized) {
+                    const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+                    const formHtml = `
+                        <form id="groupSettingsForm" action="/Group/UpdateSettings" method="post" enctype="multipart/form-data">
+                            <input type="hidden" name="groupId" value="${gid}" />
+                            <input type="hidden" name="__RequestVerificationToken" value="${token}" />
+                            
+                            <div class="mb-3">
+                                <label for="groupNameInput" class="form-label fw-bold small">Group Name</label>
+                                <input type="text" class="form-control" id="groupNameInput" name="groupName" value="${title}">
+                            </div>
+
+                            <div class="mb-4">
+                                <label for="groupPfpInput" class="form-label fw-bold small">Change Group Picture</label>
+                                <input class="form-control form-control-sm" type="file" id="groupPfpInput" name="groupPfpFile" accept="image/*">
+                            </div>
+
+                            <h6 class="fw-bold small mb-2">Manage Moderators</h6>
+                            <div id="moderatorMemberList"></div>
+
+                            <button type="submit" class="btn btn-primary w-100 mt-3">Save Changes</button>
+                        </form>
+                    `;
+                    list.innerHTML = formHtml;
+                    
+                    
+                    const memberListContainer = list.querySelector('#moderatorMemberList');
+                    if (!memberListContainer) {
+                        console.error('moderatorMemberList container not found after form insertion');
+                        return;
+                    }
+
+                    members.forEach(m => {
+                        const el = document.createElement('div');
+                        el.className = 'd-flex align-items-center justify-content-between mb-2 p-2 rounded bg-light';
+                        
+                        const canToggle = m.userId !== authData.currentUserId;
+                        const isCurrentlyModerator = m.role === 'Moderator';
+                        
+                        const leftHtml = `
+                            <div class="d-flex align-items-center">
+                                <img src="${m.pfpURL || '/uploads/default_pfp.jpg'}" alt="${m.userName}" class="rounded-circle me-2" width="34" height="34" style="object-fit:cover;">
+                                <div>
+                                    <div class="fw-semibold small">${m.userName}</div>
+                                    <div class="small text-muted">${m.role || 'Member'}</div>
+                                </div>
+                            </div>
+                        `;
+
+                        const checkboxHtml = canToggle
+                            ? `<div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" role="switch" name="moderatorIds" value="${m.userId}" id="mod_${m.userId}" ${isCurrentlyModerator ? 'checked' : ''}>
+                                    <label class="form-check-label small" for="mod_${m.userId}">Mod</label>
+                               </div>`
+                            : `<div class="text-muted small"><em>Owner/Self</em></div>`;
+
+                        el.innerHTML = leftHtml + checkboxHtml;
+                        memberListContainer.appendChild(el);
+                    });
+
+                } else {
+                    // for non-moderators) 
+                    if (!members || !members.length) {
+                        list.innerHTML = '<div class="text-muted small p-3">No members</div>';
+                        return;
+                    }
+                    members.forEach(m => {
+                        const el = document.createElement('div');
+                        el.className = 'd-flex align-items-center mb-2';
+                        el.innerHTML = `<img src="${m.pfpURL || '/uploads/default_pfp.jpg'}" alt="${m.userName}" class="rounded-circle me-2" width="34" height="34" style="object-fit:cover;"><div><div class="fw-semibold small">${m.userName}</div><div class="small text-muted">${m.role || 'Member'}</div></div>`;
+                        list.appendChild(el);
+                    });
+                }
+
+            } catch (err) {
+                list.innerHTML = '<div class="text-muted small p-3">Unable to load group details</div>';
+                console.error(err);
+            }
+        }
+
+        function closePanel() {
+            panel.classList.remove('open');
+            content.classList.remove('shifted');
+        }
+
+        toggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (panel.classList.contains('open')) {
+                closePanel();
+            } else {
+                openPanel();
+            }
+        });
+
+        closeBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            closePanel();
+        });
+
+        // Close panel when modal is hidden
+        chatModal.addEventListener('hidden.bs.modal', closePanel);
+
+    })();
 
 
     const input = document.querySelector('#searchInput');

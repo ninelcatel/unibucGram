@@ -310,29 +310,36 @@ namespace unibucGram.Controllers
         [Authorize(Roles = "User,Editor,Admin")]
         public async Task<IActionResult> GetGroupMembers(int groupId)
         {   
-            /*_logger.LogInformation("Attempting to get members for GroupId: {GroupId}", groupId);
-            
-            if (groupId == 0)
-            {
-                _logger.LogWarning("Received GroupId=0, which is likely an error. Returning empty list.");
-                return Json(new List<object>());
-            }
-            ^^^ was used for debugging, man i hate JS
-            */
-
             var members = await _context.GroupMembers
                 .Where(gm => gm.GroupId == groupId)
-                .Include(gm => gm.User) // Eagerly load the User navigation property
+                .Include(gm => gm.User)
                 .Select(gm => new {
+                    userId = gm.UserId,  
                     userName = gm.User != null ? gm.User.UserName : "Unknown User",
-                    pfpURL = gm.User != null ? gm.User.PfpURL : null, // Also select the profile picture URL
-                    role = gm.isModerator ? "Moderator" : "Member"
+                    pfpURL = gm.User != null ? gm.User.PfpURL : null,
+                    role = gm.isModerator ? "Moderator" : "Member",
                 })
                 .ToListAsync();
 
-            //_logger.LogInformation("Found {MemberCount} members for GroupId: {GroupId}", members.Count, groupId);
-
             return Json(members);
+        }
+        [HttpGet]
+        [Authorize(Roles = "User,Editor,Admin")]
+        public async Task<IActionResult> IsAuthorizedInGroup(int groupId)
+        {
+            var user = await _userManager.GetUserAsync(User);
+            if (user == null) return Unauthorized();
+
+            var groupMember = await _context.GroupMembers
+                .FirstOrDefaultAsync(gm => gm.GroupId == groupId && gm.UserId == user.Id);
+
+            if (groupMember == null)
+            {
+                return NotFound();
+            }
+            var role  = await _userManager.IsInRoleAsync(user, "Admin,Editor");
+            var groupRole = (groupMember.isModerator || role) ? "Moderator" : "Member";
+            return Json(new { groupRole,currentUserId = user.Id } );
         }
     }
 }
