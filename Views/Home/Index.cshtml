@@ -71,7 +71,15 @@
 
             <div class="sidebar-content">
                 <h5 class="fw-bold mb-4 text-purple text-center">Conversations</h5>
-
+                @if (TempData["message"] != null)
+{
+    <div class="text-center mb-3">
+        <div class="alert alert-info alert-dismissible fade show" role="alert" style="z-index: 9999;">
+            @TempData["message"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    </div>
+}
                 <button class="btn btn-primary w-100 mb-3 d-flex align-items-center justify-content-center gap-2"
                     data-bs-toggle="modal" data-bs-target="#createGroupModal">
                     <i class="bi bi-plus-circle"></i> Create Group
@@ -148,7 +156,7 @@
                 </div>
 
                 <!-- Sliding info panel (hidden by default, slides in from right) -->
-                <div id="groupInfoPanel" class="group-info-panel shadow">
+                    <div id="groupInfoPanel" class="group-info-panel shadow">
                     <div class="p-3 border-bottom">
                         <div class="d-flex align-items-center justify-content-between mb-3">
                             <div>
@@ -162,10 +170,26 @@
                         
                     </div>
                     
+                    
+
                     <div class="p-3" id="panelMembersList" style="overflow-y:auto; max-height:calc(80vh - 220px);">
                         <!-- Member list injected here --> 
                     </div>
-
+                    <div class="mb-3 p-3">
+                        <label class="form-label text-muted small fw-bold">Add new members</label>
+                        
+                        <div class="search-wrapper_chat mb-2" style="max-width:100%; position:relative;">
+                            <input type="text" id="searchInput_panel" class="form-control border-0" 
+                                placeholder="Search followers..." aria-label="Search" autocomplete="off" />
+                            <div id="searchResults_panel" class="search-results bg-white border rounded-2 shadow-sm"
+                                aria-hidden="true" style="position:absolute; top:100%; left:0; right:0; z-index:1200; max-height:240px; overflow-y:auto; display:none;"></div>
+                        </div>
+                        
+                        <!-- The container for the chips -->
+                        <div id="selectedMembers_panel" class="mt-2 d-flex flex-wrap gap-2"></div>
+                        
+                        <button type="button" id="addMembersBtn_panel" class="btn btn-sm btn-primary w-100 mt-2">Add Selected Members</button>
+                    </div>
                     <div class="p-3 border-top">
                         <form id="leaveGroupForm" asp-controller="Group" asp-action="LeaveGroup" method="post">
                             <input type="hidden" name="id" id="groupId_forLeaveGroupForm" />
@@ -173,6 +197,10 @@
                         <button type="submit" form="leaveGroupForm" class="btn btn-danger w-100" id="leaveGroupBtn">
                             <i class="bi bi-box-arrow-right me-2"></i>Leave Group
                         </button>
+                        <form id="KickForm" asp-controller="Group" asp-action="KickMember" method="post">
+                            <input type="hidden" name="groupId" id="groupId_forKickForm" />
+                            <input type="hidden" name="userId" id="userId_forKickForm" />
+                        </form>
                     </div>
                 </div>
  
@@ -207,3 +235,4 @@ else
         </div>
     </div>
 }
+

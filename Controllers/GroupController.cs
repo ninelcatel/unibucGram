@@ -81,6 +81,7 @@ namespace unibucGram.Controllers
 
                 await _context.GroupMembers.AddRangeAsync(members);
                 await _context.SaveChangesAsync();
+                TempData["message"]="Created a new Group";
                 return RedirectToAction("Index", "Home");    
             } 
             catch (Exception e)
@@ -351,17 +352,23 @@ namespace unibucGram.Controllers
         {   
             var user = await _userManager.GetUserAsync(User);
             if (user == null) return Unauthorized();
+            
             var groupMember = await _context.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == groupId && gm.UserId == user.Id);
             if (groupMember == null || !groupMember.isModerator)
             {
-                return Forbid();
+                TempData["message"] = "You don't have permission to update group settings.";
+                return RedirectToAction("Index", "Home");
             }
-            var group = await _context.Groups.FirstOrDefaultAsync( g => g.Id == groupId);
+            
+            var group = await _context.Groups.FirstOrDefaultAsync(g => g.Id == groupId);
             if (group == null)
             {
-                return NotFound();
+                TempData["message"] = "Group not found.";
+                return RedirectToAction("Index", "Home");
             }
+            
             group.Name = groupName;
+            
             if (groupPfpFile != null && groupPfpFile.Length > 0)
             {
                 var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads", "grouppfps");
@@ -369,12 +376,15 @@ namespace unibucGram.Controllers
                 {
                     Directory.CreateDirectory(uploadsFolder);
                 }
+                
                 var uniqueFileName = $"{Guid.NewGuid()}_{groupPfpFile.FileName}";
                 var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+                
                 using (var fileStream = new FileStream(filePath, FileMode.Create))
                 {
                     await groupPfpFile.CopyToAsync(fileStream);
                 }
+                
                 group.ImageURL = $"/uploads/grouppfps/{uniqueFileName}";
             }
             
@@ -387,7 +397,9 @@ namespace unibucGram.Controllers
                 }
             
             await _context.SaveChangesAsync();
-            return RedirectToAction("Index","Home");
+            
+            TempData["message"] = "Group settings updated successfully.";
+            return RedirectToAction("Index", "Home");
         }
         [HttpPost]
         [Authorize(Roles = "User,Editor,Admin")]
@@ -454,9 +466,82 @@ namespace unibucGram.Controllers
                 }
             }
             
+            TempData["message"] = "You left the group.";
             return RedirectToAction("Index", "Home");
         }
-
+        [HttpPost]
+        [Authorize(Roles="User,Editor,Admin")]
+        public async Task<IActionResult> KickMember(int groupId, string userId){
+            var user = await _userManager.GetUserAsync(User);
+            if(user==null) return Unauthorized();
+            var currentUser_groupMember = await _context.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == groupId && gm.UserId == user.Id);
+            if(currentUser_groupMember == null || !currentUser_groupMember.isModerator)
+            {
+                TempData["message"] = "You don't have permission to kick members.";
+                return RedirectToAction("Index", "Home");
+            }
+            
+            var groupMemberToKick = await _context.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == groupId && gm.UserId == userId);
+            if(groupMemberToKick == null)
+            {
+                TempData["message"] = "Member not found.";
+                return RedirectToAction("Index", "Home");
+            }
+            _context.GroupMembers.Remove ( groupMemberToKick);
+            await _context.SaveChangesAsync();
+            
+            TempData["message"] = "Member kicked from group.";
+            return RedirectToAction("Index", "Home");
+        }
+        [HttpPost]
+        [Authorize(Roles="User,Editor,Admin")]
+        public async Task<IActionResult> AddMember(int groupId, List<string> userIds){
+            var user = await _userManager.GetUserAsync(User);
+            if(user==null) return Unauthorized();
+            var currentUser_groupMember = await _context.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == groupId && gm.UserId == user.Id);
+            if(currentUser_groupMember == null || !currentUser_groupMember.isModerator)
+            {
+                TempData["message"] = "You don't have permission to add members.";
+                return RedirectToAction("Index", "Home");
+            }
+            
+            if (userIds == null || userIds.Count == 0)
+            {
+                TempData["message"] = "No members selected.";
+                return RedirectToAction("Index", "Home");
+            }
+            
+            int addedCount = 0;
+            foreach(var userId in userIds)
+            {
+                var userToAdd = await _userManager.FindByIdAsync(userId);
+                if(userToAdd == null) continue;
+                
+                var alreadyMember = await _context.GroupMembers.AnyAsync(gm => gm.GroupId == groupId && gm.UserId == userId);
+                if(alreadyMember) continue;
+                
+                var newMember = new GroupMember
+                {
+                    GroupId = groupId,
+                    UserId = userId,
+                    isModerator = false
+                };
+                await _context.GroupMembers.AddAsync(newMember);
+                addedCount++;
+            }
+            
+            if (addedCount > 0)
+            {
+                await _context.SaveChangesAsync();
+                TempData["message"] = $"{addedCount} member{(addedCount != 1 ? "s" : "")} added to group.";
+            }
+            else
+            {
+                TempData["message"] = "No new members added.";
+            }
+            
+            return RedirectToAction("Index", "Home");
+        }
         [HttpGet]
         [Authorize(Roles = "User,Editor,Admin")]
         public async Task<IActionResult> GetGroupInfo(int groupId)

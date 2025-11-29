@@ -107,8 +107,15 @@ document.addEventListener('DOMContentLoaded', () => {
                                     <label class="form-check-label small" for="mod_${m.userId}">Mod</label>
                                </div>`
                             : `<div class="text-muted small"><em>Owner/Self</em></div>`;
+                        const kick = canToggle
+                        ? `<button type="button" class="btn btn-sm btn-outline-danger ms-3 kick-member-btn" data-user-id="${m.userId}" data-group-id="${gid}">Kick</button>`
+                        : '';
+                        // const kickGID= document.getElementById('groupId_forKickForm');
+                        // const kickUID= document.getElementById('userId_forKickForm');
+                        // kickGID.value = gid;
+                        // kickUID.value = m.userId;
 
-                        el.innerHTML = leftHtml + checkboxHtml;
+                        el.innerHTML = leftHtml + checkboxHtml + kick;
                         memberListContainer.appendChild(el);
                     });
 
@@ -136,6 +143,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 list.innerHTML = '<div class="text-muted small p-3">Unable to load group details</div>';
                 console.error(err);
             }
+            document.addEventListener('click', function (e) {
+  const btn = e.target.closest('.kick-member-btn');
+  if (!btn) return;
+  e.preventDefault();
+  const userId = btn.dataset.userId;
+  const groupId = btn.dataset.groupId;
+
+  const kickForm = document.getElementById('KickForm');
+  const kickGID = document.getElementById('groupId_forKickForm');
+  const kickUID = document.getElementById('userId_forKickForm');
+
+  if (kickGID) kickGID.value = groupId;
+  if (kickUID) kickUID.value = userId;
+
+  // Submit the existing form
+  if (kickForm) kickForm.submit();
+});
         }
 
         function closePanel() {
@@ -657,7 +681,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                     .catch(err => { 
                         console.error('Modal load error:', err);
-                        modalBody.innerHTML = '<p class="text-danger text-center p-5">Failed to load post. Please try again.</p>'; 
+                        modalBody.innerHTML = '<p class="text-danger text-center p-5">failed to addload post. Please try again.</p>'; 
                     });
             }
         }
@@ -1257,8 +1281,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     bsModal.hide();
                     
                     // Show success message (you can customize this)
-                    alert('Post shared successfully!');
-                    
+                    // alert('Post shared successfully!');
+                    // ^ i don't think these alerts are very appealing
                     // Reset
                     selectedGroupsForShare.clear();
                     currentSharePostId = null;
@@ -1461,7 +1485,6 @@ document.addEventListener('DOMContentLoaded', () => {
             .catch(error => console.error('Error adding comment:', error));
         });
     }
-});
     // =================================================================
     // FOLLOWERS/FOLLOWING MODAL LOGIC
     // =================================================================
@@ -1657,3 +1680,119 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Panel member search (inside openPanel, after rendering members list)
+    const input_panel = document.querySelector('#searchInput_panel');
+    const results_panel = document.querySelector('#searchResults_panel');
+    const selectedMembersPanel = document.querySelector('#selectedMembers_panel');
+    const addMembersBtn_panel = document.querySelector('#addMembersBtn_panel');
+    const selectedUsersPanel = new Set();
+
+    if (input_panel && results_panel && selectedMembersPanel) {
+        input_panel.addEventListener('input', async () => {
+            const q = input_panel.value.trim();
+            if (!q) { results_panel.style.display = 'none'; return; }
+
+            try {
+                const res = await fetch(`/Search/LiveChat?q=${encodeURIComponent(q)}`);
+                if (!res.ok) { results_panel.style.display = 'none'; return; }
+                const html = await res.text();
+                results_panel.innerHTML = html;
+                results_panel.style.display = 'block';
+            } catch (err) {
+                console.error('Search error:', err);
+                results_panel.style.display = 'none';
+            }
+        });
+
+        results_panel.addEventListener('click', (e) => {
+            const item = e.target.closest('li');
+            if (!item) return;
+
+            const userId = item.dataset.userId;
+            const username = item.dataset.username;
+            const pfp = item.dataset.pfp || '/uploads/default_pfp.jpg';
+
+            // Skip if already selected
+            if (selectedUsersPanel.has(userId)) {
+                input_panel.value = '';
+                results_panel.style.display = 'none';
+                return;
+            }
+
+            selectedUsersPanel.add(userId);
+
+            const chip = document.createElement('div');
+            chip.className = 'user-chip';
+            chip.style.cssText = 'display:inline-flex; align-items:center; gap:8px; padding:6px 10px; background:#f3efff; color:#3b0b8b; border-radius:999px; font-size:0.85rem; border:1px solid rgba(111,66,193,0.12);';
+            chip.innerHTML = `
+                <img src="${pfp}" alt="" style="width:20px; height:20px; object-fit:cover; border-radius:50%;">
+                <span>${username}</span>
+                <input type="hidden" name="newMemberIds" value="${userId}" />
+                <button type="button" class="btn-close ms-2" style="width:0.5em; height:0.5em;" aria-label="Remove"></button>
+            `;
+
+            chip.querySelector('.btn-close').addEventListener('click', () => {
+                chip.remove();
+                selectedUsersPanel.delete(userId);
+            });
+
+            selectedMembersPanel.appendChild(chip);
+            input_panel.value = '';
+            results_panel.style.display = 'none';
+        });
+
+        // Close results when clicking outside
+        document.addEventListener('click', (e) => {
+            if (e.target !== input_panel && !results_panel.contains(e.target)) {
+                results_panel.style.display = 'none';
+            }
+        });
+    }
+
+    // Add Members button submission
+    if (addMembersBtn_panel) {
+        addMembersBtn_panel.addEventListener('click', () => {
+            const gid = document.getElementById('currentGroupId')?.value;
+            if (!gid || selectedUsersPanel.size === 0) {
+                console.warn('Select at least one member');
+                return;
+            }
+
+            const userIds = Array.from(selectedUsersPanel);
+
+            // Reuse existing form or create one
+            let form = document.getElementById('addMembersForm');
+            if (!form) {
+                form = document.createElement('form');
+                form.id = 'addMembersForm';
+                form.method = 'POST';
+                form.action = '/Group/AddMember';
+                form.style.display = 'none';
+                document.body.appendChild(form);
+            }
+
+            // Clear previous inputs
+            form.innerHTML = '';
+
+            // groupId input
+            const gidInput = document.createElement('input');
+            gidInput.type = 'hidden';
+            gidInput.name = 'groupId';
+            gidInput.value = gid;
+            form.appendChild(gidInput);
+
+    
+            // userIds (repeatable)
+            userIds.forEach(id => {
+                const userInput = document.createElement('input');
+                userInput.type = 'hidden';
+                userInput.name = 'userIds';
+                userInput.value = id;
+                form.appendChild(userInput);
+            });
+
+            form.submit();
+        });
+    }
+});
+   
