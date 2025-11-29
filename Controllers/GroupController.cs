@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -198,18 +199,20 @@ namespace unibucGram.Controllers
             }
 
             // Get header info (for DMs, get the other user's pfp)
-            string headerPfp = null;
+            string? headerPfp = null;
             if (group.IsDirectMessage)
             {
                 var otherUser = group.GroupMembers
                     .FirstOrDefault(gm => gm.UserId != currentUserId)?.User;
                 headerPfp = otherUser?.PfpURL;
             }
+            string? groupImageUrl = group.IsDirectMessage ? null : group.ImageURL;
 
             return Json(new { 
                 messages = messageData, 
                 isDm = group.IsDirectMessage,
-                headerPfp 
+                headerPfp, 
+                groupImageUrl 
             });
         }
 
@@ -398,17 +401,13 @@ namespace unibucGram.Controllers
 
             if (groupMember == null) return NotFound();
 
-            // Prevent <ONLY> moderator from leaving 
+            // logic for ONLY moderator leaving, makes another grMember moderator then leaves
             if (groupMember.isModerator)
             {
                 var otherMods = await _context.GroupMembers
                     .CountAsync(gm => gm.GroupId == id && gm.isModerator && gm.UserId != user.Id);
                 var count = await _context.GroupMembers.CountAsync(gm => gm.GroupId == id && gm.UserId != user.Id);
-                if (count == 0)
-                {
-                    return Json(new { success = false, message = "You cannot leave: you are the only moderator." });
-                }
-                else if(otherMods == 0 && count >= 1)
+                if(otherMods == 0 && count != 0)
                 {
                     var newMod = await _context.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == id && !gm.isModerator && gm.UserId != user.Id);
                     if (newMod != null)
@@ -417,11 +416,45 @@ namespace unibucGram.Controllers
                     }
                 }
             }
-
+            
             _context.GroupMembers.Remove(groupMember);
             await _context.SaveChangesAsync();
 
-            return Json(new { success = true });
+
+            //if no members left, then delete group
+            if(!await _context.GroupMembers.AnyAsync(gm => gm.GroupId == id))
+            {
+                var group = await _context.Groups.FirstOrDefaultAsync(g => g.Id == id);
+                if(group != null)
+                {
+                    // delete group image file if present
+                    try
+                    {
+                        if (!string.IsNullOrWhiteSpace(group.ImageURL))
+                        {
+                            var relativePath = group.ImageURL.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
+                            var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", relativePath);
+                            if (System.IO.File.Exists(filePath))
+                            {
+                                System.IO.File.Delete(filePath);
+                                _logger.LogInformation("Deleted group image file: {FilePath}", filePath);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Failed to delete group image for group {GroupId}", id);
+                       
+                    }
+
+                    _context.Groups.Remove(group);
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation("Deleted group {GroupId} because no members left", id);
+               
+                }
+            }
+            
+            return RedirectToAction("Index", "Home");
         }
 
         [HttpGet]

@@ -14,7 +14,7 @@ namespace unibucGram.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         public bool IsDirectMessage { get; set; } = false;
-        public string? ImageURL { get; set; } = string.Empty;
+        public string? ImageURL { get; set; } = null;
 
         public virtual ICollection<GroupMember> GroupMembers { get; set; } = new List<GroupMember>();
         public virtual ICollection<GroupMessage> Messages { get; set; } = new List<GroupMessage>();

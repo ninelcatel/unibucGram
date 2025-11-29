@@ -34,6 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             try {
+                const groupId_forLeaveGroupForm = document.getElementById('groupId_forLeaveGroupForm');
+                if (groupId_forLeaveGroupForm) {
+                    groupId_forLeaveGroupForm.value = gid;
+                }
                 // First, check if the current user is authorized as a moderator/admin
                 const authResponse = await fetch(`/Group/IsAuthorizedInGroup?groupId=${encodeURIComponent(gid)}`);
                 if (!authResponse.ok) throw new Error('Auth check failed');
@@ -772,18 +776,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const bsModal = new bootstrap.Modal(chatModal);
         bsModal.show();
 
-        // ✅ Fetch and display group image in header
         fetch(`/Group/GetGroupInfo?groupId=${groupId}`)
             .then(r => r.json())
             .then(groupData => {
-                const headerImage = document.getElementById('groupHeaderImage');
-                const subtitle = document.getElementById('groupHeaderSubtitle');
-                if (headerImage && groupData.imageURL) {
-                    headerImage.src = groupData.imageURL;
-                }
+            
+                const subtitle = document.getElementById('groupHeaderSubtitle');      
                 if (subtitle) {
                     subtitle.textContent = `${groupData.memberCount || 0} members`;
                 }
+                
             })
             .catch(err => console.error('Error loading group info:', err));
 
@@ -809,21 +810,42 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(data => {
                 chatMessagesContainer.innerHTML = '';
 
-                // FIXED: Update header icon based on conversation type
                 const headerIconContainer = chatModal.querySelector('.modal-header .rounded-circle');
-                if (headerIconContainer) {
-                    if (data.isDm && data.headerPfp) {
-                        // For 1:1 DMs, show the other user's profile picture
-                        headerIconContainer.innerHTML = ''; // Clear the default icon
-                        headerIconContainer.style.backgroundImage = `url('${data.headerPfp}')`;
-                        headerIconContainer.style.backgroundSize = 'cover';
-                        headerIconContainer.style.backgroundPosition = 'center';
-                    } else {
-                        // For group chats, show the default group icon
-                        headerIconContainer.innerHTML = '<i class="bi bi-people-fill" style="color: #6f42c1;"></i>';
-                        headerIconContainer.style.backgroundImage = 'none';
-                    }
-                }
+                        if (headerIconContainer) {
+                            headerIconContainer.innerHTML = '';
+                            headerIconContainer.style.backgroundImage = 'none';
+                            headerIconContainer.style.backgroundSize = 'cover';
+                            headerIconContainer.style.backgroundPosition = 'center';
+                            headerIconContainer.style.backgroundRepeat = 'no-repeat';
+                            headerIconContainer.style.borderRadius = '50%';
+                            headerIconContainer.style.width = headerIconContainer.style.width || '48px';
+                            headerIconContainer.style.height = headerIconContainer.style.height || '48px';
+                            headerIconContainer.style.display = 'block';
+
+                            if (data.isDm) {
+                                // For DMs: use other user's pfp or fallback default
+                                const imageUrl = data.headerPfp || '/uploads/default_pfp.jpg';
+                                const sep = imageUrl.includes('?') ? '&' : '?';
+                                headerIconContainer.style.backgroundImage = `url('${imageUrl}${sep}v=${Date.now()}')`;
+                                
+                            } else {
+                                // For groups: use custom image if available, otherwise show icon
+                                if (data.groupImageUrl) {
+                                    const sep = data.groupImageUrl.includes('?') ? '&' : '?';
+                                    headerIconContainer.style.backgroundImage = `url('${data.groupImageUrl}${sep}v=${Date.now()}')`;
+                                    headerIconContainer.innerHTML = '';
+                                    console.log('Background image set to:', headerIconContainer.style.backgroundImage);
+                                    console.log('Data:', data);
+                                } else {
+                                    // Show fallback icon for groups without custom image
+                                    headerIconContainer.innerHTML = '<div class="chat-icon"><i class="bi bi-people-fill"></i></div>';
+                                    headerIconContainer.style.display = 'flex';
+                                    headerIconContainer.style.alignItems = 'center';
+                                    headerIconContainer.style.justifyContent = 'center';
+                                    headerIconContainer.style.backgroundImage = 'none';
+                                }
+                            }
+                        }
                 
                 if (data.messages.length === 0) {
                     chatMessagesContainer.innerHTML = '<div class="text-center text-muted mt-5">Start the conversation!</div>';
