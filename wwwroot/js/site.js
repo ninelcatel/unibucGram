@@ -51,8 +51,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 list.innerHTML = ''; // Clear loading indicator
                 document.getElementById('panelGroupCount').textContent = `${members.length} member${members.length !== 1 ? 's' : ''}`;
-
+                
+                const searchbar = document.getElementById("GroupInfoAddMembers");
+                const searchbar_submitbutton = document.getElementById("addMembersBtn_panel")
+                // RENDER MODERATOR SETTINGS FORM (if authorized) 
                 if (isAuthorized) {
+                    searchbar.display = 'block';
+                    searchbar_submitbutton.style.display = 'block';
+                    searchbar.style.display = 'block';
+                    searchbar_submitbutton.style.display = 'block';
                     const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
                     const formHtml = `
                         <form id="groupSettingsForm" action="/Group/UpdateSettings" method="post" enctype="multipart/form-data">
@@ -121,6 +128,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 } else {
                     // --- RENDER SIMPLE MEMBER LIST (for non-moderators) ---
+                    searchbar.display = 'none';
+                    searchbar_submitbutton.display = 'none';
+                    searchbar.style.display = 'none';
+                    searchbar_submitbutton.style.display = 'none';
                     if (!members || !members.length) {
                         list.innerHTML = '<div class="text-muted small p-3">No members</div>';
                         return;
@@ -137,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     list.innerHTML = '';
                     list.appendChild(membersList);
+                    
                 }
 
             } catch (err) {
@@ -808,6 +820,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (subtitle) {
                     subtitle.textContent = `${groupData.memberCount || 0} members`;
                 }
+                const groupInfoToggle_btn = document.getElementById("groupInfoToggle");
+                groupInfoToggle_btn.style.display = groupData.isDirectMessage ? 'none' : 'block';
+                groupInfoToggle_btn.display = groupData.isDirectMessage ? 'none' : 'block';
                 
             })
             .catch(err => console.error('Error loading group info:', err));
@@ -1795,4 +1810,3 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-   

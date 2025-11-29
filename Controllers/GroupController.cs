@@ -560,7 +560,8 @@ namespace unibucGram.Controllers
                 name = group.Name,
                 imageURL = group.ImageURL,
                 memberCount = memberCount,
-                createdAt = group.CreatedAt
+                createdAt = group.CreatedAt,
+                isDirectMessage = group.IsDirectMessage
             });
         }
     }

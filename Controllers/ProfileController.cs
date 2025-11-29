@@ -91,6 +91,19 @@ namespace unibucGram.Controllers
             {
                 _db.Follows.Add(new Follow { FollowerId = currentUserId, FolloweeId = userId });
                 _db.Notifications.Add(new Notification { UserId = userId, ActorUserId = currentUserId, Type = NotificationType.Follow });
+                var group = await _db.Groups
+                    .Include(g => g.GroupMembers)
+                    .FirstOrDefaultAsync(g => g.IsDirectMessage && 
+                        g.GroupMembers.Any(m => m.UserId == currentUserId) && 
+                        g.GroupMembers.Any(m => m.UserId == userId));
+                if (group == null)
+                {
+                    group = new Group { IsDirectMessage = true};
+                    group.GroupMembers.Add(new GroupMember { UserId = currentUserId });
+                    group.GroupMembers.Add(new GroupMember { UserId = userId });
+                    _db.Groups.Add(group);
+                }
+
             }
 
             await _db.SaveChangesAsync();
@@ -186,6 +199,19 @@ namespace unibucGram.Controllers
             if (actionType == "accept")
             {
                 _db.Follows.Add(new Follow { FollowerId = actor.Id, FolloweeId = currentUserId });
+                var group = await _db.Groups
+                    .Include(g => g.GroupMembers)
+                    .FirstOrDefaultAsync(g => g.IsDirectMessage && 
+                        g.GroupMembers.Any(m => m.UserId == actor.Id) && 
+                        g.GroupMembers.Any(m => m.UserId == currentUserId));
+                if (group == null)
+                {
+                    group = new Group { IsDirectMessage = true};
+                    group.GroupMembers.Add(new GroupMember { UserId = actor.Id });
+                    group.GroupMembers.Add(new GroupMember { UserId = currentUserId });
+                    _db.Groups.Add(group);
+                }
+                
             }
 
             _db.FollowRequests.Remove(request);
