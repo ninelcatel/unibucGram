@@ -35,12 +35,12 @@
                                 if (isFollowedByCurrentUser)
                                 {
                                     <form method="post" asp-controller="Profile" asp-action="FollowToggle" asp-route-userId="@Model.Id" class="d-inline">
-                                        <button type="submit" class="btn btn-sm btn-secondary btn-follow-toggle">Unfollow</button>
+                                        <button type="submit" class="btn btn-sm btn-primary btn-follow-toggle">Unfollow</button>
                                     </form>
                                 }
                                 else if (followRequestSent)
                                 {
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" disabled>Requested</button>
+                                    <button type="button" class="btn btn-sm btn-outline-primary" disabled>Requested</button>
                                 }
                                 else
                                 {
@@ -209,7 +209,7 @@
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="followModalLabel">Followers</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <button type="button" class="btn-close" id="CloseFollowModal" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body" id="followModalBody" style="max-height: 400px; overflow-y: auto;">
         <div class="text-center py-3">

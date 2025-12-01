@@ -1504,32 +1504,31 @@ document.addEventListener('DOMContentLoaded', () => {
     // FOLLOWERS/FOLLOWING MODAL LOGIC
     // =================================================================
     
-    let currentFollowPage = 1;
-    let currentFollowType = '';
-    let currentUsername = '';
-    let isLoadingFollows = false;
-    let hasMoreFollows = true;
+let currentFollowPage = 1;
+let currentFollowType = '';
+let currentUsername = '';
+let isLoadingFollows = false;
+let hasMoreFollows = true;
+let followScrollHandler = null;
 
-    // Initialize followers/following click handlers
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.followers-link').forEach(link => {
-            link.addEventListener('click', function() {
-                openFollowModal('followers', this.dataset.username);
-            });
-        });
-
-        document.querySelectorAll('.following-link').forEach(link => {
-            link.addEventListener('click', function() {
-                openFollowModal('following', this.dataset.username);
-            });
-        });
+// Initialize followers/following click handlers (REMOVE the DOMContentLoaded wrapper here)
+document.querySelectorAll('.followers-link').forEach(link => {
+    link.addEventListener('click', function() {
+        openFollowModal('followers', this.dataset.username);
     });
+});
 
+document.querySelectorAll('.following-link').forEach(link => {
+    link.addEventListener('click', function() {
+        openFollowModal('following', this.dataset.username);
+    });
+});
     function openFollowModal(type, username) {
         currentFollowType = type;
         currentUsername = username;
         currentFollowPage = 1;
         hasMoreFollows = true;
+        isLoadingFollows = false;
 
         const modal = document.getElementById('followModal');
         if (!modal) return;
@@ -1546,57 +1545,74 @@ document.addEventListener('DOMContentLoaded', () => {
             modalLabel.textContent = 'Not Following Back';
         }
 
-        // Show loading
-        modalBody.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-purple" role="status"></div></div>';
+        // Reset body content and remove any prior scroll handler
+        if (followScrollHandler) {
+            modalBody.removeEventListener('scroll', followScrollHandler);
+            followScrollHandler = null;
+        }
 
-        // Add "Not Following Back" button if viewing following on own profile
+        // Show loading container that holds the list
         const isOwnProfile = modal.dataset.ownProfile === 'true';
         if (type === 'following' && isOwnProfile) {
             modalBody.innerHTML = `
                 <button class="btn btn-outline-primary w-100 mb-3" id="notFollowingBackBtn">
                     <i class="bi bi-person-x"></i> Not Following Back
                 </button>
-                <div id="followList"></div>
+                <div id="followList" style="max-height: 400px; overflow-y: auto;"></div>
             `;
-            
-            setTimeout(() => {
-                const btn = document.getElementById('notFollowingBackBtn');
-                if (btn) {
-                    btn.addEventListener('click', function() {
-                        openFollowModal('notFollowingBack', currentUsername);
-                    });
-                }
-            }, 100);
+            const btn = document.getElementById('notFollowingBackBtn');
+            btn?.addEventListener('click', function() {
+                openFollowModal('notFollowingBack', currentUsername);
+            });
         } else {
-            modalBody.innerHTML = '<div id="followList"></div>';
+            modalBody.innerHTML = '<div id="followList" style="max-height: 400px; overflow-y: auto;"></div>';
         }
 
         // Load first page
         loadFollows();
 
-        // Show modal or keep it open if already visible
+        // Show modal (fresh instance each time)
         let bsModal = bootstrap.Modal.getInstance(modal);
         if (!bsModal) {
             bsModal = new bootstrap.Modal(modal);
-            bsModal.show();
         }
+        bsModal.show();
 
-        // Remove existing scroll listeners to prevent duplicates
-        const newModalBody = modalBody.cloneNode(true);
-        modalBody.parentNode.replaceChild(newModalBody, modalBody);
-        
-        // Setup scroll listener on the new element
-        newModalBody.addEventListener('scroll', function() {
+        // Attach a single scroll listener to modalBody (or followList if you prefer)
+        followScrollHandler = function() {
             if (isLoadingFollows || !hasMoreFollows) return;
-            
-            const scrollTop = newModalBody.scrollTop;
-            const scrollHeight = newModalBody.scrollHeight;
-            const clientHeight = newModalBody.clientHeight;
+            const container = document.getElementById('followList') || modalBody;
+            const scrollTop = container.scrollTop;
+            const scrollHeight = container.scrollHeight;
+            const clientHeight = container.clientHeight;
 
             if (scrollTop + clientHeight >= scrollHeight - 100) {
                 currentFollowPage++;
                 loadFollows();
             }
+        };
+        // Listen on followList to avoid modal header affecting scroll math
+        const listContainer = document.getElementById('followList') || modalBody;
+        listContainer.addEventListener('scroll', followScrollHandler);
+
+        // Clean up on hide
+        modal.addEventListener('hidden.bs.modal', function onHide() {
+            // remove listener
+            const list = document.getElementById('followList') || modalBody;
+            if (followScrollHandler) {
+                list.removeEventListener('scroll', followScrollHandler);
+                followScrollHandler = null;
+            }
+            // reset state
+            currentFollowPage = 1;
+            hasMoreFollows = true;
+            isLoadingFollows = false;
+            currentFollowType = '';
+            currentUsername = '';
+            // clear content
+            modalBody.innerHTML = '<div class="text-center py-3"><div class="spinner-border text-purple" role="status"></div></div>';
+            // remove this one-off handler attachment
+            modal.removeEventListener('hidden.bs.modal', onHide);
         });
     }
 
@@ -1611,19 +1627,23 @@ document.addEventListener('DOMContentLoaded', () => {
             endpoint = `/Profile/GetFollowing/${currentUsername}?page=${currentFollowPage}`;
         } else if (currentFollowType === 'notFollowingBack') {
             endpoint = `/Profile/GetNotFollowingBack/${currentUsername}?page=${currentFollowPage}`;
+        } else {
+            isLoadingFollows = false;
+            return;
         }
 
         try {
             const res = await fetch(endpoint);
             const data = await res.json();
 
-            const targetContainer = document.getElementById('followList') || document.getElementById('followModalBody');
+            const targetContainer = document.getElementById('followList');
+            if (!targetContainer) return;
 
             if (currentFollowPage === 1) {
                 targetContainer.innerHTML = '';
             }
 
-            if (data.users.length === 0) {
+            if (!data.users || data.users.length === 0) {
                 hasMoreFollows = false;
                 if (currentFollowPage === 1) {
                     targetContainer.innerHTML = '<div class="text-center text-muted py-3">No users found</div>';
@@ -1644,13 +1664,14 @@ document.addEventListener('DOMContentLoaded', () => {
                              style="object-fit: cover;">
                         <div>
                             <div class="fw-bold text-dark">${user.userName}</div>
-                            <div class="text-muted small">${user.firstName} ${user.lastName}</div>
+                            <div class="text-muted small">${user.firstName ?? ''} ${user.lastName ?? ''}</div>
                         </div>
                     </a>
                 `;
                 targetContainer.appendChild(userItem);
             });
 
+            // If less than a typical page, stop further loads
             if (data.users.length < 20) {
                 hasMoreFollows = false;
             }
