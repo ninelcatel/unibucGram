@@ -118,6 +118,19 @@ namespace unibucGram.Areas.Identity.Pages.Account.Manage
                 return Page();
             }
 
+            // Validate phone number format if provided
+            if (!string.IsNullOrWhiteSpace(Input.PhoneNumber))
+            {
+                // Basic validation: must be digits/spaces/dashes/parentheses and between 10-15 chars
+                var cleaned = new string(Input.PhoneNumber.Where(c => char.IsDigit(c)).ToArray());
+                if (cleaned.Length < 10 || cleaned.Length > 15)
+                {
+                    ModelState.AddModelError("Input.PhoneNumber", "Phone number must contain 10-15 digits.");
+                    await LoadAsync(user);
+                    return Page();
+                }
+            }
+
             // Update user properties
             user.FirstName = Input.FirstName;
             user.LastName = Input.LastName;
