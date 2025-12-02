@@ -46,7 +46,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> EditUser(string id)
         {
             var user = await _userManager.FindByIdAsync(id);
@@ -73,8 +73,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
-        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> EditUser(EditUserViewModel model)
         {
             if (!ModelState.IsValid) return View(model);
@@ -149,7 +148,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Editor")]
         public async Task<IActionResult> EditPost(int id)
         {
             var post = await _db.Posts
@@ -170,7 +169,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Editor")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditPost(EditPostViewModel model)
         {
@@ -259,7 +258,6 @@ namespace unibucGram.Controllers
             var followRequests = await _db.FollowRequests.Where(fr => fr.RequesterId == id || fr.RequesteeId == id).ToListAsync();
             if (followRequests.Any()) _db.FollowRequests.RemoveRange(followRequests);
 
-            // --- START: FIX FOR GROUP MESSAGES ---
             // 4. Anonymize (don't delete) the user's group messages by setting UserId to null
             var groupMessages = await _db.GroupMessages.Where(gm => gm.UserId == id).ToListAsync();
             if (groupMessages.Any())
@@ -269,7 +267,7 @@ namespace unibucGram.Controllers
                     msg.UserId = null;
                 }
             }
-            // --- END: FIX FOR GROUP MESSAGES ---
+                
 
             var groupMemberships = await _db.GroupMembers.Where(gm => gm.UserId == id).ToListAsync();
             if (groupMemberships.Any()) _db.GroupMembers.RemoveRange(groupMemberships);

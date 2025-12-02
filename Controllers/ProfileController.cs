@@ -8,7 +8,6 @@ using unibucGram.Models;
 
 namespace unibucGram.Controllers
 {
-    [Authorize]
     [Route("[controller]")]
     public class ProfileController : Controller
     {
@@ -65,7 +64,9 @@ namespace unibucGram.Controllers
 
             if (string.IsNullOrEmpty(currentUserId) || targetedUser == null || currentUserId == userId)
             {
+                
                 return BadRequest();
+                
             }
 
             // UNFOLLOW LOGIC 
@@ -123,14 +124,18 @@ namespace unibucGram.Controllers
         {
             if (string.IsNullOrEmpty(name))
             {
-                return NotFound();
+                // return NotFound();
+                   TempData["message"] = "This user doesn't exist!";  
+                return RedirectToAction("Index", "Home");
             }
 
             var user = await _db.Users.FirstOrDefaultAsync(u => u.UserName == name);
 
             if (user == null)
             {
-                return NotFound();
+                // return NotFound();
+                   TempData["message"] = "This user doesn't exist!"; 
+                return RedirectToAction("Index", "Home");
             }
 
             var currentUserId = _userManager.GetUserId(User);
@@ -145,7 +150,7 @@ namespace unibucGram.Controllers
             var isEditor = await _userManager.IsInRoleAsync(user, "Editor");
             var isUser = await _userManager.IsInRoleAsync(user, "User");
             var currentUser = await _userManager.GetUserAsync(User);
-            var currentUser_isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
+            var currentUser_isAdmin = currentUser != null && await _userManager.IsInRoleAsync(currentUser, "Admin");
             if((isAdmin || isEditor) && !isUser && !currentUser_isAdmin)
             {
                 TempData["message"] = "This user doesn't exist!"; //vrajeala ca sa nu si dea seama de admin account 

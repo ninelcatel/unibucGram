@@ -9,7 +9,6 @@ using unibucGram.Models;
 
 namespace unibucGram.Controllers
 {
-    [Authorize]
     public class SearchController : Controller
     {
         private readonly ApplicationDbContext _db;
@@ -22,7 +21,7 @@ namespace unibucGram.Controllers
         }
 
         [HttpGet]
-        [Authorize(Roles = "User,Editor,Admin")]
+        [AllowAnonymous]
         public async Task<IActionResult> Live(string q)
         {
             if (string.IsNullOrWhiteSpace(q)) 

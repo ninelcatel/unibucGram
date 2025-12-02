@@ -20,16 +20,20 @@
             <!-- Search Bar -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body">
-                    <div class="input-group">
-                        <span class="input-group-text bg-white border-end-0">
-                            <i class="bi bi-search text-muted"></i>
-                        </span>
-                        <input type="text" 
-                               class="form-control border-start-0" 
-                               id="userSearchInput" 
-                               placeholder="Search users by username, name, or email..." 
-                               autocomplete="off">
+                    <div class="search-input-container">
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0">
+                                <i class="bi bi-search text-muted"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control border-start-0" 
+                                   id="userSearchInput" 
+                                   placeholder="Search users by username, name, or email..." 
+                                   autocomplete="off">
+                        </div>
                     </div>
+
+                    
                     <div id="userSearchResults" class="mt-3" style="display: none;"></div>
                 </div>
             </div>
@@ -128,21 +132,18 @@
                                                title="View Profile">
                                                 <i class="bi bi-eye"></i>
                                             </a>
-                                            @if (User.IsInRole("Admin"))
-                                            {
                                                 <a asp-action="EditUser" asp-route-id="@user.Id" 
                                                    class="btn btn-sm btn-outline-secondary"
                                                    title="Edit User">
                                                     <i class="bi bi-pencil"></i>
                                                 </a>
-                                            }
                                             @if (User.IsInRole("Admin") && !isAdmin)
                                             {
                                                 <form asp-action="DeleteUser" asp-route-id="@user.Id" 
                                                       method="post" 
                                                       class="d-inline" 
                                                       onsubmit="return confirm('⚠️ Are you sure you want to permanently delete @user.UserName and all their content?');">
-                                                    @Html.AntiForgeryToken()
+                                                   
                                                     <button type="submit" 
                                                             class="btn btn-sm btn-outline-danger" 
                                                             title="Delete User">

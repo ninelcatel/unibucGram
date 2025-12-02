@@ -1187,48 +1187,44 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (msg.content === "Attachment") { // Check for our placeholder content
                         const post = msg.sharedPost;
                         
-                        let postHtml;
                         // --- START: DELETED POST CHECK ---
-                        if (post) {
-                        // --- END: DELETED POST CHECK ---
-                            const mediaHtml = post.videoURL ?
-                                `<video src="${post.videoURL}" class="card-img-top" style="max-height: 200px; object-fit: cover;" preload="metadata"></video>` :
-                                (post.imageURL ? `<img src="${post.imageURL}" class="card-img-top" style="max-height: 200px; object-fit: cover;">` : '');
-                            
-                            const postAuthorUsername = post.username; // Already checked in backend
-                            const postAuthorPfp = post.userPfp || '/uploads/default_pfp.jpg';
-
-                            postHtml = `
-                                <div class="shared-post-preview" data-post-id="${post.id}" style="cursor: pointer; max-width: 300px;">
-                                    <div class="card border shadow-sm">
-                                        ${mediaHtml}
-                                        <div class="card-body p-2">
-                                            <div class="d-flex align-items-center mb-2">
-                                                <img src="${postAuthorPfp}"
-                                                     alt="avatar" width="20" height="20" class="rounded-circle me-2" />
-                                                <small class="fw-bold text-truncate">${postAuthorUsername}</small>
-                                            </div>
-                                            <p class="card-text small text-truncate">${post.content || ' '}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        // --- START: DELETED POST CHECK ---
-                        } else {
-                            // This is the case where the post was deleted
-                            postHtml = `
-                                <div class="shared-post-preview" style="max-width: 300px;">
-                                    <div class="card border shadow-sm">
-                                        <div class="card-body p-3 text-center text-muted">
-                                            <i class="bi bi-exclamation-triangle-fill"></i>
-                                            <p class="small mb-0 mt-1">This post has been deleted.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            `;
-                        }
+                        const isPostDeleted = !post;
                         // --- END: DELETED POST CHECK ---
                         
+                        const mediaHtml = post?.videoURL ?
+                            `<video src="${post.videoURL}" class="card-img-top" style="max-height: 200px; object-fit: cover;" preload="metadata"></video>` :
+                            (post?.imageURL ? `<img src="${post.imageURL}" class="card-img-top" style="max-height: 200px; object-fit: cover;">` : '');
+                        
+                        const postAuthorUsername = post?.username; // Already checked in backend
+                        const postAuthorPfp = post?.userPfp || '/uploads/default_pfp.jpg';
+
+                        // --- START: SHARED POST RENDERING (modified) ---
+                        const postHtml = isPostDeleted ? `
+                            <div class="shared-post-preview deleted-post" style="max-width: 300px; pointer-events: none; opacity: 0.8;">
+                                <div class="card border shadow-sm">
+                                    <div class="card-body p-3 text-center text-muted">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                        <p class="small mb-0 mt-1">This post has been deleted.</p>
+                                    </div>
+                                </div>
+                            </div>
+                        ` : `
+                            <div class="shared-post-preview" data-post-id="${post.id}" style="cursor: pointer; max-width: 300px;">
+                                <div class="card border shadow-sm">
+                                    ${mediaHtml}
+                                    <div class="card-body p-2">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <img src="${postAuthorPfp}"
+                                                 alt="avatar" width="20" height="20" class="rounded-circle me-2" />
+                                            <small class="fw-bold text-truncate">${postAuthorUsername}</small>
+                                        </div>
+                                        <p class="card-text small text-truncate">${post.content || ' '}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        // --- END: SHARED POST RENDERING (modified) ---
+
                         div.innerHTML = `
                             ${pfpHtml}
                             <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}" style="max-width:70%;">
@@ -2293,3 +2289,35 @@ document.querySelectorAll('.following-link').forEach(link => {
         });
     });
 });
+
+// --- START: delegated click handler guard (add near other event handlers or bottom of file) ---
+document.addEventListener('click', function (ev) {
+    const preview = ev.target.closest('.shared-post-preview');
+    if (!preview) return;
+
+    const postId = preview.dataset.postId;
+    // If there is no postId (deleted post), do nothing.
+    if (!postId) {
+        ev.stopPropagation();
+        ev.preventDefault();
+        return;
+    }
+
+    // existing logic to open the post modal (run only when postId exists)
+    // Example: fetch post html and show modal
+    // NOTE: if you already have a handler, replace its body with this guard + existing code
+    fetch(`/Posts/GetPostPartial/${encodeURIComponent(postId)}`)
+        .then(r => r.text())
+        .then(html => {
+            const modalBody = document.getElementById('postModalBody');
+            if (modalBody) {
+                modalBody.innerHTML = html;
+                const postModal = new bootstrap.Modal(document.getElementById('postModal'));
+                postModal.show();
+            }
+        })
+        .catch(() => {
+            // optionally show a small toast / silent fail
+        });
+}, false);
+// --- END: delegated click handler guard ---

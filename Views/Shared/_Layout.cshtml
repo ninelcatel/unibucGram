@@ -30,6 +30,7 @@
                         <li class="nav-item">
                             <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
                         </li>
+                                                @if(SignInManager.IsSignedIn(User)){
                         <li class="nav-item dropdown">
                             <a class="nav-link position-relative" href="#" id="notifDropdown" data-bs-toggle="dropdown" role="button">
                                 <i class="bi bi-bell fs-5"></i>
@@ -39,7 +40,7 @@
                                 <div id="notifList" class="list-group list-group-flush"></div>
                                 <button id="notifMarkAll" class="btn btn-sm w-100 btn-light border-top">Mark all read</button>
                             </div>
-                        </li>
+                        </li>}
                         @if(SignInManager.IsSignedIn(User) && (User.IsInRole("Admin") || User.IsInRole("Editor")))
                         {
                             <li class="nav-item">
@@ -47,7 +48,7 @@
                             </li>
                         }
                     </ul>
-                    
+
                     <div class="search-wrapper mx-auto" style="max-width:360px;">
                         <input type="text" id="searchInput" class="form-control" placeholder="Search users..." aria-label="Search" />
                         <div id="searchResults" class="search-results bg-white border rounded-2 shadow-sm" aria-hidden="true"></div>
