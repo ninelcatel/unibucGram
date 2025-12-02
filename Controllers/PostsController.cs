@@ -129,7 +129,7 @@ namespace unibucGram.Controllers
 
         [HttpGet]
         public IActionResult Post(int id)
-        {
+        {   
             var post = _db.Posts
                 .Include(p => p.User)
                 .Include(p => p.Likes)
@@ -147,7 +147,8 @@ namespace unibucGram.Controllers
                 var isFollowing = _db.Follows.Any(f => f.FollowerId == currentUserId && f.FolloweeId == post.UserId);
                 if (!isFollowing)
                 {
-                    return Forbid();
+                    TempData["message"]="The post you tried to access is private!";
+                    return RedirectToAction("Index","Home");
                 }
             }
             return View(post);

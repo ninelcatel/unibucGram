@@ -141,6 +141,16 @@ namespace unibucGram.Controllers
 
             // Determine if the current user can view the posts
             bool canViewPosts = !user.isPrivate || isOwnProfile || isFollowing;
+            var isAdmin = await _userManager.IsInRoleAsync(user,"Admin");
+            var isEditor = await _userManager.IsInRoleAsync(user, "Editor");
+            var isUser = await _userManager.IsInRoleAsync(user, "User");
+            var currentUser = await _userManager.GetUserAsync(User);
+            var currentUser_isAdmin = await _userManager.IsInRoleAsync(currentUser, "Admin");
+            if((isAdmin || isEditor) && !isUser && !currentUser_isAdmin)
+            {
+                TempData["message"] = "This user doesn't exist!"; //vrajeala ca sa nu si dea seama de admin account 
+                return RedirectToAction("Index", "Home");
+            }
             ViewBag.CanViewPosts = canViewPosts;
 
             if (canViewPosts)
