@@ -171,6 +171,7 @@ namespace unibucGram.Controllers
                                 SharedPost = new {
                                     post.Id,
                                     post.ImageURL,
+                                    post.VideoURL,
                                     post.Content,
                                     Username = post.User?.UserName,
                                     UserPfp = post.User?.PfpURL,

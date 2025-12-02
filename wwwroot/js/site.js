@@ -373,6 +373,33 @@ document.addEventListener('DOMContentLoaded', () => {
             if (confirm('Are you sure you want to delete this comment?')) {
                 const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
                 
+                // Get the container before deletion to find the postId
+                const container = document.getElementById(`comment-container-${commentId}`);
+                let postId = null;
+                
+                // Try to find the postId from the container's parent structure
+                if (container) {
+                    // Look for the post ID in the comments container (modal)
+                    const commentsContainer = container.closest('[id^="comments-list-"], [id^="comments-for-modal-"]');
+                    if (commentsContainer) {
+                        const match = commentsContainer.id.match(/comments-(list|for-modal)-(\d+)/);
+                        if (match) {
+                            postId = match[2];
+                        }
+                    }
+                    
+                    // If not found, try to find the post card in feed
+                    if (!postId) {
+                        const postCard = container.closest('[id^="post-"]');
+                        if (postCard) {
+                            const match = postCard.id.match(/post-(\d+)/);
+                            if (match) {
+                                postId = match[1];
+                            }
+                        }
+                    }
+                }
+                
                 fetch(`/Comments/Delete/${commentId}`, {
                     method: 'POST',
                     headers: {
@@ -392,12 +419,38 @@ document.addEventListener('DOMContentLoaded', () => {
                 })
                 .then(data => {
                     if (data.success) {
-                        const container = document.getElementById(`comment-container-${commentId}`);
-                        if (container) {
-                            container.style.transition = 'opacity 0.3s';
-                            container.style.opacity = '0';
-                            setTimeout(() => container.remove(), 300);
-                        }
+                        // Remove the same comment from all locations (feed preview, modal, comments modal)
+                        const allCommentContainers = document.querySelectorAll(`#comment-container-${commentId}`);
+                        allCommentContainers.forEach(c => {
+                            c.style.transition = 'opacity 0.3s';
+                            c.style.opacity = '0';
+                            setTimeout(() => c.remove(), 300);
+                        });
+                        
+                        // Update comment count for this post (after a delay to ensure container is identified)
+                        setTimeout(() => {
+                            if (postId) {
+                                document.querySelectorAll(`#post-${postId} .comments-count, #post-modal-${postId} .comments-count`).forEach(span => {
+                                    const currentCount = parseInt(span.textContent) || 0;
+                                    const newCount = Math.max(0, currentCount - 1);
+                                    span.textContent = `${newCount} comment${newCount !== 1 ? 's' : ''}`;
+                                });
+                                
+                                // Also update the count in the modal header if it exists
+                                const modalCommentsCount = document.querySelector(`#post-modal-${postId} .modal-comments-count`);
+                                if (modalCommentsCount) {
+                                    const currentCount = parseInt(modalCommentsCount.textContent) || 0;
+                                    const newCount = Math.max(0, currentCount - 1);
+                                    modalCommentsCount.textContent = newCount;
+                                }
+                                
+                                // Check if we're in the comments modal and if it's now empty
+                                const commentsModalBody = document.getElementById('commentsModalBody');
+                                if (commentsModalBody && commentsModalBody.children.length === 0) {
+                                    commentsModalBody.innerHTML = '<div class="no-comments"><i class="bi bi-chat-dots"></i><p>No comments yet. Be the first to comment!</p></div>';
+                                }
+                            }
+                        }, 350);
                     } else {
                         alert(data.message || 'Failed to delete comment.');
                     }
@@ -437,6 +490,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     commentsContainer.insertAdjacentHTML('beforeend', html);
                 }
                 input.value = '';
+                
+                // Update comment count - search for all spans with comments-count class for this post
+                document.querySelectorAll(`#post-${postId} .comments-count, #post-modal-${postId} .comments-count`).forEach(span => {
+                    const currentCount = parseInt(span.textContent) || 0;
+                    span.textContent = `${currentCount + 1} comments`;
+                });
             }).catch(error => console.error('Error adding comment:', error));
         }
 
@@ -476,6 +535,50 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // =================================================================
+    // Video Autoplay with Intersection Observer
+    // =================================================================
+    function initializeVideoAutoplay() {
+        const videos = document.querySelectorAll('.feed-video');
+        
+        const observerOptions = {
+            root: null,
+            rootMargin: '0px',
+            threshold: 0.5 // Video must be 50% visible
+        };
+
+        const videoObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                const video = entry.target;
+                
+                if (entry.isIntersecting) {
+                    // Video is visible, play it
+                    video.muted = true; // Start muted for autoplay
+                    video.play().catch(err => console.log('Autoplay prevented:', err));
+                } else {
+                    // Video is not visible, pause it
+                    video.pause();
+                }
+            });
+        }, observerOptions);
+
+        videos.forEach(video => {
+            // Remove loop attribute and add ended event listener
+            video.removeAttribute('loop');
+            
+            // When video ends, pause it so user can replay manually
+            video.addEventListener('ended', function() {
+                this.pause();
+                this.currentTime = 0; // Reset to beginning
+            });
+            
+            videoObserver.observe(video);
+        });
+    }
+
+    // Initialize video autoplay
+    initializeVideoAutoplay();
+
+    // =================================================================
     // Infinite Scroll for Home Feed
     // =================================================================
     function initializeInfiniteScroll() {
@@ -509,6 +612,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             page++;
                             loadingIndicator.style.display = 'none';
                             loadingIndicator.innerHTML = '';
+                            // Reinitialize video autoplay for newly loaded videos
+                            initializeVideoAutoplay();
                         } else {
                             // No more posts to load
                             noMorePosts = true;
@@ -660,9 +765,55 @@ document.addEventListener('DOMContentLoaded', () => {
         initializePostModal();
     }, 100);
     
-    // Also handle clicks on post images in feed (event delegation)
+    // Also handle clicks on post images and videos in feed (event delegation)
     document.addEventListener('click', function(e) {
         const postImageLink = e.target.closest('.post-image-link');
+        const postVideoContainer = e.target.closest('.post-video-container');
+        
+        // Handle video click - but not if clicking on video controls
+        if (postVideoContainer && !e.target.closest('video')) {
+            e.preventDefault();
+            const postId = postVideoContainer.getAttribute('data-post-id');
+            
+            // Manually trigger the modal with the post ID
+            const postModal = document.getElementById('postModal');
+            if (postModal && postId) {
+                const modalBody = document.getElementById('postModalBody');
+                if (modalBody) {
+                    modalBody.innerHTML = '<div class="d-flex justify-content-center p-5"><div class="spinner-border text-purple" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+                }
+                
+                // Pause the video in the feed
+                const feedVideo = postVideoContainer.querySelector('.feed-video');
+                if (feedVideo) {
+                    feedVideo.pause();
+                }
+                
+                // Show the modal
+                const bsModal = new bootstrap.Modal(postModal);
+                bsModal.show();
+                
+                // Load the content
+                fetch(`/Posts/PostPartial/${postId}`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.text();
+                    })
+                    .then(html => { 
+                        modalBody.innerHTML = html;
+                        setTimeout(initializeModalCommentsScroll, 100);
+                    })
+                    .catch(err => { 
+                        console.error('Modal load error:', err);
+                        modalBody.innerHTML = '<p class="text-danger text-center p-5">Failed to load post. Please try again.</p>'; 
+                    });
+            }
+            return; // Exit early to prevent image handling
+        }
+        
+        // Handle image click
         if (postImageLink) {
             e.preventDefault();
             const postId = postImageLink.getAttribute('data-post-id');
@@ -907,10 +1058,23 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Check if it's a shared post
                     if (msg.sharedPost) {
                         const post = msg.sharedPost;
+                        
+                        // Determine media type and create appropriate HTML
+                        let mediaHtml = '';
+                        if (post.videoURL) {
+                            mediaHtml = `<video class="card-img-top" controls style="max-height: 200px; width: 100%; object-fit: cover;">
+                                <source src="${post.videoURL}" type="video/mp4">
+                                <source src="${post.videoURL}" type="video/webm">
+                                Your browser does not support the video tag.
+                            </video>`;
+                        } else if (post.imageURL) {
+                            mediaHtml = `<img src="${post.imageURL}" class="card-img-top" alt="Shared post" style="max-height: 200px; object-fit: cover;">`;
+                        }
+                        
                         const postHtml = `
                             <div class="shared-post-preview" data-post-id="${post.id}" style="cursor: pointer; max-width: 300px;">
                                 <div class="card border shadow-sm">
-                                    ${post.imageURL ? `<img src="${post.imageURL}" class="card-img-top" alt="Shared post" style="max-height: 200px; object-fit: cover;">` : ''}
+                                    ${mediaHtml}
                                     <div class="card-body p-2">
                                         <div class="d-flex align-items-center mb-2">
                                             <img src="${post.userPfp || '/uploads/default_pfp.jpg'}"
@@ -1291,6 +1455,76 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(data => {
                 if (data.success) {
+                    // Check if any of the shared groups is currently open in chat
+                    const currentOpenGroupId = currentGroupIdInput ? parseInt(currentGroupIdInput.value) : null;
+                    const sharedGroupIds = Array.from(selectedGroupsForShare);
+                    
+                    // If the currently open chat is one of the groups we shared to, reload messages
+                    if (currentOpenGroupId && sharedGroupIds.includes(currentOpenGroupId)) {
+                        loadMessages(currentOpenGroupId);
+                    }
+                    
+                    // Also refresh the groups list to update last message preview
+                    if (groupsListContainer) {
+                        fetch('/Group/GetUserGroups')
+                            .then(res => res.json())
+                            .then(groups => {
+                                groupsListContainer.innerHTML = '';
+                                if (groups.length === 0) {
+                                    groupsListContainer.innerHTML = `
+                                        <div class="p-3 text-center text-muted bg-light rounded">
+                                            <i class="bi bi-chat-dots fs-4 d-block mb-2"></i>
+                                            <small>No active conversations</small>
+                                        </div>`;
+                                    return;
+                                }
+
+                                groups.forEach(g => {
+                                    const item = document.createElement('a');
+                                    item.href = '#';
+                                    item.className = 'list-group-item list-group-item-action border-0 rounded mb-1 d-flex align-items-center p-2';
+
+                                    const isDirectMessage = g.isDm || g.IsDm || g.isDirectMessage;
+                                    let iconHtml = '';
+
+                                    if (isDirectMessage) {
+                                        const pfpUrl = g.pfp || '/uploads/default_pfp.jpg';
+                                        iconHtml = `
+                                          <div class="chat-avatar-outline me-3">
+                                            <img src="${pfpUrl}" alt="">
+                                          </div>`;
+                                    } else {
+                                        const groupPfp = g.imageURL || g.pfp || '/uploads/default_pfp.jpg';
+                                        iconHtml = `
+                                          <div class="chat-avatar-outline me-3">
+                                            ${groupPfp && groupPfp !== '/uploads/default_pfp.jpg' 
+                                              ? `<img src="${groupPfp}" alt="${g.name}" style="object-fit:cover;">` 
+                                              : '<div class="chat-icon"><i class="bi bi-people-fill"></i></div>'}
+                                          </div>`;
+                                    }
+
+                                    let lastMessage = g.lastMessage || 'No messages yet';
+                                    if (lastMessage.startsWith('[SHARED_POST:') && lastMessage.endsWith(']')) {
+                                        lastMessage = 'Attachment';
+                                    }
+
+                                    item.innerHTML = `
+                                        ${iconHtml}
+                                        <div class="overflow-hidden">
+                                            <div class="fw-bold text-truncate">${g.name}</div>
+                                            <small class="text-muted text-truncate d-block">${lastMessage}</small>
+                                        </div>
+                                    `;
+                                    item.addEventListener('click', (e) => {
+                                        e.preventDefault();
+                                        openChatModal(g.id, g.name);
+                                    });
+                                    groupsListContainer.appendChild(item);
+                                });
+                            })
+                            .catch(err => console.error('Failed to reload groups', err));
+                    }
+                    
                     // Close modal
                     const bsModal = bootstrap.Modal.getInstance(shareModal);
                     bsModal.hide();
@@ -1487,15 +1721,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Scroll to bottom to show new comment
                 commentsModalBody.scrollTop = commentsModalBody.scrollHeight;
                 
-                // Update comment count on the button
-                const commentButton = document.querySelector(`.comments-button[data-post-id="${postId}"]`);
-                if (commentButton) {
-                    const countSpan = commentButton.querySelector('.comments-count');
-                    if (countSpan) {
-                        const currentCount = parseInt(countSpan.textContent) || 0;
-                        countSpan.textContent = `${currentCount + 1} comments`;
-                    }
-                }
+                // Update comment count - search for all spans with comments-count class for this post
+                document.querySelectorAll(`#post-${postId} .comments-count, #post-modal-${postId} .comments-count`).forEach(span => {
+                    const currentCount = parseInt(span.textContent) || 0;
+                    span.textContent = `${currentCount + 1} comments`;
+                });
             })
             .catch(error => console.error('Error adding comment:', error));
         });

@@ -14,8 +14,8 @@
         </div>
         @if (!string.IsNullOrEmpty(post.VideoURL))
         {
-            <div style="position: relative; width: 100%; max-height: 600px; background: #000;">
-                <video class="w-100 feed-video" data-post-id="@post.Id" style="max-height: 600px; object-fit: contain; cursor: pointer; display: block;" autoplay loop muted playsinline>
+            <div class="post-video-container" data-post-id="@post.Id" style="position: relative; width: 100%; max-height: 600px; background: #000; cursor: pointer;">
+                <video class="w-100 feed-video" data-post-id="@post.Id" style="max-height: 600px; object-fit: contain; display: block;" controls playsinline>
                     <source src="@post.VideoURL" type="video/mp4">
                     <source src="@post.VideoURL" type="video/webm">
                     Your browser does not support the video tag.
@@ -40,18 +40,32 @@
                 <button class="btn btn-link text-dark p-0 like-button" data-post-id="@post.Id" style="line-height: 1;">
                     <i class="bi @(isLiked ? "bi-heart-fill text-danger" : "bi-heart") fs-5"></i>
                 </button>
-                <span class="fw-bold small">@post.Likes.Count likes</span>
+                <span class="fw-bold small likes-count">@post.Likes.Count likes</span>
                 
                 <button class="btn btn-link text-dark p-0 comments-button ms-2" data-post-id="@post.Id" style="cursor: pointer;">
                     <i class="bi bi-chat fs-5"></i>
                 </button>
-                <span class="fw-bold small">@post.Comments.Count comments</span>
+                <span class="fw-bold small comments-count">@post.Comments.Count comments</span>
                 
                 <button class="btn btn-link text-dark p-0 share-button ms-2" data-post-id="@post.Id" style="cursor: pointer;">
                     <i class="bi bi-send fs-5"></i>
                 </button>
             </div>
             <div class="text-muted small">@post.CreatedAt.ToLocalTime().ToString("MMMM dd, yyyy")</div>
+            
+            @* Preview ultimele 3 comentarii *@
+            @if (post.Comments.Any())
+            {
+                <div class="mt-3 pt-2 border-top" id="comments-preview-@post.Id">
+                    @foreach(var comment in post.Comments.OrderByDescending(c => c.CreatedAt).Take(3).Reverse())
+                    {
+                        @if (comment.User != null)
+                        {
+                            <partial name="_CommentPartial" model="comment" />
+                        }
+                    }
+                </div>
+            }
         </div>
         <div class="card-footer bg-white p-2">
             <div class="post-footer p-3">
