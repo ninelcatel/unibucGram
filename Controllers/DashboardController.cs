@@ -224,55 +224,67 @@ namespace unibucGram.Controllers
                 return RedirectToAction("ManageUsers");
             }
 
-            // Cascade delete all related data to avoid foreign key constraints
-            // Order matters: 
-            var userPosts = await _db.Posts.Where(p => p.UserId == id).ToListAsync();
-            foreach (var post in userPosts)
+            // --- START: CORRECTED DELETION ORDER ---
+
+            // 1. Get all post IDs for the user
+            var postIds = await _db.Posts
+                .Where(p => p.UserId == id)
+                .Select(p => p.Id)
+                .ToListAsync();
+
+            if (postIds.Any())
             {
-                
-                var postNotifications = await _db.Notifications.Where(n => n.PostId == post.Id).ToListAsync();
-                _db.Notifications.RemoveRange(postNotifications);
+                // 2. Delete all dependencies on those posts
+                var likesOnPosts = await _db.Likes.Where(l => postIds.Contains(l.PostId)).ToListAsync();
+                if (likesOnPosts.Any()) _db.Likes.RemoveRange(likesOnPosts);
 
-                var postComments = await _db.Comments.Where(c => c.PostId == post.Id).ToListAsync();
-                _db.Comments.RemoveRange(postComments);
+                var commentsOnPosts = await _db.Comments.Where(c => postIds.Contains(c.PostId)).ToListAsync();
+                if (commentsOnPosts.Any()) _db.Comments.RemoveRange(commentsOnPosts);
 
-                var postLikes = await _db.Likes.Where(l => l.PostId == post.Id).ToListAsync();
-                _db.Likes.RemoveRange(postLikes);
+                var notificationsForPosts = await _db.Notifications.Where(n => n.PostId != null && postIds.Contains(n.PostId.Value)).ToListAsync();
+                if (notificationsForPosts.Any()) _db.Notifications.RemoveRange(notificationsForPosts);
             }
-            _db.Posts.RemoveRange(userPosts);
 
+            // 3. Delete direct user relationships (comments/likes on OTHER posts, follows, etc.)
             var userComments = await _db.Comments.Where(c => c.UserId == id).ToListAsync();
-            _db.Comments.RemoveRange(userComments);
+            if (userComments.Any()) _db.Comments.RemoveRange(userComments);
 
-            
             var userLikes = await _db.Likes.Where(l => l.UserId == id).ToListAsync();
-            _db.Likes.RemoveRange(userLikes);
+            if (userLikes.Any()) _db.Likes.RemoveRange(userLikes);
 
-            var userNotifications = await _db.Notifications
-                .Where(n => n.UserId == id)
-                .ToListAsync();
-            _db.Notifications.RemoveRange(userNotifications);
+            var followRelations = await _db.Follows.Where(f => f.FollowerId == id || f.FolloweeId == id).ToListAsync();
+            if (followRelations.Any()) _db.Follows.RemoveRange(followRelations);
 
-            var followRelations = await _db.Follows
-                .Where(f => f.FollowerId == id || f.FolloweeId == id)
-                .ToListAsync();
-            _db.Follows.RemoveRange(followRelations);
+            var followRequests = await _db.FollowRequests.Where(fr => fr.RequesterId == id || fr.RequesteeId == id).ToListAsync();
+            if (followRequests.Any()) _db.FollowRequests.RemoveRange(followRequests);
 
-            var followRequests = await _db.FollowRequests
-                .Where(f => f.RequesterId == id || f.RequesteeId == id)
-                .ToListAsync();
-            _db.FollowRequests.RemoveRange(followRequests);
-
-            var groupMembers = await _db.GroupMembers.Where(gm => gm.UserId == id).ToListAsync();
-            _db.GroupMembers.RemoveRange(groupMembers);
-
+            // 4. Delete Group and Message related data
             var groupMessages = await _db.GroupMessages.Where(gm => gm.UserId == id).ToListAsync();
-            _db.GroupMessages.RemoveRange(groupMessages);
+            if (groupMessages.Any()) _db.GroupMessages.RemoveRange(groupMessages);
 
+            var groupMemberships = await _db.GroupMembers.Where(gm => gm.UserId == id).ToListAsync();
+            if (groupMemberships.Any()) _db.GroupMembers.RemoveRange(groupMemberships);
+
+            // 5. Delete Notifications where the user is the recipient OR the actor
+            var userNotifications = await _db.Notifications.Where(n => n.UserId == id || n.ActorUserId == id).ToListAsync();
+            if (userNotifications.Any()) _db.Notifications.RemoveRange(userNotifications);
+
+            // 6. Delete the user's posts now that their dependencies are gone
+            var userPosts = await _db.Posts.Where(p => p.UserId == id).ToListAsync();
+            if (userPosts.Any()) _db.Posts.RemoveRange(userPosts);
             
-            _db.Users.Remove(user);
-
+            // Save changes for all the manual deletions so far
             await _db.SaveChangesAsync();
+
+            // 7. CRITICAL FIX: Use UserManager to delete the user. This correctly handles Identity tables.
+            var identityResult = await _userManager.DeleteAsync(user);
+            if (!identityResult.Succeeded)
+            {
+                TempData["Error"] = "Could not delete user. " + string.Join(", ", identityResult.Errors.Select(e => e.Description));
+                return RedirectToAction("ManageUsers");
+            }
+
+            // --- END: CORRECTED DELETION ORDER ---
 
             TempData["Success"] = $"User {user.UserName} and all related content deleted successfully.";
             return RedirectToAction("ManageUsers");
@@ -286,17 +298,17 @@ namespace unibucGram.Controllers
             var post = await _db.Posts.FindAsync(id);
             if (post == null) return NotFound();
 
-           
+            // 1. Delete entities that have a foreign key to this Post
             var notifications = await _db.Notifications.Where(n => n.PostId == id).ToListAsync();
-            _db.Notifications.RemoveRange(notifications);
+            if (notifications.Any()) _db.Notifications.RemoveRange(notifications);
 
-            
             var comments = await _db.Comments.Where(c => c.PostId == id).ToListAsync();
-            _db.Comments.RemoveRange(comments);
+            if (comments.Any()) _db.Comments.RemoveRange(comments);
 
             var likes = await _db.Likes.Where(l => l.PostId == id).ToListAsync();
-            _db.Likes.RemoveRange(likes);
+            if (likes.Any()) _db.Likes.RemoveRange(likes);
 
+            // 2. Now that all dependencies are gone, delete the Post itself
             _db.Posts.Remove(post);
 
             await _db.SaveChangesAsync();

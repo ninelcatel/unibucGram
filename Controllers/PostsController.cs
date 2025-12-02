@@ -368,6 +368,17 @@ namespace unibucGram.Controllers
             }
 
 
+            // 1. Delete related entities first
+            var notifications = await _db.Notifications.Where(n => n.PostId == postId).ToListAsync();
+            if (notifications.Any()) _db.Notifications.RemoveRange(notifications);
+
+            var comments = await _db.Comments.Where(c => c.PostId == postId).ToListAsync();
+            if (comments.Any()) _db.Comments.RemoveRange(comments);
+
+            var likes = await _db.Likes.Where(l => l.PostId == postId).ToListAsync();
+            if (likes.Any()) _db.Likes.RemoveRange(likes);
+
+
             if (!string.IsNullOrEmpty(post.ImageURL))
             {
                 var imagePath = Path.Combine(_env.WebRootPath, post.ImageURL.TrimStart('/'));
@@ -386,6 +397,7 @@ namespace unibucGram.Controllers
                 }
             }
 
+            // 2. Now delete the post itself
             _db.Posts.Remove(post);
             await _db.SaveChangesAsync();
 
