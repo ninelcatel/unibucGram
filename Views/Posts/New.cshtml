@@ -28,6 +28,12 @@
                 <small class="form-text text-muted">You can upload images or videos (with sound)</small>
             </div>
 
+            <div class="mb-3" id="thumbnail-container" style="display: none;">
+                <label for="thumbnail" class="form-label">Video Thumbnail</label>
+                <input type="file" id="thumbnail" name="thumbnail" class="form-control" accept="image/*">
+                <small class="form-text text-muted">Upload a thumbnail image for your video (recommended for better preview)</small>
+            </div>
+
             <div class="d-grid">
                 <button type="submit" class="btn btn-primary">Post</button>
             </div>
@@ -37,4 +43,17 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.getElementById('media').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            const thumbnailContainer = document.getElementById('thumbnail-container');
+            
+            if (file && file.type.startsWith('video/')) {
+                thumbnailContainer.style.display = 'block';
+            } else {
+                thumbnailContainer.style.display = 'none';
+                document.getElementById('thumbnail').value = '';
+            }
+        });
+    </script>
 }

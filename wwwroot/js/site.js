@@ -402,8 +402,17 @@ document.addEventListener('DOMContentLoaded', () => {
                             icon.classList.add('bi-heart');
                         }
                     });
+                    
+                    // Update likes count in all locations (profile grid, modal, etc.)
                     document.querySelectorAll(`#post-${postId} .likes-count, #post-modal-${postId} .likes-count`).forEach(span => {
-                        span.textContent = `${data.likesCount} likes`;
+                        // Check if it's a badge (on profile grid) or regular span (in modal)
+                        if (span.classList.contains('badge')) {
+                            // For badge in profile grid, keep the icon
+                            span.innerHTML = `<i class="bi bi-heart-fill text-danger"></i> ${data.likesCount}`;
+                        } else {
+                            // For modal, just show number + "likes"
+                            span.textContent = `${data.likesCount} likes`;
+                        }
                     });
                 }
             }).catch(error => console.error('Error toggling like:', error));

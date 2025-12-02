@@ -16,6 +16,7 @@ namespace unibucGram.Models
 
         public string? ImageURL { get; set; } = string.Empty; // url catre poza 
         public string? VideoURL { get; set; } = string.Empty; // url catre video
+        public string? ThumbnailURL { get; set; } = string.Empty; // thumbnail pentru video
         public string? MediaType { get; set; } = string.Empty; // "image" sau "video"
 
         /*
