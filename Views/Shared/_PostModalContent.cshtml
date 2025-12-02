@@ -96,29 +96,6 @@
                             </button>
                         </div>
                         <div class="text-muted small mt-2">@Model.CreatedAt.ToLocalTime().ToString("D").ToUpper()</div>
-                        
-                        @* Preview ultimele 3 comentarii *@
-                        @if (Model.Comments.Any())
-                        {
-                            <div class="mt-2 pt-2 border-top">
-                                @foreach(var comment in Model.Comments.OrderByDescending(c => c.CreatedAt).Take(3).Reverse())
-                                {
-                                    @if (comment.User != null)
-                                    {
-                                        <div class="d-flex align-items-start mb-2">
-                                            <a href="/Profile/Show/@comment.User.UserName" class="text-decoration-none">
-                                                <img src="@(string.IsNullOrWhiteSpace(comment.User.PfpURL) ? "/uploads/default_pfp.jpg" : comment.User.PfpURL)"
-                                                     alt="avatar" width="24" height="24" class="rounded-circle me-2" style="object-fit: cover;" />
-                                            </a>
-                                            <div class="flex-grow-1" style="font-size: 0.9rem;">
-                                                <a href="/Profile/Show/@comment.User.UserName" class="fw-bold text-dark text-decoration-none">@comment.User.UserName</a>
-                                                <span class="text-muted">@comment.Content</span>
-                                            </div>
-                                        </div>
-                                    }
-                                }
-                            </div>
-                        }
                     </div>
                 </div>
                 <div class="card-footer bg-white p-2">
@@ -175,29 +152,6 @@
                     </button>
                 </div>
                 <div class="text-muted small">@Model.CreatedAt.ToLocalTime().ToString("g")</div>
-                
-                @* Preview ultimele 3 comentarii *@
-                @if (Model.Comments.Any())
-                {
-                    <div class="mt-3 pt-2 border-top">
-                        @foreach(var comment in Model.Comments.OrderByDescending(c => c.CreatedAt).Take(3).Reverse())
-                        {
-                            @if (comment.User != null)
-                            {
-                                <div class="d-flex align-items-start mb-2">
-                                    <a href="/Profile/Show/@comment.User.UserName" class="text-decoration-none">
-                                        <img src="@(string.IsNullOrWhiteSpace(comment.User.PfpURL) ? "/uploads/default_pfp.jpg" : comment.User.PfpURL)"
-                                             alt="avatar" width="28" height="28" class="rounded-circle me-2" style="object-fit: cover;" />
-                                    </a>
-                                    <div class="flex-grow-1">
-                                        <a href="/Profile/Show/@comment.User.UserName" class="fw-bold text-dark text-decoration-none">@comment.User.UserName</a>
-                                        <span class="text-muted">@comment.Content</span>
-                                    </div>
-                                </div>
-                            }
-                        }
-                    </div>
-                }
             </div>
             <div id="modal-comments-container-@Model.Id" style="max-height: 350px; overflow-y: auto;" class="mb-3">
                 <div class="comments-container" id="comments-for-modal-@Model.Id">

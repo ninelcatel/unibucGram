@@ -2060,4 +2060,57 @@ document.querySelectorAll('.following-link').forEach(link => {
             form.submit();
         });
     }
+
+    // =================================================================
+    // SUGGESTED USERS LOGIC
+    // =================================================================
+    const suggestedUsersList = document.getElementById('suggestedUsersList');
+    
+    if (suggestedUsersList) {
+        fetch('/Profile/GetSuggestedUsers')
+            .then(res => res.json())
+            .then(data => {
+                suggestedUsersList.innerHTML = '';
+                
+                if (data.users.length === 0) {
+                    suggestedUsersList.innerHTML = `
+                        <div class="p-3 text-center text-muted">
+                            <i class="bi bi-person-plus fs-4 d-block mb-2"></i>
+                            <small>No suggestions yet</small>
+                        </div>`;
+                    return;
+                }
+                
+                data.users.forEach(user => {
+                    const userItem = document.createElement('a');
+                    userItem.href = `/Profile/Show/${user.userName}`;
+                    userItem.className = 'd-flex align-items-center mb-3 text-decoration-none text-dark';
+                    userItem.style.cursor = 'pointer';
+                    
+                    const pfpUrl = user.pfpURL || '/uploads/default_pfp.jpg';
+                    const mutualText = user.mutualFollowers === 1 
+                        ? '1 mutual follower' 
+                        : `${user.mutualFollowers} mutual followers`;
+                    
+                    userItem.innerHTML = `
+                        <img src="${pfpUrl}" alt="${user.userName}" 
+                             class="rounded-circle me-2" 
+                             style="width: 40px; height: 40px; object-fit: cover;">
+                        <div class="flex-grow-1">
+                            <div class="fw-bold small">${user.userName}</div>
+                            <div class="text-muted small">${mutualText}</div>
+                        </div>
+                    `;
+                    
+                    suggestedUsersList.appendChild(userItem);
+                });
+            })
+            .catch(err => {
+                console.error('Failed to load suggested users:', err);
+                suggestedUsersList.innerHTML = `
+                    <div class="p-3 text-center text-muted">
+                        <small>Failed to load suggestions</small>
+                    </div>`;
+            });
+    }
 });

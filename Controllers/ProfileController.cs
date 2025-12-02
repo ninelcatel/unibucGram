@@ -317,5 +317,53 @@ namespace unibucGram.Controllers
 
             return Json(new { users = notFollowingBackUsers });
         }
+
+        [HttpGet("GetSuggestedUsers")]
+        [Authorize(Roles = "User,Editor,Admin")]
+        public async Task<IActionResult> GetSuggestedUsers()
+        {
+            var currentUserId = _userManager.GetUserId(User);
+            if (string.IsNullOrEmpty(currentUserId)) return Unauthorized();
+
+            // Get users that current user is following
+            var following = await _db.Follows
+                .Where(f => f.FollowerId == currentUserId)
+                .Select(f => f.FolloweeId)
+                .ToListAsync();
+
+            // Get users that are following the current user's following (mutual connections)
+            var mutualFollowers = await _db.Follows
+                .Where(f => following.Contains(f.FollowerId) && f.FolloweeId != currentUserId && !following.Contains(f.FolloweeId))
+                .GroupBy(f => f.FolloweeId)
+                .Select(g => new
+                {
+                    UserId = g.Key,
+                    MutualCount = g.Count()
+                })
+                .OrderByDescending(x => x.MutualCount)
+                .Take(5)
+                .ToListAsync();
+
+            var suggestedUsers = new List<object>();
+
+            foreach (var mutual in mutualFollowers)
+            {
+                var user = await _db.Users.FindAsync(mutual.UserId);
+                if (user != null)
+                {
+                    suggestedUsers.Add(new
+                    {
+                        user.Id,
+                        user.UserName,
+                        user.FirstName,
+                        user.LastName,
+                        user.PfpURL,
+                        MutualFollowers = mutual.MutualCount
+                    });
+                }
+            }
+
+            return Json(new { users = suggestedUsers });
+        }
     }
 }
