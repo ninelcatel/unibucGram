@@ -159,7 +159,7 @@ namespace unibucGram.Controllers
 
         [HttpGet]
         public IActionResult Post(int id)
-        {
+        {   
             var post = _db.Posts
                 .Include(p => p.User)
                 .Include(p => p.Likes)
@@ -177,7 +177,8 @@ namespace unibucGram.Controllers
                 var isFollowing = _db.Follows.Any(f => f.FollowerId == currentUserId && f.FolloweeId == post.UserId);
                 if (!isFollowing)
                 {
-                    return Forbid();
+                    TempData["message"]="The post you tried to access is private!";
+                    return RedirectToAction("Index","Home");
                 }
             }
             return View(post);
@@ -395,6 +396,17 @@ namespace unibucGram.Controllers
             {
                 return Forbid();
             }
+
+
+            // 1. Delete related entities first
+            var notifications = await _db.Notifications.Where(n => n.PostId == postId).ToListAsync();
+            if (notifications.Any()) _db.Notifications.RemoveRange(notifications);
+
+            var comments = await _db.Comments.Where(c => c.PostId == postId).ToListAsync();
+            if (comments.Any()) _db.Comments.RemoveRange(comments);
+
+            var likes = await _db.Likes.Where(l => l.PostId == postId).ToListAsync();
+            if (likes.Any()) _db.Likes.RemoveRange(likes);
 
 
             if (!string.IsNullOrEmpty(post.ImageURL))
