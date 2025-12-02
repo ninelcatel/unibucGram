@@ -393,7 +393,14 @@ namespace unibucGram.Controllers
                     if (!PostExists(postToUpdate.Id)) { return NotFound(); }
                     else { throw; }
                 }
-                return RedirectToAction(nameof(Post), new { id = postToUpdate.Id });
+                
+                // Redirect to user's profile after edit
+                var user = await _userManager.FindByIdAsync(postToUpdate.UserId);
+                if (user != null)
+                {
+                    return RedirectToAction("Show", "Profile", new { id = user.UserName });
+                }
+                return RedirectToAction("Index", "Home");
             }
 
             // Daca validarea esueaza, retrimitem modelul actualizat la view

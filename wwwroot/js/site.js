@@ -423,13 +423,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (editButton) {
             e.preventDefault();
             const commentId = editButton.dataset.commentId;
-            const displayDiv = document.getElementById(`comment-display-${commentId}`);
-            const editForm = document.querySelector(`.edit-comment-form[data-comment-id='${commentId}']`);
             
+            // Determine if we are inside a modal
+            const inPostModal = editButton.closest('#postModal');
+            const inCommentsModal = editButton.closest('#commentsModal');
+
+            let displaySelector, formSelector;
+
+            if (inPostModal || inCommentsModal) {
+                // If in any modal, target elements within that modal context
+                const modalContext = inPostModal || inCommentsModal;
+                displaySelector = `#${modalContext.id} #comment-display-${commentId}`;
+                formSelector = `#${modalContext.id} .edit-comment-form[data-comment-id='${commentId}']`;
+            } else {
+                // If on the main page (feed preview), target elements without modal context
+                // This assumes feed comments are not inside a modal structure, which is correct.
+                displaySelector = `#comments-preview-container #comment-display-${commentId}`;
+                formSelector = `#comments-preview-container .edit-comment-form[data-comment-id='${commentId}']`;
+            }
+
+            const displayDiv = document.querySelector(displaySelector);
+            const editForm = document.querySelector(formSelector);
+
             if (displayDiv && editForm) {
                 displayDiv.style.display = 'none';
                 editForm.style.display = 'block';
                 editForm.querySelector('input[name="content"]').focus();
+            } else {
+                // Fallback for any case not covered, like comments page
+                const genericDisplay = document.getElementById(`comment-display-${commentId}`);
+                const genericForm = document.querySelector(`.edit-comment-form[data-comment-id='${commentId}']`);
+                if(genericDisplay && genericForm) {
+                    genericDisplay.style.display = 'none';
+                    genericForm.style.display = 'block';
+                    genericForm.querySelector('input[name="content"]').focus();
+                }
             }
         }
 
@@ -463,6 +491,29 @@ document.addEventListener('DOMContentLoaded', () => {
                             const match = postCard.id.match(/post-(\d+)/);
                             if (match) {
                                 postId = match[1];
+                            }
+                        }
+                    }
+                    
+                    // If still not found, check if we're in the comments modal
+                    if (!postId) {
+                        const commentsModal = document.getElementById('commentsModal');
+                        if (commentsModal && commentsModal.classList.contains('active')) {
+                            const modalPostIdInput = document.getElementById('modalPostId');
+                            if (modalPostIdInput) {
+                                postId = modalPostIdInput.value;
+                            }
+                        }
+                    }
+                    
+                    // If still not found, check if we're in the post modal
+                    if (!postId) {
+                        const postModalBody = container.closest('#postModalBody');
+                        if (postModalBody) {
+                            // Try to find post ID from any element with data-post-id in the modal
+                            const postElement = postModalBody.querySelector('[data-post-id]');
+                            if (postElement) {
+                                postId = postElement.dataset.postId;
                             }
                         }
                     }
@@ -529,6 +580,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                         }
                                     }
                                 });
+                                
+                                // Also update the comments modal counter if it's open and showing this post
+                                const commentsModal = document.getElementById('commentsModal');
+                                if (commentsModal && commentsModal.classList.contains('active')) {
+                                    const modalPostIdInput = document.getElementById('modalPostId');
+                                    if (modalPostIdInput && modalPostIdInput.value === postId) {
+                                        const modalCounter = commentsModal.querySelector('.comments-count');
+                                        if (modalCounter) {
+                                            const currentCount = parseInt(modalCounter.textContent) || 0;
+                                            modalCounter.textContent = Math.max(0, currentCount - 1);
+                                        }
+                                    }
+                                }
                                 
                                 // Also check for modal-specific counters
                                 const modalCommentsCount = document.querySelector(`#post-modal-${postId} .modal-comments-count`);
@@ -651,12 +715,22 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    const contentSpan = document.getElementById(`comment-content-${commentId}`);
-                    const displayDiv = document.getElementById(`comment-display-${commentId}`);
+                    // Update ALL instances of this comment across the page (preview, modals, etc.)
+                    const allContentSpans = document.querySelectorAll(`#comment-content-${commentId}`);
+                    const allDisplayDivs = document.querySelectorAll(`#comment-display-${commentId}`);
+                    const allEditForms = document.querySelectorAll(`.edit-comment-form[data-comment-id="${commentId}"]`);
                     
-                    if (contentSpan) contentSpan.textContent = data.content;
-                    if (displayDiv) displayDiv.style.display = 'flex';
-                    form.style.display = 'none';
+                    allContentSpans.forEach(span => {
+                        span.textContent = data.content;
+                    });
+                    
+                    allDisplayDivs.forEach(div => {
+                        div.style.display = 'flex';
+                    });
+                    
+                    allEditForms.forEach(f => {
+                        f.style.display = 'none';
+                    });
                 } else { 
                     alert(data.message || 'Failed to edit comment.'); 
                 }
