@@ -59,7 +59,7 @@
                             <span>@Model.Content</span>
                         </div>
                     }
-                    <div class="flex-grow-1 overflow-auto mb-3" id="modal-comments-container-@Model.Id" style="max-height: 400px; overflow-y: auto;">
+                    <div class="flex-grow-1 overflow-auto mb-3" id="modal-comments-container-@Model.Id" style="max-height: 250px; overflow-y: auto;">
                         <div class="comments-container mt-2" id="comments-for-modal-@Model.Id">
                             @foreach(var comment in Model.Comments.OrderBy(c => c.CreatedAt).Take(10))
                             {
@@ -153,7 +153,7 @@
                 </div>
                 <div class="text-muted small">@Model.CreatedAt.ToLocalTime().ToString("g")</div>
             </div>
-            <div id="modal-comments-container-@Model.Id" style="max-height: 350px; overflow-y: auto;" class="mb-3">
+            <div id="modal-comments-container-@Model.Id" style="max-height: 250px; overflow-y: auto;" class="mb-3">
                 <div class="comments-container" id="comments-for-modal-@Model.Id">
                     @foreach(var comment in Model.Comments.OrderBy(c => c.CreatedAt).Take(10))
                     {

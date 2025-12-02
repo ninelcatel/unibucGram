@@ -124,6 +124,7 @@
                         {
                             var noMedia = string.IsNullOrEmpty(post.ImageURL) && string.IsNullOrEmpty(post.VideoURL);
                             var hasVideo = !string.IsNullOrEmpty(post.VideoURL);
+                            var hasThumbnail = !string.IsNullOrEmpty(post.ThumbnailURL);
                             <div class="col">
                                 <a href="#"
                                    class="text-decoration-none post-thumbnail @(noMedia ? "text-only-thumb" : "")"
@@ -133,16 +134,30 @@
                                     <div class="card h-100 border-0 shadow-sm @(noMedia ? "text-only-card" : "")" id="post-@post.Id">
                                         @if (hasVideo)
                                         {
-                                            <div class="post-image-container video-thumbnail-container" style="position: relative; background: #000; height: 250px; overflow: hidden;" data-video-url="@post.VideoURL">
-                                                <video class="w-100 h-100 video-thumbnail" style="object-fit: cover; display: block; height: 250px;" muted playsinline preload="auto">
-                                                    <source src="@post.VideoURL" type="video/mp4">
-                                                </video>
-                                                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); pointer-events: none;">
-                                                    <div style="background: rgba(255,255,255,0.9); border-radius: 50%; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
-                                                        <i class="bi bi-play-fill" style="font-size: 2.5rem; color: #8b5cf6; margin-left: 5px;"></i>
+                                            @if (hasThumbnail)
+                                            {
+                                                <div class="post-image-container video-thumbnail-container" style="position: relative;">
+                                                    <div class="post-image" style="background-image: url('@post.ThumbnailURL');"></div>
+                                                    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); pointer-events: none;">
+                                                        <div style="background: rgba(255,255,255,0.9); border-radius: 50%; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                                                            <i class="bi bi-play-fill" style="font-size: 2.5rem; color: #8b5cf6; margin-left: 5px;"></i>
+                                                        </div>
                                                     </div>
                                                 </div>
-                                            </div>
+                                            }
+                                            else
+                                            {
+                                                <div class="post-image-container video-thumbnail-container" style="position: relative; background: #000; height: 250px; overflow: hidden; pointer-events: none;" data-video-url="@post.VideoURL">
+                                                    <video class="w-100 h-100 video-thumbnail" style="object-fit: cover; display: block; height: 250px;" muted playsinline preload="auto">
+                                                        <source src="@post.VideoURL" type="video/mp4">
+                                                    </video>
+                                                    <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3);">
+                                                        <div style="background: rgba(255,255,255,0.9); border-radius: 50%; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                                                            <i class="bi bi-play-fill" style="font-size: 2.5rem; color: #8b5cf6; margin-left: 5px;"></i>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
                                         }
                                         else if (!string.IsNullOrEmpty(post.ImageURL))
                                         {

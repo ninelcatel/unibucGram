@@ -84,8 +84,11 @@
                                 <tr>
                                     <td class="text-muted">#@post.Id</td>
                                     <td>
-                                        <a asp-controller="Posts" asp-action="Post" asp-route-id="@post.Id" 
-                                           class="text-decoration-none text-dark" target="_blank">
+                                        <a href="#" 
+                                           class="text-decoration-none text-dark admin-post-link"
+                                           data-bs-toggle="modal"
+                                           data-bs-target="#postModal"
+                                           data-post-id="@post.Id">
                                             <div class="d-flex align-items-start gap-2">
                                                 @if (!string.IsNullOrEmpty(post.ImageURL))
                                                 {
@@ -93,6 +96,12 @@
                                                          alt="Post image" 
                                                          class="rounded" 
                                                          style="width: 50px; height: 50px; object-fit: cover;">
+                                                }
+                                                else if (!string.IsNullOrEmpty(post.VideoURL))
+                                                {
+                                                    <div class="rounded bg-dark d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                                                        <i class="bi bi-play-circle text-white fs-4"></i>
+                                                    </div>
                                                 }
                                                 <div class="flex-grow-1">
                                                     <p class="mb-0 text-truncate" style="max-width: 400px;">
@@ -119,12 +128,13 @@
                                     </td>
                                     <td class="text-center">
                                         <div class="btn-group" role="group">
-                                            <a asp-controller="Posts" asp-action="Post" asp-route-id="@post.Id" 
-                                               class="btn btn-sm btn-outline-primary" 
-                                               target="_blank"
+                                            <button class="btn btn-sm btn-outline-primary admin-view-post-btn" 
+                                               data-bs-toggle="modal"
+                                               data-bs-target="#postModal"
+                                               data-post-id="@post.Id"
                                                title="View Post">
                                                 <i class="bi bi-eye"></i>
-                                            </a>
+                                            </button>
                                             @if (User.IsInRole("Admin"))
                                             {
                                                 <a asp-action="EditPost" asp-route-id="@post.Id" 
@@ -154,6 +164,17 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Post Modal -->
+<div class="modal fade" id="postModal" tabindex="-1" aria-labelledby="postModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content" style="background: transparent; border: none;">
+      <div class="modal-body" id="postModalBody">
+        <!-- Post content will be loaded here via AJAX -->
+      </div>
+    </div>
+  </div>
 </div>
 
 @section Scripts {

@@ -42,7 +42,7 @@ namespace unibucGram.Controllers
         [RequestSizeLimit(524288000)] // 500 MB limit for video uploads
         [RequestFormLimits(MultipartBodyLengthLimit = 524288000)]
 
-        public async Task<IActionResult> Create([Bind("Content")] Post post, IFormFile? media)
+        public async Task<IActionResult> Create([Bind("Content")] Post post, IFormFile? media, IFormFile? thumbnail)
         {
             // Adaugam o validare custom in ModelState
             if (string.IsNullOrWhiteSpace(post.Content) && (media == null || media.Length == 0))
@@ -84,6 +84,36 @@ namespace unibucGram.Controllers
 
                         post.VideoURL = "/uploads/" + fileName;
                         post.MediaType = "video";
+
+                        // Handle thumbnail upload if provided
+                        if (thumbnail != null && thumbnail.Length > 0)
+                        {
+                            var thumbFileName = Guid.NewGuid().ToString() + ".jpg";
+                            var thumbFilePath = Path.Combine(uploads, thumbFileName);
+
+                            using (var inStream = thumbnail.OpenReadStream())
+                            {
+                                using (var img = Image.Load(inStream))
+                                {
+                                    img.Mutate(x => x.AutoOrient());
+
+                                    const int maxDim = 540;
+                                    img.Mutate(x => x.Resize(new ResizeOptions
+                                    {
+                                        Size = new SixLabors.ImageSharp.Size(maxDim, maxDim),
+                                        Mode = ResizeMode.Max
+                                    }));
+
+                                    var encoder = new JpegEncoder { Quality = 80 };
+                                    using (var outStream = System.IO.File.Create(thumbFilePath))
+                                    {
+                                        img.Save(outStream, encoder);
+                                    }
+                                }
+                            }
+
+                            post.ThumbnailURL = "/uploads/" + thumbFileName;
+                        }
                     }
                     else
                     {
@@ -397,7 +427,15 @@ namespace unibucGram.Controllers
                 }
             }
 
-            // 2. Now delete the post itself
+            if (!string.IsNullOrEmpty(post.ThumbnailURL))
+            {
+                var thumbnailPath = Path.Combine(_env.WebRootPath, post.ThumbnailURL.TrimStart('/'));
+                if (System.IO.File.Exists(thumbnailPath))
+                {
+                    System.IO.File.Delete(thumbnailPath);
+                }
+            }
+
             _db.Posts.Remove(post);
             await _db.SaveChangesAsync();
 

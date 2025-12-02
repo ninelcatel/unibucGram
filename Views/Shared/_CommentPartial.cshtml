@@ -16,7 +16,7 @@
             <br>
             <small class="text-muted">@Model.CreatedAt.ToLocalTime().ToString("g")</small>
         </div>
-        @if (Model.UserId == currentUserId)
+        @if (Model.UserId == currentUserId || User.IsInRole("Admin"))
         {
             <div class="d-flex">
                 <button class="btn btn-link text-primary p-0 edit-comment-btn" data-comment-id="@Model.Id" title="Edit Comment"><i class="bi bi-pencil-fill"></i></button>
@@ -24,7 +24,7 @@
             </div>
         }
     </div>
-    @if (Model.UserId == currentUserId)
+    @if (Model.UserId == currentUserId || User.IsInRole("Admin"))
     {
         <form class="edit-comment-form w-100 mt-1" data-comment-id="@Model.Id" style="display: none;">
             <input type="text" name="content" class="form-control form-control-sm" value="@Model.Content" required>
