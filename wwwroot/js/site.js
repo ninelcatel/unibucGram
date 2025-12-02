@@ -3,60 +3,61 @@
 
 // Function to refresh comments preview in feed
 function refreshCommentsPreview(postId) {
-    let previewContainer = document.getElementById(`comments-preview-${postId}`);
-    
-    // Check if we're on the feed page (where preview exists)
-    // If preview container doesn't exist and the post card doesn't have a card-footer, 
-    // we're probably on the profile page, so skip the preview update
+    // Find the post card
     const postCard = document.getElementById(`post-${postId}`);
-    if (!previewContainer && postCard) {
-        const cardFooter = postCard.querySelector('.card-footer');
-        if (!cardFooter) {
-            // Profile page - no preview needed
-            return;
-        }
+    
+    if (!postCard) {
+        return;
     }
     
+    // Check if this post has a card-footer (indicates it's on feed/dashboard)
+    const cardFooter = postCard.querySelector('.card-footer');
+    if (!cardFooter) {
+        return;
+    }
+    
+    // Fetch updated comments preview
     fetch(`/Posts/GetCommentsPreview?postId=${postId}`, {
         method: 'GET',
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(response => response.text())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.text();
+    })
     .then(html => {
+        let previewContainer = document.getElementById(`comments-preview-${postId}`);
+        
         if (html.trim()) {
-            // If there are comments, update or create the preview container
+            // There are comments to display
             if (previewContainer) {
+                // Update existing container
                 previewContainer.innerHTML = html;
             } else {
-                // Container doesn't exist, need to create it
-                if (postCard) {
-                    const cardBody = postCard.querySelector('.card-body');
-                    if (cardBody) {
-                        const div = document.createElement('div');
-                        div.className = 'mt-3 pt-2 border-top';
-                        div.id = `comments-preview-${postId}`;
-                        div.innerHTML = html;
-                        
-                        // Insert before the card-footer if it exists
-                        const cardFooter = postCard.querySelector('.card-footer');
-                        if (cardFooter) {
-                            cardBody.appendChild(div);
-                        } else {
-                            cardBody.appendChild(div);
-                        }
-                    }
+                // Create new container
+                const cardBody = postCard.querySelector('.card-body');
+                if (cardBody) {
+                    const div = document.createElement('div');
+                    div.className = 'mt-3 pt-2 border-top';
+                    div.id = `comments-preview-${postId}`;
+                    div.innerHTML = html;
+                    cardBody.appendChild(div);
                 }
             }
         } else {
-            // No comments, remove the preview container if it exists
+            // No comments - remove preview if it exists
             if (previewContainer) {
                 previewContainer.remove();
             }
         }
     })
-    .catch(error => console.error('Error refreshing comments preview:', error));
+    .catch(error => {
+        console.error('Error refreshing comments preview:', error);
+    });
 }
 
 // ...existing code...
@@ -512,7 +513,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                                         span.closest(`[data-post-id="${postId}"]`);
                                     
                                     if (postContainer) {
-                                        const currentCount = parseInt(span.textContent.trim()) || 0;
+                                        // Extract current count from text (handles both "X comments" and badge with icon)
+                                        const textContent = span.textContent.trim();
+                                        const matches = textContent.match(/\d+/);
+                                        const currentCount = matches ? parseInt(matches[0]) : 0;
                                         const newCount = Math.max(0, currentCount - 1);
                                         
                                         // Check if this is a badge (profile grid) or regular text
@@ -558,10 +562,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Use event delegation for form submissions
     document.addEventListener('submit', function (e) {
         // --- Handle Add Comment Form Submission ---
-        if (e.target.matches('.add-comment-form')) {
+        if (e.target.matches('.add-comment-form') && e.target.id !== 'modalCommentForm') {
             e.preventDefault();
             const form = e.target;
-            const postId = form.dataset.postId;
+            
+            // Get postId from either data-post-id attribute or hidden input (for modal)
+            let postId = form.dataset.postId || form.getAttribute('data-post-id');
+            
+            // If not found, check for the hidden input in the modal form
+            if (!postId) {
+                const hiddenInput = form.querySelector('#modalPostId');
+                if (hiddenInput) {
+                    postId = hiddenInput.value;
+                }
+            }
+            
             const input = form.querySelector('input[name="commentText"]');
             const content = input.value;
 
@@ -593,7 +608,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                         span.closest(`[data-post-id="${postId}"]`);
                     
                     if (postContainer) {
-                        const currentCount = parseInt(span.textContent.trim()) || 0;
+                        // Extract current count from text (handles both "X comments" and badge with icon)
+                        const textContent = span.textContent.trim();
+                        const matches = textContent.match(/\d+/);
+                        const currentCount = matches ? parseInt(matches[0]) : 0;
                         const newCount = currentCount + 1;
                         
                         // Check if this is a badge (profile grid) or regular text
@@ -607,8 +625,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 
-                // Reload comments preview in feed
-                refreshCommentsPreview(postId);
+                // Reload comments preview in feed (with slight delay to ensure comment is added)
+                setTimeout(() => {
+                    refreshCommentsPreview(postId);
+                }, 100);
             }).catch(error => console.error('Error adding comment:', error));
         }
 
@@ -1849,11 +1869,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Scroll to bottom to show new comment
                 commentsModalBody.scrollTop = commentsModalBody.scrollHeight;
                 
-                // Update comment count - search for all spans with comments-count class for this post
-                document.querySelectorAll(`#post-${postId} .comments-count, #post-modal-${postId} .comments-count`).forEach(span => {
-                    const currentCount = parseInt(span.textContent) || 0;
-                    span.textContent = `${currentCount + 1} comments`;
+                // Update comment count - search for all comment counts for this post
+                const allCommentCounts = document.querySelectorAll('.comments-count');
+                allCommentCounts.forEach(span => {
+                    const postContainer = span.closest(`#post-${postId}`) || 
+                                        span.closest(`#post-modal-${postId}`) ||
+                                        span.closest(`[id="post-${postId}"]`) ||
+                                        span.closest(`[data-post-id="${postId}"]`);
+                    
+                    if (postContainer) {
+                        // Extract current count from text (handles both "X comments" and badge with icon)
+                        const textContent = span.textContent.trim();
+                        const matches = textContent.match(/\d+/);
+                        const currentCount = matches ? parseInt(matches[0]) : 0;
+                        const newCount = currentCount + 1;
+                        
+                        // Check if this is a badge (profile grid) or regular text
+                        if (span.classList.contains('badge')) {
+                            // Badge format - just number with icon
+                            span.innerHTML = `<i class="bi bi-chat-fill"></i> ${newCount}`;
+                        } else {
+                            // Regular format - "X comments"
+                            span.textContent = `${newCount} comment${newCount !== 1 ? 's' : ''}`;
+                        }
+                    }
                 });
+                
+                // Reload comments preview in feed (with slight delay to ensure comment is added)
+                setTimeout(() => {
+                    refreshCommentsPreview(postId);
+                }, 100);
             })
             .catch(error => console.error('Error adding comment:', error));
         });
