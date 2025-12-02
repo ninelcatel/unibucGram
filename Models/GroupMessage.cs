@@ -13,14 +13,14 @@ namespace unibucGram.Models
 
         public int GroupId { get; set; }
         
-        public virtual Group? Group { get; set; }
+        public virtual Group Group { get; set; }
 
         [Required, StringLength(2000)]
         public string? Content { get; set; } = string.Empty;
-        [Required]
+        
         public string? UserId { get; set; } = string.Empty;
 
-        public virtual User User { get; set; }
+        public virtual User? User { get; set; }
 
         public DateTime SentAt { get; set; } = DateTime.UtcNow;
     }

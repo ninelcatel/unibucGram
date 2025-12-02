@@ -1166,54 +1166,64 @@ document.addEventListener('DOMContentLoaded', () => {
                     const div = document.createElement('div');
                     div.className = `d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`;
 
+                    const senderName = msg.senderName; // Already checked in backend
+                    const senderPfp = msg.senderPfp || '/uploads/default_pfp.jpg';
+
                     const pfpHtml = isMe ? '' : `
-                        <a href="/Profile/Show/${encodeURIComponent(msg.senderName)}" class="text-decoration-none">
-                            <img src="${msg.senderPfp || '/uploads/default_pfp.jpg'}"
-                                 class="rounded-circle me-2 align-self-end"
-                                 width="30" height="30"
-                                 style="object-fit:cover;">
+                        <a href="/Profile/Show/${encodeURIComponent(senderName)}" class="text-decoration-none ${senderName === 'Deleted User' ? 'pe-none' : ''}">
+                             <img src="${senderPfp}" class="rounded-circle me-2 align-self-end" width="30" height="30" style="object-fit:cover;">
                         </a>`;
 
                     // Check if it's a shared post
-                    if (msg.sharedPost) {
+                    if (msg.content === "Attachment") { // Check for our placeholder content
                         const post = msg.sharedPost;
                         
-                        // Determine media type and create appropriate HTML
-                        let mediaHtml = '';
-                        if (post.videoURL) {
-                            mediaHtml = `<video class="card-img-top" controls style="max-height: 200px; width: 100%; object-fit: cover;">
-                                <source src="${post.videoURL}" type="video/mp4">
-                                <source src="${post.videoURL}" type="video/webm">
-                                Your browser does not support the video tag.
-                            </video>`;
-                        } else if (post.imageURL) {
-                            mediaHtml = `<img src="${post.imageURL}" class="card-img-top" alt="Shared post" style="max-height: 200px; object-fit: cover;">`;
-                        }
-                        
-                        const postHtml = `
-                            <div class="shared-post-preview" data-post-id="${post.id}" style="cursor: pointer; max-width: 300px;">
-                                <div class="card border shadow-sm">
-                                    ${mediaHtml}
-                                    <div class="card-body p-2">
-                                        <div class="d-flex align-items-center mb-2">
-                                            <img src="${post.userPfp || '/uploads/default_pfp.jpg'}"
-                                                 alt="avatar" width="20" height="20" class="rounded-circle me-2" />
-                                            <small class="fw-bold text-truncate">${post.username}</small>
-                                        </div>
-                                        ${post.content ? `<p class="card-text small text-muted mb-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${post.content}</p>` : ''}
-                                        <div class="d-flex gap-2 text-muted" style="font-size: 0.7rem;">
-                                            <span><i class="bi bi-heart-fill text-danger"></i> ${post.likesCount}</span>
-                                            <span><i class="bi bi-chat-fill"></i> ${post.commentsCount}</span>
+                        let postHtml;
+                        // --- START: DELETED POST CHECK ---
+                        if (post) {
+                        // --- END: DELETED POST CHECK ---
+                            const mediaHtml = post.videoURL ?
+                                `<video src="${post.videoURL}" class="card-img-top" style="max-height: 200px; object-fit: cover;" preload="metadata"></video>` :
+                                (post.imageURL ? `<img src="${post.imageURL}" class="card-img-top" style="max-height: 200px; object-fit: cover;">` : '');
+                            
+                            const postAuthorUsername = post.username; // Already checked in backend
+                            const postAuthorPfp = post.userPfp || '/uploads/default_pfp.jpg';
+
+                            postHtml = `
+                                <div class="shared-post-preview" data-post-id="${post.id}" style="cursor: pointer; max-width: 300px;">
+                                    <div class="card border shadow-sm">
+                                        ${mediaHtml}
+                                        <div class="card-body p-2">
+                                            <div class="d-flex align-items-center mb-2">
+                                                <img src="${postAuthorPfp}"
+                                                     alt="avatar" width="20" height="20" class="rounded-circle me-2" />
+                                                <small class="fw-bold text-truncate">${postAuthorUsername}</small>
+                                            </div>
+                                            <p class="card-text small text-truncate">${post.content || ' '}</p>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        `;
+                            `;
+                        // --- START: DELETED POST CHECK ---
+                        } else {
+                            // This is the case where the post was deleted
+                            postHtml = `
+                                <div class="shared-post-preview" style="max-width: 300px;">
+                                    <div class="card border shadow-sm">
+                                        <div class="card-body p-3 text-center text-muted">
+                                            <i class="bi bi-exclamation-triangle-fill"></i>
+                                            <p class="small mb-0 mt-1">This post has been deleted.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                        }
+                        // --- END: DELETED POST CHECK ---
                         
                         div.innerHTML = `
                             ${pfpHtml}
                             <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}" style="max-width:70%;">
-                                ${!isMe ? `<small class="text-muted mb-1 fw-semibold" style="font-size:0.75rem;">${msg.senderName}</small>` : ''}
+                                ${!isMe ? `<small class="text-muted mb-1 fw-semibold" style="font-size:0.75rem;">${senderName}</small>` : ''}
                                 ${postHtml}
                                 <small class="text-muted mt-1" style="font-size:0.7rem;">${msg.sentAt}</small>
                             </div>
@@ -1223,7 +1233,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         div.innerHTML = `
                             ${pfpHtml}
                             <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}" style="max-width:70%;">
-                                ${!isMe ? `<small class="text-muted mb-1 fw-semibold" style="font-size:0.75rem;">${msg.senderName}</small>` : ''}
+                                ${!isMe ? `<small class="text-muted mb-1 fw-semibold" style="font-size:0.75rem;">${senderName}</small>` : ''}
                                 <div class="p-3 rounded-3 ${isMe ? 'msg-bubble-sent' : 'msg-bubble-received'}" style="word-wrap:break-word;box-shadow:0 1px 2px rgba(0,0,0,0.1);">
                                     ${msg.content}
                                 </div>
@@ -1366,16 +1376,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 let buttons = '';
                 let isRequest = n.type === 'FollowRequest';
 
+                // --- START: DELETED USER CHECK (NOTIFICATIONS) ---
+                const isActorDeleted = !n.actor;
+                const actorName = isActorDeleted ? 'Deleted User' : n.actor;
+                const actorPfp = isActorDeleted ? '/uploads/default_pfp.jpg' : (n.actorPfp || '/uploads/default_pfp.jpg');
+                // --- END: DELETED USER CHECK (NOTIFICATIONS) ---
+
                 switch (n.type) {
-                    case 'Like': text = `<strong>${n.actor}</strong> liked your post.`; break;
-                    case 'Comment': text = `<strong>${n.actor}</strong> commented on your post.`; break;
-                    case 'Follow': text = `<strong>${n.actor}</strong> started following you.`; break;
+                    case 'Like': text = `<strong>${actorName}</strong> liked your post.`; break;
+                    case 'Comment': text = `<strong>${actorName}</strong> commented on your post.`; break;
+                    case 'Follow': text = `<strong>${actorName}</strong> started following you.`; break;
                     case 'FollowRequest':
-                        text = `<strong>${n.actor}</strong> wants to follow you.`;
+                        text = `<strong>${actorName}</strong> wants to follow you.`;
                         buttons = `
                             <div class="mt-2 d-flex gap-2">
-                                <button class="btn btn-sm btn-primary flex-grow-1 follow-request-btn" data-actor="${n.actor}" data-action="accept">Accept</button>
-                                <button class="btn btn-sm btn-secondary flex-grow-1 follow-request-btn" data-actor="${n.actor}" data-action="decline">Decline</button>
+                                <button class="btn btn-sm btn-primary flex-grow-1 follow-request-btn" data-actor="${actorName}" data-action="accept" ${isActorDeleted ? 'disabled' : ''}>Accept</button>
+                                <button class="btn btn-sm btn-secondary flex-grow-1 follow-request-btn" data-actor="${actorName}" data-action="decline">Decline</button>
                             </div>`;
                         break;
                     default: text = 'New notification';
@@ -1384,10 +1400,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 const item = document.createElement('div');
                 item.className = 'list-group-item';
                 
-                // Use a link for clickable notifications, but not for requests with buttons
+                const profileLink = isActorDeleted ? '#' : `/Profile/Show/${actorName}`;
+                const postLink = n.postId ? `/Posts/Post/${n.postId}` : profileLink;
+
                 const contentHtml = `
                     <div class="d-flex align-items-start gap-3">
-                        <a href="/Profile/Show/${n.actor}"><img src="${n.actorPfp || '/uploads/default_pfp.jpg'}" class="rounded-circle" width="40" height="40" style="object-fit:cover;"></a>
+                        <a href="${profileLink}" ${isActorDeleted ? 'style="pointer-events: none;"' : ''}><img src="${actorPfp}" class="rounded-circle" width="40" height="40" style="object-fit:cover;"></a>
                         <div class="flex-grow-1">
                             <div class="small notification-text">${text}</div>
                             ${buttons}
@@ -1397,11 +1415,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `;
 
-                if (isRequest) {
+                if (isRequest || isActorDeleted) {
                     item.innerHTML = contentHtml;
                 } else {
                     const link = document.createElement('a');
-                    link.href = n.postId ? `/Posts/Post/${n.postId}` : `/Profile/Show/${n.actor}`;
+                    link.href = postLink;
                     link.className = 'text-decoration-none text-dark';
                     link.innerHTML = contentHtml;
                     item.appendChild(link);

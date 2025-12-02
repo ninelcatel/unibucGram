@@ -118,8 +118,8 @@ namespace unibucGram.Controllers
 
             var result = groups.Select(g => new {
                 g.Id,
-                Name = g.IsDirectMessage ? g.OtherUser?.UserName : g.Name,
-                Pfp = g.IsDirectMessage ? g.OtherUser?.PfpURL : null,
+                Name = g.IsDirectMessage ? (g.OtherUser?.UserName ?? "Deleted User") : g.Name,
+                Pfp = g.IsDirectMessage ? (g.OtherUser?.PfpURL ?? "/uploads/default_pfp.jpg") : null,
                 ImageURL = g.ImageURL,  
                 IsDm = g.IsDirectMessage,
                 LastMessage = g.LastMessage
@@ -151,6 +151,13 @@ namespace unibucGram.Controllers
 
             foreach (var m in messages)
             {
+                // --- START: DELETED SENDER CHECK ---
+                // Check if the user who sent the message is deleted.
+                // The m.User will be null if the user was hard-deleted.
+                string senderName = m.User?.UserName ?? "Deleted User";
+                string senderPfp = m.User?.PfpURL ?? "/uploads/default_pfp.jpg";
+                // --- END: DELETED SENDER CHECK ---
+
                 // Check if it's a shared post
                 if (m.Content.StartsWith("[SHARED_POST:") && m.Content.EndsWith("]"))
                 {
@@ -158,33 +165,51 @@ namespace unibucGram.Controllers
                     if (int.TryParse(postIdStr, out int postId))
                     {
                         var post = await _context.Posts
-                            .Include(p => p.User)
+                            .Include(p => p.User) // User can be null if deleted
                             .Include(p => p.Likes)
                             .Include(p => p.Comments)
                             .FirstOrDefaultAsync(p => p.Id == postId);
 
+                        // --- START: DELETED POST/AUTHOR CHECK ---
                         if (post != null)
                         {
+                            // Check if the post's original author is deleted
+                            string postAuthorUsername = post.User?.UserName ?? "Deleted User";
+                            string postAuthorPfp = post.User?.PfpURL ?? "/uploads/default_pfp.jpg";
+
                             messageData.Add(new {
                                 m.Id,
-                                Content = "Attachment", // Display "Attachment" instead of [SHARED_POST:...]
+                                Content = "Attachment",
                                 SharedPost = new {
                                     post.Id,
                                     post.ImageURL,
                                     post.VideoURL,
                                     post.Content,
-                                    Username = post.User?.UserName,
-                                    UserPfp = post.User?.PfpURL,
+                                    Username = postAuthorUsername, // Use checked username
+                                    UserPfp = postAuthorPfp,       // Use checked PFP
                                     LikesCount = post.Likes.Count,
                                     CommentsCount = post.Comments.Count
                                 },
-                                SenderName = m.User.UserName,
-                                SenderPfp = m.User.PfpURL,
+                                SenderName = senderName, // Use checked sender name
+                                SenderPfp = senderPfp,   // Use checked sender PFP
                                 IsMe = m.UserId == currentUserId,
                                 SentAt = m.SentAt.ToString("HH:mm")
                             });
-                            continue;
                         }
+                        else // The post itself was deleted
+                        {
+                            messageData.Add(new {
+                                m.Id,
+                                Content = "Attachment",
+                                SharedPost = (object)null, // Send null to indicate a deleted post
+                                SenderName = senderName,
+                                SenderPfp = senderPfp,
+                                IsMe = m.UserId == currentUserId,
+                                SentAt = m.SentAt.ToString("HH:mm")
+                            });
+                        }
+                        // --- END: DELETED POST/AUTHOR CHECK ---
+                        continue; // Go to the next message
                     }
                 }
 
@@ -193,8 +218,8 @@ namespace unibucGram.Controllers
                     m.Id,
                     m.Content,
                     SharedPost = (object)null,
-                    SenderName = m.User.UserName,
-                    SenderPfp = m.User.PfpURL,
+                    SenderName = senderName, // Use checked sender name
+                    SenderPfp = senderPfp,   // Use checked sender PFP
                     IsMe = m.UserId == currentUserId,
                     SentAt = m.SentAt.ToString("HH:mm")
                 });

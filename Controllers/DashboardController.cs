@@ -226,14 +226,15 @@ namespace unibucGram.Controllers
 
             // --- START: CORRECTED DELETION ORDER ---
 
-            // 1. Get all post IDs for the user
-            var postIds = await _db.Posts
+            // 1. Get all posts for the user, including their media URLs
+            var userPosts = await _db.Posts
                 .Where(p => p.UserId == id)
-                .Select(p => p.Id)
                 .ToListAsync();
 
-            if (postIds.Any())
+            if (userPosts.Any())
             {
+                var postIds = userPosts.Select(p => p.Id).ToList();
+
                 // 2. Delete all dependencies on those posts
                 var likesOnPosts = await _db.Likes.Where(l => postIds.Contains(l.PostId)).ToListAsync();
                 if (likesOnPosts.Any()) _db.Likes.RemoveRange(likesOnPosts);
@@ -258,9 +259,17 @@ namespace unibucGram.Controllers
             var followRequests = await _db.FollowRequests.Where(fr => fr.RequesterId == id || fr.RequesteeId == id).ToListAsync();
             if (followRequests.Any()) _db.FollowRequests.RemoveRange(followRequests);
 
-            // 4. Delete Group and Message related data
+            // --- START: FIX FOR GROUP MESSAGES ---
+            // 4. Anonymize (don't delete) the user's group messages by setting UserId to null
             var groupMessages = await _db.GroupMessages.Where(gm => gm.UserId == id).ToListAsync();
-            if (groupMessages.Any()) _db.GroupMessages.RemoveRange(groupMessages);
+            if (groupMessages.Any())
+            {
+                foreach (var msg in groupMessages)
+                {
+                    msg.UserId = null;
+                }
+            }
+            // --- END: FIX FOR GROUP MESSAGES ---
 
             var groupMemberships = await _db.GroupMembers.Where(gm => gm.UserId == id).ToListAsync();
             if (groupMemberships.Any()) _db.GroupMembers.RemoveRange(groupMemberships);
@@ -269,14 +278,34 @@ namespace unibucGram.Controllers
             var userNotifications = await _db.Notifications.Where(n => n.UserId == id || n.ActorUserId == id).ToListAsync();
             if (userNotifications.Any()) _db.Notifications.RemoveRange(userNotifications);
 
-            // 6. Delete the user's posts now that their dependencies are gone
-            var userPosts = await _db.Posts.Where(p => p.UserId == id).ToListAsync();
+            // 6. *** NEW *** Delete physical files for each post
+            foreach (var post in userPosts)
+            {
+                if (!string.IsNullOrEmpty(post.ImageURL))
+                {
+                    var imagePath = Path.Combine(_environment.WebRootPath, post.ImageURL.TrimStart('/'));
+                    if (System.IO.File.Exists(imagePath))
+                    {
+                        System.IO.File.Delete(imagePath);
+                    }
+                }
+                if (!string.IsNullOrEmpty(post.VideoURL))
+                {
+                    var videoPath = Path.Combine(_environment.WebRootPath, post.VideoURL.TrimStart('/'));
+                    if (System.IO.File.Exists(videoPath))
+                    {
+                        System.IO.File.Delete(videoPath);
+                    }
+                }
+            }
+
+            // 7. Delete the user's posts from the database
             if (userPosts.Any()) _db.Posts.RemoveRange(userPosts);
             
             // Save changes for all the manual deletions so far
             await _db.SaveChangesAsync();
 
-            // 7. CRITICAL FIX: Use UserManager to delete the user. This correctly handles Identity tables.
+            // 8. CRITICAL: Use UserManager to delete the user. This correctly handles Identity tables.
             var identityResult = await _userManager.DeleteAsync(user);
             if (!identityResult.Succeeded)
             {
