@@ -653,7 +653,28 @@ document.addEventListener('DOMContentLoaded', () => {
                     'X-Requested-With': 'XMLHttpRequest' 
                 },
                 body: `postId=${postId}&content=${encodeURIComponent(content)}`
-            }).then(response => response.text()).then(html => {
+            })
+            .then(async response => {
+                const text = await response.text();
+                
+                // Check if response is an error (starts with error indicator or is empty)
+                if (!response.ok || text.includes('alert-danger') || text.includes('error')) {
+                    // Try to parse JSON error message
+                    try {
+                        const errorData = JSON.parse(text);
+                        throw new Error(errorData.message || 'Failed to add comment');
+                    } catch (e) {
+                        // If not JSON, check if HTML contains error message
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = text;
+                        const errorMsg = tempDiv.querySelector('.alert-danger')?.textContent.trim();
+                        throw new Error(errorMsg || 'Failed to add comment due to content validation');
+                    }
+                }
+                
+                return text;
+            })
+            .then(html => {
                 const commentsContainer = 
                     document.getElementById(`comments-list-${postId}`) ||
                     document.getElementById(`comments-for-modal-${postId}`);
@@ -693,7 +714,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 setTimeout(() => {
                     refreshCommentsPreview(postId);
                 }, 100);
-            }).catch(error => console.error('Error adding comment:', error));
+            })
+            .catch(error => {
+                console.error('Error adding comment:', error);
+                alert(error.message || 'Failed to add comment. Please check your content.');
+            });
         }
 
         // --- Handle Edit Comment Form Submission ---
@@ -1988,7 +2013,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 },
                 body: `postId=${postId}&content=${encodeURIComponent(content)}`
             })
-            .then(response => response.text())
+            .then(async response => {
+                const text = await response.text();
+                
+                // Check if response is an error (starts with error indicator or is empty)
+                if (!response.ok || text.includes('alert-danger') || text.includes('error')) {
+                    // Try to parse JSON error message
+                    try {
+                        const errorData = JSON.parse(text);
+                        throw new Error(errorData.message || 'Failed to add comment');
+                    } catch (e) {
+                        // If not JSON, check if HTML contains error message
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = text;
+                        const errorMsg = tempDiv.querySelector('.alert-danger')?.textContent.trim();
+                        throw new Error(errorMsg || 'Failed to add comment due to content validation');
+                    }
+                }
+                
+                return text;
+            })
             .then(html => {
                 // Remove "no comments" message if present
                 const noComments = commentsModalBody.querySelector('.no-comments');
@@ -2036,7 +2080,32 @@ document.addEventListener('DOMContentLoaded', () => {
                     refreshCommentsPreview(postId);
                 }, 100);
             })
-            .catch(error => console.error('Error adding comment:', error));
+            .catch(error => {
+                console.error('Error adding comment:', error);
+                
+                // Create styled error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger alert-dismissible fade show mt-2';
+                errorDiv.style.cssText = 'animation: slideIn 0.3s ease-out; margin: 0 1rem;';
+                errorDiv.innerHTML = `
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                    <strong>Error:</strong> ${error.message || 'Failed to add comment. Please check your content.'}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                
+                // Remove any existing error messages
+                const existingError = modalCommentForm.parentElement.querySelector('.alert-danger');
+                if (existingError) existingError.remove();
+                
+                // Insert error message after the form
+                modalCommentForm.parentElement.insertBefore(errorDiv, modalCommentForm.nextSibling);
+                
+                // Auto-remove after 5 seconds
+                setTimeout(() => {
+                    errorDiv.classList.remove('show');
+                    setTimeout(() => errorDiv.remove(), 150);
+                }, 5000);
+            });
         });
     }
     // =================================================================

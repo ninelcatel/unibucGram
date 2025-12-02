@@ -1115,3 +1115,40 @@ body.modal-open .home-layout {
                         transform: translateX(-340px);
                         transition: transform 0.28s ease;
                     }
+
+/* ===== Styled Error Messages ===== */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.alert-danger {
+    border-left: 4px solid #dc3545;
+    background: linear-gradient(135deg, #fff5f5 0%, #ffe6e6 100%);
+    color: #721c24;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.15);
+}
+
+.alert-danger i {
+    font-size: 1.1rem;
+    vertical-align: middle;
+}
+
+.alert-danger strong {
+    font-weight: 600;
+}
+
+.alert-danger .btn-close {
+    opacity: 0.6;
+}
+
+.alert-danger .btn-close:hover {
+    opacity: 1;
+}
