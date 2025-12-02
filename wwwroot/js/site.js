@@ -3,60 +3,61 @@
 
 // Function to refresh comments preview in feed
 function refreshCommentsPreview(postId) {
-    let previewContainer = document.getElementById(`comments-preview-${postId}`);
-    
-    // Check if we're on the feed page (where preview exists)
-    // If preview container doesn't exist and the post card doesn't have a card-footer, 
-    // we're probably on the profile page, so skip the preview update
+    // Find the post card
     const postCard = document.getElementById(`post-${postId}`);
-    if (!previewContainer && postCard) {
-        const cardFooter = postCard.querySelector('.card-footer');
-        if (!cardFooter) {
-            // Profile page - no preview needed
-            return;
-        }
+    
+    if (!postCard) {
+        return;
     }
     
+    // Check if this post has a card-footer (indicates it's on feed/dashboard)
+    const cardFooter = postCard.querySelector('.card-footer');
+    if (!cardFooter) {
+        return;
+    }
+    
+    // Fetch updated comments preview
     fetch(`/Posts/GetCommentsPreview?postId=${postId}`, {
         method: 'GET',
         headers: {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(response => response.text())
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.text();
+    })
     .then(html => {
+        let previewContainer = document.getElementById(`comments-preview-${postId}`);
+        
         if (html.trim()) {
-            // If there are comments, update or create the preview container
+            // There are comments to display
             if (previewContainer) {
+                // Update existing container
                 previewContainer.innerHTML = html;
             } else {
-                // Container doesn't exist, need to create it
-                if (postCard) {
-                    const cardBody = postCard.querySelector('.card-body');
-                    if (cardBody) {
-                        const div = document.createElement('div');
-                        div.className = 'mt-3 pt-2 border-top';
-                        div.id = `comments-preview-${postId}`;
-                        div.innerHTML = html;
-                        
-                        // Insert before the card-footer if it exists
-                        const cardFooter = postCard.querySelector('.card-footer');
-                        if (cardFooter) {
-                            cardBody.appendChild(div);
-                        } else {
-                            cardBody.appendChild(div);
-                        }
-                    }
+                // Create new container
+                const cardBody = postCard.querySelector('.card-body');
+                if (cardBody) {
+                    const div = document.createElement('div');
+                    div.className = 'mt-3 pt-2 border-top';
+                    div.id = `comments-preview-${postId}`;
+                    div.innerHTML = html;
+                    cardBody.appendChild(div);
                 }
             }
         } else {
-            // No comments, remove the preview container if it exists
+            // No comments - remove preview if it exists
             if (previewContainer) {
                 previewContainer.remove();
             }
         }
     })
-    .catch(error => console.error('Error refreshing comments preview:', error));
+    .catch(error => {
+        console.error('Error refreshing comments preview:', error);
+    });
 }
 
 // ...existing code...
@@ -422,13 +423,41 @@ document.addEventListener('DOMContentLoaded', () => {
         if (editButton) {
             e.preventDefault();
             const commentId = editButton.dataset.commentId;
-            const displayDiv = document.getElementById(`comment-display-${commentId}`);
-            const editForm = document.querySelector(`.edit-comment-form[data-comment-id='${commentId}']`);
             
+            // Determine if we are inside a modal
+            const inPostModal = editButton.closest('#postModal');
+            const inCommentsModal = editButton.closest('#commentsModal');
+
+            let displaySelector, formSelector;
+
+            if (inPostModal || inCommentsModal) {
+                // If in any modal, target elements within that modal context
+                const modalContext = inPostModal || inCommentsModal;
+                displaySelector = `#${modalContext.id} #comment-display-${commentId}`;
+                formSelector = `#${modalContext.id} .edit-comment-form[data-comment-id='${commentId}']`;
+            } else {
+                // If on the main page (feed preview), target elements without modal context
+                // This assumes feed comments are not inside a modal structure, which is correct.
+                displaySelector = `#comments-preview-container #comment-display-${commentId}`;
+                formSelector = `#comments-preview-container .edit-comment-form[data-comment-id='${commentId}']`;
+            }
+
+            const displayDiv = document.querySelector(displaySelector);
+            const editForm = document.querySelector(formSelector);
+
             if (displayDiv && editForm) {
                 displayDiv.style.display = 'none';
                 editForm.style.display = 'block';
                 editForm.querySelector('input[name="content"]').focus();
+            } else {
+                // Fallback for any case not covered, like comments page
+                const genericDisplay = document.getElementById(`comment-display-${commentId}`);
+                const genericForm = document.querySelector(`.edit-comment-form[data-comment-id='${commentId}']`);
+                if(genericDisplay && genericForm) {
+                    genericDisplay.style.display = 'none';
+                    genericForm.style.display = 'block';
+                    genericForm.querySelector('input[name="content"]').focus();
+                }
             }
         }
 
@@ -462,6 +491,29 @@ document.addEventListener('DOMContentLoaded', () => {
                             const match = postCard.id.match(/post-(\d+)/);
                             if (match) {
                                 postId = match[1];
+                            }
+                        }
+                    }
+                    
+                    // If still not found, check if we're in the comments modal
+                    if (!postId) {
+                        const commentsModal = document.getElementById('commentsModal');
+                        if (commentsModal && commentsModal.classList.contains('active')) {
+                            const modalPostIdInput = document.getElementById('modalPostId');
+                            if (modalPostIdInput) {
+                                postId = modalPostIdInput.value;
+                            }
+                        }
+                    }
+                    
+                    // If still not found, check if we're in the post modal
+                    if (!postId) {
+                        const postModalBody = container.closest('#postModalBody');
+                        if (postModalBody) {
+                            // Try to find post ID from any element with data-post-id in the modal
+                            const postElement = postModalBody.querySelector('[data-post-id]');
+                            if (postElement) {
+                                postId = postElement.dataset.postId;
                             }
                         }
                     }
@@ -512,7 +564,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                                         span.closest(`[data-post-id="${postId}"]`);
                                     
                                     if (postContainer) {
-                                        const currentCount = parseInt(span.textContent.trim()) || 0;
+                                        // Extract current count from text (handles both "X comments" and badge with icon)
+                                        const textContent = span.textContent.trim();
+                                        const matches = textContent.match(/\d+/);
+                                        const currentCount = matches ? parseInt(matches[0]) : 0;
                                         const newCount = Math.max(0, currentCount - 1);
                                         
                                         // Check if this is a badge (profile grid) or regular text
@@ -525,6 +580,19 @@ document.addEventListener('DOMContentLoaded', () => {
                                         }
                                     }
                                 });
+                                
+                                // Also update the comments modal counter if it's open and showing this post
+                                const commentsModal = document.getElementById('commentsModal');
+                                if (commentsModal && commentsModal.classList.contains('active')) {
+                                    const modalPostIdInput = document.getElementById('modalPostId');
+                                    if (modalPostIdInput && modalPostIdInput.value === postId) {
+                                        const modalCounter = commentsModal.querySelector('.comments-count');
+                                        if (modalCounter) {
+                                            const currentCount = parseInt(modalCounter.textContent) || 0;
+                                            modalCounter.textContent = Math.max(0, currentCount - 1);
+                                        }
+                                    }
+                                }
                                 
                                 // Also check for modal-specific counters
                                 const modalCommentsCount = document.querySelector(`#post-modal-${postId} .modal-comments-count`);
@@ -558,10 +626,21 @@ document.addEventListener('DOMContentLoaded', () => {
     // Use event delegation for form submissions
     document.addEventListener('submit', function (e) {
         // --- Handle Add Comment Form Submission ---
-        if (e.target.matches('.add-comment-form')) {
+        if (e.target.matches('.add-comment-form') && e.target.id !== 'modalCommentForm') {
             e.preventDefault();
             const form = e.target;
-            const postId = form.dataset.postId;
+            
+            // Get postId from either data-post-id attribute or hidden input (for modal)
+            let postId = form.dataset.postId || form.getAttribute('data-post-id');
+            
+            // If not found, check for the hidden input in the modal form
+            if (!postId) {
+                const hiddenInput = form.querySelector('#modalPostId');
+                if (hiddenInput) {
+                    postId = hiddenInput.value;
+                }
+            }
+            
             const input = form.querySelector('input[name="commentText"]');
             const content = input.value;
 
@@ -593,7 +672,10 @@ document.addEventListener('DOMContentLoaded', () => {
                                         span.closest(`[data-post-id="${postId}"]`);
                     
                     if (postContainer) {
-                        const currentCount = parseInt(span.textContent.trim()) || 0;
+                        // Extract current count from text (handles both "X comments" and badge with icon)
+                        const textContent = span.textContent.trim();
+                        const matches = textContent.match(/\d+/);
+                        const currentCount = matches ? parseInt(matches[0]) : 0;
                         const newCount = currentCount + 1;
                         
                         // Check if this is a badge (profile grid) or regular text
@@ -607,8 +689,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     }
                 });
                 
-                // Reload comments preview in feed
-                refreshCommentsPreview(postId);
+                // Reload comments preview in feed (with slight delay to ensure comment is added)
+                setTimeout(() => {
+                    refreshCommentsPreview(postId);
+                }, 100);
             }).catch(error => console.error('Error adding comment:', error));
         }
 
@@ -631,12 +715,22 @@ document.addEventListener('DOMContentLoaded', () => {
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    const contentSpan = document.getElementById(`comment-content-${commentId}`);
-                    const displayDiv = document.getElementById(`comment-display-${commentId}`);
+                    // Update ALL instances of this comment across the page (preview, modals, etc.)
+                    const allContentSpans = document.querySelectorAll(`#comment-content-${commentId}`);
+                    const allDisplayDivs = document.querySelectorAll(`#comment-display-${commentId}`);
+                    const allEditForms = document.querySelectorAll(`.edit-comment-form[data-comment-id="${commentId}"]`);
                     
-                    if (contentSpan) contentSpan.textContent = data.content;
-                    if (displayDiv) displayDiv.style.display = 'flex';
-                    form.style.display = 'none';
+                    allContentSpans.forEach(span => {
+                        span.textContent = data.content;
+                    });
+                    
+                    allDisplayDivs.forEach(div => {
+                        div.style.display = 'flex';
+                    });
+                    
+                    allEditForms.forEach(f => {
+                        f.style.display = 'none';
+                    });
                 } else { 
                     alert(data.message || 'Failed to edit comment.'); 
                 }
@@ -806,6 +900,13 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(html => { 
                 modalBody.innerHTML = html;
+                
+                // Ensure all videos in modal start muted
+                const modalVideos = modalBody.querySelectorAll('video');
+                modalVideos.forEach(video => {
+                    video.muted = true;
+                });
+                
                 // Initialize scroll after content is loaded
                 setTimeout(initializeModalCommentsScroll, 100);
             })
@@ -931,6 +1032,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                     .then(html => { 
                         modalBody.innerHTML = html;
+                        
+                        // Ensure all videos in modal start muted
+                        const modalVideos = modalBody.querySelectorAll('video');
+                        modalVideos.forEach(video => {
+                            video.muted = true;
+                        });
+                        
                         setTimeout(initializeModalCommentsScroll, 100);
                     })
                     .catch(err => { 
@@ -968,6 +1076,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                     .then(html => { 
                         modalBody.innerHTML = html;
+                        
+                        // Ensure all videos in modal start muted
+                        const modalVideos = modalBody.querySelectorAll('video');
+                        modalVideos.forEach(video => {
+                            video.muted = true;
+                        });
+                        
                         setTimeout(initializeModalCommentsScroll, 100);
                     })
                     .catch(err => { 
@@ -1187,13 +1302,16 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (msg.content === "Attachment") { // Check for our placeholder content
                         const post = msg.sharedPost;
                         
-                        // --- START: DELETED POST CHECK ---
+                        // Check if post was deleted
                         const isPostDeleted = !post;
-                        // --- END: DELETED POST CHECK ---
                         
                         const mediaHtml = post?.videoURL ?
-                            `<video src="${post.videoURL}" class="card-img-top" style="max-height: 200px; object-fit: cover;" preload="metadata"></video>` :
-                            (post?.imageURL ? `<img src="${post.imageURL}" class="card-img-top" style="max-height: 200px; object-fit: cover;">` : '');
+                            `<video src="${post.videoURL}" class="card-img-top chat-message-video" muted controls style="max-height: 200px; width: 100%; object-fit: cover;" preload="metadata">
+                                <source src="${post.videoURL}" type="video/mp4">
+                                <source src="${post.videoURL}" type="video/webm">
+                                Your browser does not support the video tag.
+                            </video>` :
+                            (post?.imageURL ? `<img src="${post.imageURL}" class="card-img-top" alt="Shared post" style="max-height: 200px; object-fit: cover;">` : '');
                         
                         const postAuthorUsername = post?.username; // Already checked in backend
                         const postAuthorPfp = post?.userPfp || '/uploads/default_pfp.jpg';
@@ -1275,6 +1393,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 .then(response => response.text())
                                 .then(html => {
                                     postModalBody.innerHTML = html;
+                                    
+                                    // Ensure all videos in modal start muted
+                                    const modalVideos = postModalBody.querySelectorAll('video');
+                                    modalVideos.forEach(video => {
+                                        video.muted = true;
+                                    });
+                                    
                                     setTimeout(initializeModalCommentsScroll, 100);
                                 })
                                 .catch(err => {
@@ -1282,6 +1407,23 @@ document.addEventListener('DOMContentLoaded', () => {
                                     postModalBody.innerHTML = '<p class="text-danger text-center p-5">Failed to load post.</p>';
                                 });
                         }
+                    });
+                });
+
+                // Force all chat message videos to stay muted
+                chatMessagesContainer.querySelectorAll('.chat-message-video').forEach(video => {
+                    video.muted = true;
+                    
+                    // Prevent unmuting
+                    video.addEventListener('volumechange', function() {
+                        if (!this.muted) {
+                            this.muted = true;
+                        }
+                    });
+                    
+                    // Also prevent on play
+                    video.addEventListener('play', function() {
+                        this.muted = true;
                     });
                 });
 
@@ -1863,11 +2005,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Scroll to bottom to show new comment
                 commentsModalBody.scrollTop = commentsModalBody.scrollHeight;
                 
-                // Update comment count - search for all spans with comments-count class for this post
-                document.querySelectorAll(`#post-${postId} .comments-count, #post-modal-${postId} .comments-count`).forEach(span => {
-                    const currentCount = parseInt(span.textContent) || 0;
-                    span.textContent = `${currentCount + 1} comments`;
+                // Update comment count - search for all comment counts for this post
+                const allCommentCounts = document.querySelectorAll('.comments-count');
+                allCommentCounts.forEach(span => {
+                    const postContainer = span.closest(`#post-${postId}`) || 
+                                        span.closest(`#post-modal-${postId}`) ||
+                                        span.closest(`[id="post-${postId}"]`) ||
+                                        span.closest(`[data-post-id="${postId}"]`);
+                    
+                    if (postContainer) {
+                        // Extract current count from text (handles both "X comments" and badge with icon)
+                        const textContent = span.textContent.trim();
+                        const matches = textContent.match(/\d+/);
+                        const currentCount = matches ? parseInt(matches[0]) : 0;
+                        const newCount = currentCount + 1;
+                        
+                        // Check if this is a badge (profile grid) or regular text
+                        if (span.classList.contains('badge')) {
+                            // Badge format - just number with icon
+                            span.innerHTML = `<i class="bi bi-chat-fill"></i> ${newCount}`;
+                        } else {
+                            // Regular format - "X comments"
+                            span.textContent = `${newCount} comment${newCount !== 1 ? 's' : ''}`;
+                        }
+                    }
                 });
+                
+                // Reload comments preview in feed (with slight delay to ensure comment is added)
+                setTimeout(() => {
+                    refreshCommentsPreview(postId);
+                }, 100);
             })
             .catch(error => console.error('Error adding comment:', error));
         });

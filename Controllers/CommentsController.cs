@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 using unibucGram.Models;
 using System.Linq;
+using unibucGram.Services;
 
 namespace unibucGram.Controllers
 {
@@ -13,11 +14,13 @@ namespace unibucGram.Controllers
     {
         private readonly ApplicationDbContext _db;
         private readonly UserManager<User> _userManager;
+        private readonly ContentModerationService _moderationService;
 
-        public CommentsController(ApplicationDbContext db, UserManager<User> userManager)
+        public CommentsController(ApplicationDbContext db, UserManager<User> userManager, ContentModerationService moderationService)
         {
             _db = db;
             _userManager = userManager;
+            _moderationService = moderationService;
         }
 
         [HttpPost]
@@ -29,6 +32,20 @@ namespace unibucGram.Controllers
             ModelState.Remove("User");
             ModelState.Remove("Post");
             ModelState.Remove("CreatedAt");
+
+            // Check content with AI moderation
+            if (!string.IsNullOrWhiteSpace(comment.Content))
+            {
+                var (isAppropriate, reason) = await _moderationService.CheckContentAsync(comment.Content);
+                if (!isAppropriate)
+                {
+                    if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+                    {
+                        return BadRequest(new { message = "Conținutul tău conține termeni nepotriviți. Te rugăm să reformulezi." });
+                    }
+                    return RedirectToAction("Post", "Posts", new { id = comment.PostId });
+                }
+            }
 
             if (ModelState.IsValid)
             {
@@ -103,6 +120,16 @@ namespace unibucGram.Controllers
             if (string.IsNullOrWhiteSpace(commentData.Content) || commentData.Content.Length > 1000)
             {
                  ModelState.AddModelError("Content", "Comment must be between 1 and 1000 characters.");
+            }
+
+            // Check content with AI moderation
+            if (!string.IsNullOrWhiteSpace(commentData.Content))
+            {
+                var (isAppropriate, reason) = await _moderationService.CheckContentAsync(commentData.Content);
+                if (!isAppropriate)
+                {
+                    return BadRequest(new { success = false, message = "Conținutul tău conține termeni nepotriviți. Te rugăm să reformulezi." });
+                }
             }
 
             if (ModelState.IsValid)
