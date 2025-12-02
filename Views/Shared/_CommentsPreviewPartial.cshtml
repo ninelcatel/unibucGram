@@ -1,0 +1,9 @@
+@model IEnumerable<unibucGram.Models.Comment>
+
+@foreach(var comment in Model)
+{
+    @if (comment.User != null)
+    {
+        <partial name="_CommentPartial" model="comment" />
+    }
+}

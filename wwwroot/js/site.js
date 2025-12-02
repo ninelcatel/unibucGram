@@ -1,6 +1,64 @@
 ﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
 // for details on configuring this project to bundle and minify static web assets.
 
+// Function to refresh comments preview in feed
+function refreshCommentsPreview(postId) {
+    let previewContainer = document.getElementById(`comments-preview-${postId}`);
+    
+    // Check if we're on the feed page (where preview exists)
+    // If preview container doesn't exist and the post card doesn't have a card-footer, 
+    // we're probably on the profile page, so skip the preview update
+    const postCard = document.getElementById(`post-${postId}`);
+    if (!previewContainer && postCard) {
+        const cardFooter = postCard.querySelector('.card-footer');
+        if (!cardFooter) {
+            // Profile page - no preview needed
+            return;
+        }
+    }
+    
+    fetch(`/Posts/GetCommentsPreview?postId=${postId}`, {
+        method: 'GET',
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.text())
+    .then(html => {
+        if (html.trim()) {
+            // If there are comments, update or create the preview container
+            if (previewContainer) {
+                previewContainer.innerHTML = html;
+            } else {
+                // Container doesn't exist, need to create it
+                if (postCard) {
+                    const cardBody = postCard.querySelector('.card-body');
+                    if (cardBody) {
+                        const div = document.createElement('div');
+                        div.className = 'mt-3 pt-2 border-top';
+                        div.id = `comments-preview-${postId}`;
+                        div.innerHTML = html;
+                        
+                        // Insert before the card-footer if it exists
+                        const cardFooter = postCard.querySelector('.card-footer');
+                        if (cardFooter) {
+                            cardBody.appendChild(div);
+                        } else {
+                            cardBody.appendChild(div);
+                        }
+                    }
+                }
+            }
+        } else {
+            // No comments, remove the preview container if it exists
+            if (previewContainer) {
+                previewContainer.remove();
+            }
+        }
+    })
+    .catch(error => console.error('Error refreshing comments preview:', error));
+}
+
 // ...existing code...
 document.addEventListener('DOMContentLoaded', () => {
     (function(){
@@ -428,15 +486,38 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                         
                         // Update comment count for this post (after a delay to ensure container is identified)
+                        // Use a flag to ensure we only update once per post
+                        const updatedPosts = new Set();
+                        
                         setTimeout(() => {
-                            if (postId) {
-                                document.querySelectorAll(`#post-${postId} .comments-count, #post-modal-${postId} .comments-count`).forEach(span => {
-                                    const currentCount = parseInt(span.textContent) || 0;
-                                    const newCount = Math.max(0, currentCount - 1);
-                                    span.textContent = `${newCount} comment${newCount !== 1 ? 's' : ''}`;
+                            if (postId && !updatedPosts.has(postId)) {
+                                updatedPosts.add(postId);
+                                
+                                // Update all comment counts for this post across the entire page
+                                const allCommentCounts = document.querySelectorAll('.comments-count');
+                                allCommentCounts.forEach(span => {
+                                    // Check if this counter belongs to our post by finding the parent with the post ID
+                                    const postContainer = span.closest(`#post-${postId}`) || 
+                                                        span.closest(`#post-modal-${postId}`) ||
+                                                        span.closest(`[id="post-${postId}"]`) ||
+                                                        span.closest(`[data-post-id="${postId}"]`);
+                                    
+                                    if (postContainer) {
+                                        const currentCount = parseInt(span.textContent.trim()) || 0;
+                                        const newCount = Math.max(0, currentCount - 1);
+                                        
+                                        // Check if this is a badge (profile grid) or regular text
+                                        if (span.classList.contains('badge')) {
+                                            // Badge format - just number with icon
+                                            span.innerHTML = `<i class="bi bi-chat-fill"></i> ${newCount}`;
+                                        } else {
+                                            // Regular format - "X comments"
+                                            span.textContent = `${newCount} comment${newCount !== 1 ? 's' : ''}`;
+                                        }
+                                    }
                                 });
                                 
-                                // Also update the count in the modal header if it exists
+                                // Also check for modal-specific counters
                                 const modalCommentsCount = document.querySelector(`#post-modal-${postId} .modal-comments-count`);
                                 if (modalCommentsCount) {
                                     const currentCount = parseInt(modalCommentsCount.textContent) || 0;
@@ -449,6 +530,9 @@ document.addEventListener('DOMContentLoaded', () => {
                                 if (commentsModalBody && commentsModalBody.children.length === 0) {
                                     commentsModalBody.innerHTML = '<div class="no-comments"><i class="bi bi-chat-dots"></i><p>No comments yet. Be the first to comment!</p></div>';
                                 }
+                                
+                                // Reload comments preview in feed
+                                refreshCommentsPreview(postId);
                             }
                         }, 350);
                     } else {
@@ -491,11 +575,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 input.value = '';
                 
-                // Update comment count - search for all spans with comments-count class for this post
-                document.querySelectorAll(`#post-${postId} .comments-count, #post-modal-${postId} .comments-count`).forEach(span => {
-                    const currentCount = parseInt(span.textContent) || 0;
-                    span.textContent = `${currentCount + 1} comments`;
+                // Update comment count - search for all comment counts for this post
+                const allCommentCounts = document.querySelectorAll('.comments-count');
+                allCommentCounts.forEach(span => {
+                    const postContainer = span.closest(`#post-${postId}`) || 
+                                        span.closest(`#post-modal-${postId}`) ||
+                                        span.closest(`[id="post-${postId}"]`) ||
+                                        span.closest(`[data-post-id="${postId}"]`);
+                    
+                    if (postContainer) {
+                        const currentCount = parseInt(span.textContent.trim()) || 0;
+                        const newCount = currentCount + 1;
+                        
+                        // Check if this is a badge (profile grid) or regular text
+                        if (span.classList.contains('badge')) {
+                            // Badge format - just number with icon
+                            span.innerHTML = `<i class="bi bi-chat-fill"></i> ${newCount}`;
+                        } else {
+                            // Regular format - "X comments"
+                            span.textContent = `${newCount} comment${newCount !== 1 ? 's' : ''}`;
+                        }
+                    }
                 });
+                
+                // Reload comments preview in feed
+                refreshCommentsPreview(postId);
             }).catch(error => console.error('Error adding comment:', error));
         }
 
@@ -644,6 +748,21 @@ document.addEventListener('DOMContentLoaded', () => {
         // Add event listener for when modal is fully shown
         postModal.addEventListener('shown.bs.modal', function() {
             initializeModalCommentsScroll();
+            
+            // Ensure all videos in modal start muted
+            const videos = postModal.querySelectorAll('video');
+            videos.forEach(video => {
+                video.muted = true;
+            });
+        });
+        
+        // Add event listener for when modal is hidden to stop videos
+        postModal.addEventListener('hidden.bs.modal', function() {
+            const videos = postModal.querySelectorAll('video');
+            videos.forEach(video => {
+                video.pause();
+                video.currentTime = 0;
+            });
         });
     }
 
@@ -2113,4 +2232,37 @@ document.querySelectorAll('.following-link').forEach(link => {
                     </div>`;
             });
     }
+
+    // =================================================================
+    // VIDEO THUMBNAIL LOADER FOR PROFILE GRID
+    // =================================================================
+    const videoThumbnails = document.querySelectorAll('.video-thumbnail');
+    videoThumbnails.forEach(video => {
+        video.addEventListener('loadeddata', function() {
+            // Seek to 1 second to get a better frame
+            this.currentTime = 1;
+        });
+        
+        video.addEventListener('seeked', function() {
+            // Once seeked, the frame is displayed
+            this.pause();
+        });
+        
+        // Start loading
+        video.load();
+    });
+    
+    // =================================================================
+    // STOP ALL VIDEOS WHEN ANY MODAL CLOSES
+    // =================================================================
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('hidden.bs.modal', function() {
+            // Stop all videos in this modal
+            const videos = this.querySelectorAll('video');
+            videos.forEach(video => {
+                video.pause();
+                video.currentTime = 0;
+            });
+        });
+    });
 });

@@ -130,15 +130,17 @@
                                    data-bs-toggle="modal"
                                    data-bs-target="#postModal"
                                    data-post-id="@post.Id">
-                                    <div class="card h-100 border-0 shadow-sm @(noMedia ? "text-only-card" : "")">
+                                    <div class="card h-100 border-0 shadow-sm @(noMedia ? "text-only-card" : "")" id="post-@post.Id">
                                         @if (hasVideo)
                                         {
-                                            <div class="post-image-container" style="position: relative; background: #000; height: 250px; overflow: hidden;">
-                                                <video class="w-100 h-100" style="object-fit: cover; display: block; height: 250px;" muted playsinline>
+                                            <div class="post-image-container video-thumbnail-container" style="position: relative; background: #000; height: 250px; overflow: hidden;" data-video-url="@post.VideoURL">
+                                                <video class="w-100 h-100 video-thumbnail" style="object-fit: cover; display: block; height: 250px;" muted playsinline preload="auto">
                                                     <source src="@post.VideoURL" type="video/mp4">
                                                 </video>
-                                                <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none;">
-                                                    <i class="bi bi-play-circle fs-1 text-white" style="text-shadow: 0 0 10px rgba(0,0,0,0.7);"></i>
+                                                <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.3); pointer-events: none;">
+                                                    <div style="background: rgba(255,255,255,0.9); border-radius: 50%; width: 70px; height: 70px; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3);">
+                                                        <i class="bi bi-play-fill" style="font-size: 2.5rem; color: #8b5cf6; margin-left: 5px;"></i>
+                                                    </div>
                                                 </div>
                                             </div>
                                         }
@@ -172,10 +174,10 @@
                                             <div class="d-flex justify-content-between align-items-center">
                                                 <small class="text-muted" style="font-size: 0.7rem;">@post.CreatedAt.ToLocalTime().ToString("M/d/yy")</small>
                                                 <div>
-                                                    <span class="badge bg-light text-dark" style="font-size: 0.65rem;">
+                                                    <span class="badge bg-light text-dark likes-count" style="font-size: 0.65rem;">
                                                         <i class="bi bi-heart-fill text-danger"></i> @post.Likes.Count
                                                     </span>
-                                                    <span class="badge bg-light text-dark ms-1" style="font-size: 0.65rem;">
+                                                    <span class="badge bg-light text-dark comments-count ms-1" style="font-size: 0.65rem;">
                                                         <i class="bi bi-chat-fill"></i> @post.Comments.Count
                                                     </span>
                                                 </div>

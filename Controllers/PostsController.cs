@@ -391,6 +391,33 @@ namespace unibucGram.Controllers
             return RedirectToAction("Index", "Profile");
         }
 
+        [HttpGet]
+        public async Task<IActionResult> GetCommentsPreview(int postId)
+        {
+            var post = await _db.Posts
+                .Include(p => p.Comments)
+                    .ThenInclude(c => c.User)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+
+            if (post == null)
+            {
+                return NotFound();
+            }
+
+            var latestComments = post.Comments
+                .OrderByDescending(c => c.CreatedAt)
+                .Take(3)
+                .Reverse()
+                .ToList();
+
+            if (!latestComments.Any())
+            {
+                return Content(""); // Return empty if no comments
+            }
+
+            return PartialView("_CommentsPreviewPartial", latestComments);
+        }
+
         private bool PostExists(int id)
         {
             return _db.Posts.Any(e => e.Id == id);

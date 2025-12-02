@@ -13,7 +13,7 @@
             <div class="col-md-7" style="background: #000; display: flex; align-items: center; justify-content: center; max-height: 500px; overflow: hidden;">
                 @if (hasVideo)
                 {
-                    <video controls class="w-100 h-100 rounded-start" style="max-height: 500px; object-fit: contain;" controlsList="nodownload" playsinline>
+                    <video controls muted class="w-100 h-100 rounded-start modal-video" style="max-height: 500px; object-fit: contain;" controlsList="nodownload" playsinline>
                         <source src="@Model.VideoURL" type="video/mp4">
                         <source src="@Model.VideoURL" type="video/webm">
                         <source src="@Model.VideoURL" type="video/ogg">

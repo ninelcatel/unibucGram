@@ -81,7 +81,7 @@
 
                     <hr>
                     <div id="add-comment-section" style="display: none;">
-                        <form asp-controller="Comments" asp-action="New" method="post">
+                        <form asp-controller="Comments" asp-action="Add" method="post">
                             <input type="hidden" name="PostId" value="@Model.Id" />
                             <div class="input-group">
                                 <input type="text" name="Content" class="form-control" placeholder="add comment" />
