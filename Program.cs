@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using unibucGram.Models; // eu pusesem appdbcontext.cs in models si de aia nu cred ca mergea, daca e cazu
 // schimbam inapoi in .data 
 using System.Threading;
+using unibucGram.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +22,9 @@ builder.Services.AddDefaultIdentity<User>(options =>
 .AddRoles<IdentityRole>() 
 .AddEntityFrameworkStores<ApplicationDbContext>()
 .AddDefaultTokenProviders();
+
+// Add HttpClient and ContentModerationService
+builder.Services.AddHttpClient<ContentModerationService>();
 
 builder.Services.AddRazorPages();  // ADD THIS LINE
 builder.Services.AddControllersWithViews();

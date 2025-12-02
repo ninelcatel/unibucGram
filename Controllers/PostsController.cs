@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using unibucGram.Models;
 using Microsoft.AspNetCore.Authorization.Infrastructure;
+using unibucGram.Services;
 
 namespace unibucGram.Controllers
 {
@@ -20,12 +21,14 @@ namespace unibucGram.Controllers
         private readonly ApplicationDbContext _db;
         private readonly UserManager<User> _userManager;
         private readonly IWebHostEnvironment _env;
+        private readonly ContentModerationService _moderationService;
 
-        public PostsController(ApplicationDbContext db, UserManager<User> userManager, IWebHostEnvironment env)
+        public PostsController(ApplicationDbContext db, UserManager<User> userManager, IWebHostEnvironment env, ContentModerationService moderationService)
         {
             _db = db;
             _userManager = userManager;
             _env = env;
+            _moderationService = moderationService;
         }
 
         [HttpGet]
@@ -54,6 +57,17 @@ namespace unibucGram.Controllers
             ModelState.Remove("UserId");
             ModelState.Remove("User");
             ModelState.Remove("CreatedAt");
+
+            // Check content with AI moderation if there's text
+            if (!string.IsNullOrWhiteSpace(post.Content))
+            {
+                var (isAppropriate, reason) = await _moderationService.CheckContentAsync(post.Content);
+                if (!isAppropriate)
+                {
+                    ModelState.AddModelError("Content", "Conținutul tău conține termeni nepotriviți. Te rugăm să reformulezi.");
+                    return View("New", post);
+                }
+            }
 
             // Verificam atat validarile din model ([StringLength]) cat si cea custom
             if (ModelState.IsValid)
@@ -310,6 +324,17 @@ namespace unibucGram.Controllers
             if (!isOwner && !isAdminOrEditor)
             {
                 return Forbid();
+            }
+
+            // Check content with AI moderation if there's text
+            if (!string.IsNullOrWhiteSpace(postData.Content))
+            {
+                var (isAppropriate, reason) = await _moderationService.CheckContentAsync(postData.Content);
+                if (!isAppropriate)
+                {
+                    ModelState.AddModelError("Content", "Conținutul tău conține termeni nepotriviți. Te rugăm să reformulezi.");
+                    return View(postToUpdate);
+                }
             }
 
             // --- LOGICA NOUA DE VALIDARE SI PROCESARE IMAGINE ---

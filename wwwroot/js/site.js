@@ -826,6 +826,13 @@ document.addEventListener('DOMContentLoaded', () => {
             })
             .then(html => { 
                 modalBody.innerHTML = html;
+                
+                // Ensure all videos in modal start muted
+                const modalVideos = modalBody.querySelectorAll('video');
+                modalVideos.forEach(video => {
+                    video.muted = true;
+                });
+                
                 // Initialize scroll after content is loaded
                 setTimeout(initializeModalCommentsScroll, 100);
             })
@@ -951,6 +958,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                     .then(html => { 
                         modalBody.innerHTML = html;
+                        
+                        // Ensure all videos in modal start muted
+                        const modalVideos = modalBody.querySelectorAll('video');
+                        modalVideos.forEach(video => {
+                            video.muted = true;
+                        });
+                        
                         setTimeout(initializeModalCommentsScroll, 100);
                     })
                     .catch(err => { 
@@ -988,6 +1002,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     })
                     .then(html => { 
                         modalBody.innerHTML = html;
+                        
+                        // Ensure all videos in modal start muted
+                        const modalVideos = modalBody.querySelectorAll('video');
+                        modalVideos.forEach(video => {
+                            video.muted = true;
+                        });
+                        
                         setTimeout(initializeModalCommentsScroll, 100);
                     })
                     .catch(err => { 
@@ -1210,7 +1231,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         // Determine media type and create appropriate HTML
                         let mediaHtml = '';
                         if (post.videoURL) {
-                            mediaHtml = `<video class="card-img-top" controls style="max-height: 200px; width: 100%; object-fit: cover;">
+                            mediaHtml = `<video class="card-img-top chat-message-video" muted controls style="max-height: 200px; width: 100%; object-fit: cover;">
                                 <source src="${post.videoURL}" type="video/mp4">
                                 <source src="${post.videoURL}" type="video/webm">
                                 Your browser does not support the video tag.
@@ -1289,6 +1310,13 @@ document.addEventListener('DOMContentLoaded', () => {
                                 .then(response => response.text())
                                 .then(html => {
                                     postModalBody.innerHTML = html;
+                                    
+                                    // Ensure all videos in modal start muted
+                                    const modalVideos = postModalBody.querySelectorAll('video');
+                                    modalVideos.forEach(video => {
+                                        video.muted = true;
+                                    });
+                                    
                                     setTimeout(initializeModalCommentsScroll, 100);
                                 })
                                 .catch(err => {
@@ -1296,6 +1324,23 @@ document.addEventListener('DOMContentLoaded', () => {
                                     postModalBody.innerHTML = '<p class="text-danger text-center p-5">Failed to load post.</p>';
                                 });
                         }
+                    });
+                });
+
+                // Force all chat message videos to stay muted
+                chatMessagesContainer.querySelectorAll('.chat-message-video').forEach(video => {
+                    video.muted = true;
+                    
+                    // Prevent unmuting
+                    video.addEventListener('volumechange', function() {
+                        if (!this.muted) {
+                            this.muted = true;
+                        }
+                    });
+                    
+                    // Also prevent on play
+                    video.addEventListener('play', function() {
+                        this.muted = true;
                     });
                 });
 
