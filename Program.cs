@@ -4,6 +4,7 @@ using unibucGram.Models; // eu pusesem appdbcontext.cs in models si de aia nu cr
 // schimbam inapoi in .data 
 using System.Threading;
 using unibucGram.Services;
+using SignalRChat.Hubs;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,7 @@ builder.Services.AddDefaultIdentity<User>(options =>
 builder.Services.AddHttpClient<ContentModerationService>();
 
 builder.Services.AddRazorPages();  // ADD THIS LINE
+builder.Services.AddSignalR();
 builder.Services.AddControllersWithViews();
 
 // Configure form options for large file uploads (videos)
@@ -101,7 +103,8 @@ app.UseStaticFiles();
 // Register static web assets (Razor class libraries)
 app.MapStaticAssets();
 
-app.MapRazorPages();  
+app.MapRazorPages();
+app.MapHub<ChatHub>("/chatHub");
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");
