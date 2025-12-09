@@ -164,7 +164,7 @@ namespace unibucGram.Controllers
                 _db.Posts.Add(post);
                 await _db.SaveChangesAsync();
 
-                return RedirectToAction("Index", "Home");
+                return RedirectToAction("Index", "Profile");
             }
 
             // Daca modelul nu e valid, ne intoarcem la formular cu erorile
