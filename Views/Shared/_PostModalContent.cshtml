@@ -32,7 +32,7 @@
                              alt="avatar" width="32" height="32" class="rounded-circle me-2" />
                         <strong>@Model.User.UserName</strong>
                     </a>
-                    @if (Model.UserId == currentUserId)
+                    @if (Model.UserId == currentUserId || User.IsInRole("Admin") || User.IsInRole("Editor"))
                     {
                         <div class="dropdown">
                             <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
@@ -115,11 +115,23 @@
                          alt="avatar" width="40" height="40" class="rounded-circle me-2" />
                     <strong class="fs-5">@Model.User.UserName</strong>
                 </a>
-                @if (Model.UserId == currentUserId)
+                @if (Model.UserId == currentUserId || User.IsInRole("Admin") || User.IsInRole("Editor"))
                 {
-                    <a asp-controller="Posts" asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-sm btn-outline-primary">
-                        <i class="bi bi-pencil-square"></i>
-                    </a>
+                    <div class="dropdown">
+                        <button class="btn btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                            <i class="bi bi-three-dots"></i>
+                        </button>
+                        <ul class="dropdown-menu dropdown-menu-end">
+                            <li><a asp-controller="Posts" asp-action="Edit" asp-route-id="@Model.Id" class="dropdown-item"><i class="bi bi-pencil-square me-2"></i>Edit</a></li>
+                            <li><hr class="dropdown-divider" /></li>
+                            <li>
+                                <form asp-controller="Posts" asp-action="Delete" method="post" onsubmit="return confirm('Delete this post?');">
+                                    <input type="hidden" name="postId" value="@Model.Id" />
+                                    <button type="submit" class="dropdown-item text-danger"><i class="bi bi-trash3-fill me-2"></i>Delete</button>
+                                </form>
+                            </li>
+                        </ul>
+                    </div>
                 }
             </div>
             <div class="text-only-content mb-4">
