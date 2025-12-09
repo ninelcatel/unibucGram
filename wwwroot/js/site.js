@@ -62,10 +62,77 @@ function refreshCommentsPreview(postId) {
 
 // ...existing code...
 document.addEventListener('DOMContentLoaded', () => {
+let signalRConnection = null;
+
+    function initializeSignalR() {
+        // Check if user is logged in before connecting
+        const currentUsername = document.body.dataset.currentUsername;
+        if (!currentUsername) return;
+
+        signalRConnection = new signalR.HubConnectionBuilder()
+            .withUrl("/chatHub")
+            .withAutomaticReconnect()
+            .build();
+
+        // This function is called by the server when a new message arrives
+        signalRConnection.on("ReceiveMessage", function (data) {
+            const chatMessagesContainer = document.getElementById('chatMessagesContainer');
+            const currentGroupId = document.getElementById('currentGroupId').value;
+
+            // Only append the message if the correct chat window is open
+            if (!chatMessagesContainer || !currentGroupId) return;
+
+            const isMe = data.senderName === currentUsername;
+
+            const div = document.createElement('div');
+            div.className = `d-flex mb-3 ${isMe ? 'justify-content-end' : 'justify-content-start'}`;
+
+            const pfpHtml = isMe ? '' : `
+                <a href="/Profile/Show/${encodeURIComponent(data.senderName)}" class="text-decoration-none">
+                    <img src="${data.senderPfp}" class="rounded-circle me-2 align-self-end" width="30" height="30" style="object-fit:cover;">
+                </a>`;
+
+            div.innerHTML = `
+                ${pfpHtml}
+                <div class="d-flex flex-column ${isMe ? 'align-items-end' : 'align-items-start'}" style="max-width:70%;">
+                    ${!isMe ? `<small class="text-muted mb-1 fw-semibold" style="font-size:0.75rem;">${data.senderName}</small>` : ''}
+                    <div class="p-3 rounded-3 ${isMe ? 'msg-bubble-sent' : 'msg-bubble-received'}" style="word-wrap:break-word;box-shadow:0 1px 2px rgba(0,0,0,0.1);">
+                        ${data.content}
+                    </div>
+                    <small class="text-muted mt-1" style="font-size:0.7rem;">${data.sentAt}</small>
+                </div>
+            `;
+            
+            // Remove "Start the conversation" message if it exists
+            const emptyMsg = chatMessagesContainer.querySelector('.text-center.text-muted');
+            if (emptyMsg) emptyMsg.remove();
+
+            chatMessagesContainer.appendChild(div);
+            scrollChatToBottom();
+        });
+
+        signalRConnection.start().then(() => {
+            console.log("SignalR Connected for Chat.");
+        }).catch(err => console.error("SignalR Connection Error: ", err));
+    }
+
+    initializeSignalR(); // Call the function to connect
+
+
     (function(){
         const chatModal = document.getElementById('groupChatModal');
         if (!chatModal) return;
-
+        chatModal.addEventListener('hidden.bs.modal', async function () {
+            const groupId = currentGroupIdInput.value;
+            if (groupId && signalRConnection && signalRConnection.state === signalR.HubConnectionState.Connected) {
+                try {
+                    await signalRConnection.invoke("LeaveGroup", groupId.toString());
+                } catch (err) {
+                    console.error('Failed to leave SignalR group:', err);
+                }
+            }
+        });
+    
         const toggle = document.getElementById('groupInfoToggle');
         const panel = document.getElementById('groupInfoPanel');
         const content = chatModal.querySelector('.modal-content');
@@ -1146,7 +1213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatInput = document.getElementById('chatInput');
     const currentGroupIdInput = document.getElementById('currentGroupId');
     const chatModalTitle = document.getElementById('chatModalTitle');
-
+    
     // 1. Load Groups on Page Load
     if (groupsListContainer) {
         fetch('/Group/GetUserGroups')
@@ -1223,15 +1290,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 2. Open Chat Modal & Load Messages
-    function openChatModal(groupId, groupName) {
+    async function openChatModal(groupId, groupName) {
         currentGroupIdInput.value = groupId;
         chatModalTitle.textContent = groupName;
         chatMessagesContainer.innerHTML = '<div class="text-center mt-4"><div class="spinner-border text-purple" role="status"></div></div>';
         
+if (signalRConnection && signalRConnection.state === signalR.HubConnectionState.Connected) {
+            try {
+                await signalRConnection.invoke("JoinGroup", groupId.toString());
+            } catch (err) {
+                console.error('Failed to join SignalR group:', err);
+            }
+        }
+
         const bsModal = new bootstrap.Modal(chatModal);
         bsModal.show();
 
-        fetch(`/Group/GetGroupInfo?groupId=${groupId}`)
+        fetch(`/Group/GetGroupInfo?groupId= ${groupId}`)
             .then(r => r.json())
             .then(groupData => {
             
@@ -1248,6 +1323,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         loadMessages(groupId);
     }
+    
 
     function scrollChatToBottom(retries = 3) {
         if (!chatMessagesContainer) return;
