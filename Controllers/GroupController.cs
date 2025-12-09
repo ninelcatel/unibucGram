@@ -11,6 +11,8 @@ using Microsoft.EntityFrameworkCore;
 using unibucGram.Models;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration.UserSecrets;
+using Microsoft.AspNetCore.SignalR; // Add this using statement
+using SignalRChat.Hubs; // Add this using statement
 
 namespace unibucGram.Controllers
 {
@@ -20,12 +22,14 @@ namespace unibucGram.Controllers
         private readonly ApplicationDbContext _context;
         private readonly UserManager<User> _userManager;
         private readonly ILogger<GroupController> _logger;
+        private readonly IHubContext<ChatHub> _hubContext; // 1. Add HubContext field
 
-        public GroupController(ApplicationDbContext context, UserManager<User> userManager, ILogger<GroupController> logger)
+        public GroupController(ApplicationDbContext context, UserManager<User> userManager, ILogger<GroupController> logger, IHubContext<ChatHub> hubContext) // 2. Inject in constructor
         {
             _context = context;
             _userManager = userManager;
             _logger = logger;
+            _hubContext = hubContext; // 3. Assign it
         }
 
         [Authorize(Roles = "User,Editor,Admin")]
@@ -262,6 +266,17 @@ namespace unibucGram.Controllers
 
             _context.GroupMessages.Add(msg);
             await _context.SaveChangesAsync();
+
+            // --- 4. BROADCAST THE MESSAGE VIA SIGNALR ---
+            await _hubContext.Clients.Group(groupId.ToString()).SendAsync("ReceiveMessage", new
+            {
+                id = msg.Id,
+                content = msg.Content,
+                senderName = user.UserName,
+                senderPfp = user.PfpURL ?? "/uploads/default_pfp.jpg",
+                sentAt = msg.SentAt.ToString("HH:mm")
+            });
+            // --- END OF BROADCAST ---
 
             return Json(new { success = true });
         }

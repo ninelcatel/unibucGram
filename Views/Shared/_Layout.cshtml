@@ -15,7 +15,7 @@
     
     <link rel="icon" type="image/x-icon" href="~/favicon.ico" asp-append-version="true" />
 </head>
-<body>
+<body data-current-username="@User.Identity?.Name">
     <header>
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-0 position-sticky">
             <div class="container-fluid">
@@ -126,6 +126,7 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/signalr/dist/browser/signalr.js"></script> <!-- ADD THIS LINE -->
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 
