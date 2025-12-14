@@ -64,7 +64,8 @@ namespace unibucGram.Controllers
                 var (isAppropriate, reason) = await _moderationService.CheckContentAsync(post.Content);
                 if (!isAppropriate)
                 {
-                    ModelState.AddModelError("Content", "Conținutul tău conține termeni nepotriviți. Te rugăm să reformulezi.");
+                    var friendlyMessage = ContentModerationService.GetFriendlyErrorMessage(reason);
+                    ModelState.AddModelError("Content", friendlyMessage);
                     return View("New", post);
                 }
             }
@@ -332,7 +333,8 @@ namespace unibucGram.Controllers
                 var (isAppropriate, reason) = await _moderationService.CheckContentAsync(postData.Content);
                 if (!isAppropriate)
                 {
-                    ModelState.AddModelError("Content", "Conținutul tău conține termeni nepotriviți. Te rugăm să reformulezi.");
+                    var friendlyMessage = ContentModerationService.GetFriendlyErrorMessage(reason);
+                    ModelState.AddModelError("Content", friendlyMessage);
                     return View(postToUpdate);
                 }
             }

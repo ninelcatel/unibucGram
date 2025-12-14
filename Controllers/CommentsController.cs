@@ -128,7 +128,8 @@ namespace unibucGram.Controllers
                 var (isAppropriate, reason) = await _moderationService.CheckContentAsync(commentData.Content);
                 if (!isAppropriate)
                 {
-                    return BadRequest(new { success = false, message = "Conținutul tău conține termeni nepotriviți. Te rugăm să reformulezi." });
+                    var friendlyMessage = ContentModerationService.GetFriendlyErrorMessage(reason);
+                    return BadRequest(new { success = false, message = friendlyMessage });
                 }
             }
 

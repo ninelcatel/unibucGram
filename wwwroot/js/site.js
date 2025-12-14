@@ -784,7 +784,31 @@ let signalRConnection = null;
             })
             .catch(error => {
                 console.error('Error adding comment:', error);
-                alert(error.message || 'Failed to add comment. Please check your content.');
+                
+                // Create styled error message
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger alert-dismissible fade show mt-2';
+                errorDiv.style.cssText = 'animation: slideIn 0.3s ease-out;';
+                errorDiv.innerHTML = `
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <strong>Eroare:</strong> ${error.message || 'Nu s-a putut adăuga comentariul. Verifică conținutul.'}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                `;
+                
+                // Remove any existing error messages
+                const existingError = form.parentElement.querySelector('.alert-danger');
+                if (existingError) existingError.remove();
+                
+                // Insert error message after the form
+                form.parentElement.insertBefore(errorDiv, form.nextSibling);
+                
+                // Auto-remove after 7 seconds
+                setTimeout(() => {
+                    if (errorDiv && errorDiv.parentElement) {
+                        errorDiv.classList.remove('show');
+                        setTimeout(() => errorDiv.remove(), 150);
+                    }
+                }, 7000);
             });
         }
 
@@ -2164,8 +2188,8 @@ if (signalRConnection && signalRConnection.state === signalR.HubConnectionState.
                 errorDiv.className = 'alert alert-danger alert-dismissible fade show mt-2';
                 errorDiv.style.cssText = 'animation: slideIn 0.3s ease-out; margin: 0 1rem;';
                 errorDiv.innerHTML = `
-                    <i class="bi bi-exclamation-triangle-fill me-2"></i>
-                    <strong>Error:</strong> ${error.message || 'Failed to add comment. Please check your content.'}
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    <strong>Eroare:</strong> ${error.message || 'Nu s-a putut adăuga comentariul. Verifică conținutul.'}
                     <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 `;
                 
@@ -2176,11 +2200,13 @@ if (signalRConnection && signalRConnection.state === signalR.HubConnectionState.
                 // Insert error message after the form
                 modalCommentForm.parentElement.insertBefore(errorDiv, modalCommentForm.nextSibling);
                 
-                // Auto-remove after 5 seconds
+                // Auto-remove after 7 seconds
                 setTimeout(() => {
-                    errorDiv.classList.remove('show');
-                    setTimeout(() => errorDiv.remove(), 150);
-                }, 5000);
+                    if (errorDiv && errorDiv.parentElement) {
+                        errorDiv.classList.remove('show');
+                        setTimeout(() => errorDiv.remove(), 150);
+                    }
+                }, 7000);
             });
         });
     }
