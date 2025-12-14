@@ -2,18 +2,21 @@ using System.Net.Http;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Configuration;
 
 namespace unibucGram.Services
 {
     public class ContentModerationService
     {
         private readonly HttpClient _httpClient;
-        private readonly string _apiKey = "AIzaSyABJihDdXfDfEOCQl6mrKfWS7FkHtHJYp0";
-        private readonly string _apiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
+        private readonly string _apiKey;
+        private readonly string _apiUrl;
 
-        public ContentModerationService(HttpClient httpClient)
+        public ContentModerationService(HttpClient httpClient, IConfiguration configuration)
         {
             _httpClient = httpClient;
+            _apiKey = configuration["ContentModeration:ApiKey"] ?? throw new ArgumentNullException("ContentModeration:ApiKey not configured");
+            _apiUrl = configuration["ContentModeration:ApiUrl"] ?? "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent";
         }
 
         public async Task<(bool IsAppropriate, string Reason)> CheckContentAsync(string content)
