@@ -1,4 +1,7 @@
-# Docker 
+# unibucGram - Social Media Web Application 
+This is a social-media-style web app (like a simple Instagram clone) built with ASP.NET (C#) and Microsoft SQL Server.
+
+## Docker 
 
 - The project is configured to use the SQL Server container as the database when run with Docker Compose.
 - EF Core migrations are applied automatically by the web container at startup (the project includes a retry loop). 
@@ -59,14 +62,19 @@ sqlcmd -S localhost -U SA -P '<SA_PASSWORD>'
 - If using VSCode editor, SQL Server extension is highly recommended and a better experience than sqlcmd
 
 
-WebApp Quick usage
+## WebApp Quick usage
 
-1. Start both services (recommended):
+1. Cloning the repository
+```sh
+git clone https://github.com/ninelcatel/unibucGram.git && cd unibucGram
+```
+
+2. Start both services (recommended):
 ```sh
 docker compose up --build
 ```
 
-2. Start DB, then run web (alternative):
+3. Start DB, then run web (alternative):
 ```sh
 docker compose up -d database
 docker compose up --build webapp
